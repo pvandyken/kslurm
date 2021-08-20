@@ -3,14 +3,16 @@ import sys, subprocess
 from colorama import Fore
 from slurm_args import SlurmCommand
 
-slurm = SlurmCommand(sys.argv[1:])
+if __name__ == "__main__":
 
-print(f"""
-{Fore.GREEN}Scheduling Batch Command
-    {Fore.LIGHTBLUE_EX}SETTINGS
-        {Fore.WHITE}{slurm.slurm_args}
-    {Fore.LIGHTBLUE_EX}COMMAND
-        {Fore.WHITE}{slurm.command}
-""")
+    slurm = SlurmCommand(sys.argv[1:])
 
-subprocess.run(slurm.batch, shell=True)
+    print(f"""
+    {Fore.GREEN}Scheduling Batch Command
+        {Fore.LIGHTBLUE_EX}SETTINGS
+            {Fore.WHITE}{slurm.slurm_args}
+        {Fore.LIGHTBLUE_EX}COMMAND
+            {Fore.WHITE}{slurm.command}
+    """)
+
+    subprocess.run(slurm.batch, shell=True)

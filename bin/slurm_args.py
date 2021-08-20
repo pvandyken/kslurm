@@ -46,7 +46,7 @@ class SlurmCommand:
     def batch(self):
         s = f"sbatch {self.slurm_args}"
         if self.command:
-            return f"echo #!/bin/bash\n{self.command} | {s}"
+            return f"echo \"#!/bin/bash\n{self.command}\" | {s}"
         else:
             raise Exception("No command given")
 

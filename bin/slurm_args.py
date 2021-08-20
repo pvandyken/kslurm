@@ -34,6 +34,10 @@ class SlurmCommand:
     @property
     def command(self):
         return ' '.join(self._command)
+
+    @property
+    def name(self):
+        return self._command[0]
         
     @property
     def interactive(self):
@@ -44,7 +48,7 @@ class SlurmCommand:
 
     @property
     def batch(self):
-        s = f"sbatch {self.slurm_args}"
+        s = f"sbatch {self.slurm_args} -J={self.name}"
         if self.command:
             return f"echo \"#!/bin/bash\n{self.command}\" | {s}"
         else:

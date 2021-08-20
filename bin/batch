@@ -4,4 +4,5 @@ from slurm_args import SlurmCommand
 
 slurm = SlurmCommand(sys.argv[1:])
 
+
 subprocess.run(slurm.interactive, shell=True)

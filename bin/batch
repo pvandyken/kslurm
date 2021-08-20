@@ -12,4 +12,4 @@ print(f"""
     {Fore.LIGHTBLUE_EX}COMMAND
         {Fore.WHITE}{slurm.command}
 """)
-subprocess.run(slurm.interactive, shell=True)
+subprocess.run(slurm.batch, shell=True)

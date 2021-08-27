@@ -3,7 +3,7 @@ import sys, subprocess
 try:
     from colorama import Fore
 except:
-    from mock_colors import Fore
+    from colors import Fore
 
 from slurm_args import SlurmCommand
 

@@ -3,9 +3,7 @@ import sys, subprocess
 try:
     from colorama import Fore
 except:
-    colors = False
-else:
-    colors = True
+    from colors import Fore
 from slurm_args import SlurmCommand
 
 if __name__ == "__main__":

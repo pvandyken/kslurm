@@ -40,7 +40,8 @@ if __name__ == "__main__":
     slurm.submit_script = [
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
-        f"snakemake --wms-moniter \"$(hostname -f):5000\" --profile {profile} --configfile {config} {' '.join(args)}",
+        "echo hostname -f",
+        f"snakemake --wms-monitor \"$(hostname -f):5000\" --profile {profile} --configfile {config} {' '.join(args)}",
         "kill $PANOPTES_PID"
     ]
     subprocess.run(slurm.batch, shell=True)

@@ -19,6 +19,7 @@ class SlurmCommand:
         labelled = zip(slurm_args, labels)
         
         self._name = ""
+        self._output = ""
         self.submit_script = [self.command]
 
         self.time = time
@@ -65,7 +66,7 @@ class SlurmCommand:
 
     @property
     def batch(self):
-        s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable --output=\"snakemake-%j.out\""
+        s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
         if self.command:
             return f"echo '{self.submit_script}' | {s}"
         else:
@@ -78,6 +79,14 @@ class SlurmCommand:
     @submit_script.setter
     def submit_script(self, command):
         self._submit_script = '\n'.join(['#!/bin/bash'] + command)
+
+    @property
+    def output(self):
+        return self._output
+
+    @output.setter
+    def output(self, output):
+        self._output = f"--output=\"{output}\""
 
     def _add_arg(self, arg: str, label: str):
         if label == self.TIME:

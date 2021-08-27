@@ -9,22 +9,23 @@ except:
 from slurm_args import SlurmCommand
 import toolz_stub as tz
 
-def get_config_path(name):
-    candidates = [
-        Path(parent, name).with_suffix(suffix) 
-            for parent in [".", "config"] 
-                for suffix in [".yaml", ".yml"]
-    ]
-    exist = [c.exists() for c in candidates]
-    if any(exist):
-        return tz.second(
-                tz.first(
-                filter(lambda x: tz.first(x),
-                zip(exist, candidates)
-        )))
-    else:
-        return None
+# def get_config_path(name):
+#     candidates = [
+#         Path(parent, name).with_suffix(suffix) 
+#             for parent in [".", "config"] 
+#                 for suffix in [".yaml", ".yml"]
+#     ]
+#     exist = [c.exists() for c in candidates]
+#     if any(exist):
+#         return tz.second(
+#                 tz.first(
+#                 filter(lambda x: tz.first(x),
+#                 zip(exist, candidates)
+#         )))
+#     else:
+#         return None
 
+# Helper function for formatting the list of settings in our output
 def setting_list(name, setting):
     return Fore.YELLOW + name + ": " + Fore.WHITE + Style.BRIGHT + setting + Style.RESET_ALL
 
@@ -33,30 +34,42 @@ if __name__ == "__main__":
     if len(slurm.command_list) < 1:
         print(f"{Fore.RED}Must provide a profile")
         exit()
+
+    # Get the profile and check if it exists before submission
     profile = slurm.command_list[0]
     if not any([(Path.home() / ".config" / "snakemake" / "slurm" / "config").with_suffix(s).exists() for s in ['.yml', '.yaml']]):
         print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
         exit()
     
     args = slurm.command_list[1:]
-    name = Path.cwd().name
+
+    # Use parent directory name as the job name
+    slurm.name = Path.cwd().name
+    slurm.output = "snakemake-%j.out"
+
+    # Update our submission script
     slurm.submit_script = [
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
         "hostname -f",
-        f"snakemake --wms-monitor \"$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
+        f"snakemake --wms-monitor \"http://$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
         "kill $PANOPTES_PID"
     ]
+
+    # Run the process and collect the jobid output. We subtract the last
+    # 2 characters of the string to remove the final "\n" characters
     slurmid = subprocess\
         .run(f"{slurm.batch}", shell=True, capture_output=True)\
         .stdout.decode()[:-2]
+
+    # Print a helpful confirmation message
     print(f"""
     {Fore.GREEN}Scheduling Snakemake
         {Fore.LIGHTBLUE_EX}SETTINGS
             {Fore.WHITE}{slurm.slurm_args}
 
             {setting_list("profile", profile)}
-            {setting_list("job_name", name)}
+            {setting_list("job_name", slurm.name)}
             {setting_list("job_id", slurmid)}
             {setting_list("other_args", ' '.join(args)) if args else ''}
     

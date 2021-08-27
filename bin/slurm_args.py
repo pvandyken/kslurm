@@ -58,7 +58,7 @@ class SlurmCommand:
     def batch(self):
         s = f"sbatch {self.slurm_args} --job-name={self.name}"
         if self.command:
-            return f"echo \"{self.submit_script}\" | {s}"
+            return f"echo '{self.submit_script}' | {s}"
         else:
             raise Exception("No command given")
     @property

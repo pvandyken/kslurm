@@ -2,9 +2,9 @@
 import sys, subprocess
 from pathlib import Path
 try:
-    from colorama import Fore
+    from colorama import Fore, Style
 except:
-    from colors import Fore
+    from colors import Fore, Style
 
 from slurm_args import SlurmCommand
 import toolz_stub as tz
@@ -25,17 +25,21 @@ def get_config_path(name):
     else:
         return None
 
+def setting_list(name, setting):
+    return Fore.YELLOW + name + ": " + Fore.WHITE + Style.BRIGHT + setting + Style.RESET_ALL
+
 if __name__ == "__main__":
-    slurm = SlurmCommand(sys.argv[1:])
+    slurm = SlurmCommand(sys.argv[1:], cpu=2)
     if len(slurm.command_list) < 1:
         print(f"{Fore.RED}Must provide a profile")
         exit()
     profile = slurm.command_list[0]
     if not (Path.home() / ".config" / "snakemake" / profile / "config.yml").exists():
         print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
-        exit()
+        #exit()
     
     args = slurm.command_list[1:]
+    name = Path.cwd().name
     slurm.submit_script = [
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
@@ -43,5 +47,20 @@ if __name__ == "__main__":
         f"snakemake --wms-monitor \"$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
         "kill $PANOPTES_PID"
     ]
-    subprocess.run(f"{slurm.batch}", shell=True)
+    slurmid = subprocess\
+        .run(f"{slurm.batch}", shell=True, capture_output=True)\
+        .stdout.decode()\
+        .strip('\\n')
+    print(f"""
+    {Fore.GREEN}Scheduling Snakemake
+        {Fore.LIGHTBLUE_EX}SETTINGS
+            {Fore.WHITE}{slurm.slurm_args}
+
+            {setting_list("profile", profile)}
+            {setting_list("job_name", name)}
+            {setting_list("job_id", slurmid)}
+            {setting_list("other_args", ' '.join(args)) if args else ''}
+    
+    To cancel the job, run `scancel {slurmid}`
+    """)
     

@@ -3,4 +3,4 @@ class Fore:
     LIGHTBLUE_EX = ""
     WHITE = ""
     RED = ''
-    
+    YELLOW = ''

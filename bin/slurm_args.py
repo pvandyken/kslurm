@@ -15,6 +15,8 @@ class SlurmCommand:
         labels = [label_arg(a) for a in args]
         slurm_args, self._command = delineate_command(args, labels)
         labelled = zip(slurm_args, labels)
+        
+        self.submit_script = [self.command]
 
         self.time = 180
         self.cpu = 1
@@ -36,6 +38,12 @@ class SlurmCommand:
         return ' '.join(self._command)
 
     @property
+    def command_list(self):
+        return self._command
+
+
+
+    @property
     def name(self):
         return self._command[0]
         
@@ -50,9 +58,16 @@ class SlurmCommand:
     def batch(self):
         s = f"sbatch {self.slurm_args} -J={self.name}"
         if self.command:
-            return f"echo \"#!/bin/bash\n{self.command}\" | {s}"
+            return f"echo \"{self.submit_script}\" | {s}"
         else:
             raise Exception("No command given")
+    @property
+    def submit_script(self):
+        return self._submit_script
+
+    @submit_script.setter
+    def submit_script(self, command):
+        self._submit_script = '\n'.join(['#!/bin/bash'] + command)
 
     def _add_arg(self, arg: str, label: str):
         if label == self.TIME:

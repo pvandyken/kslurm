@@ -34,9 +34,9 @@ if __name__ == "__main__":
         print(f"{Fore.RED}Must provide a profile")
         exit()
     profile = slurm.command_list[0]
-    if not (Path.home() / ".config" / "snakemake" / profile / "config.yml").exists():
+    if not any([(Path.home() / ".config" / "snakemake" / "slurm" / "config").with_suffix(s).exists() for s in ['.yml', '.yaml']]):
         print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
-        #exit()
+        exit()
     
     args = slurm.command_list[1:]
     name = Path.cwd().name
@@ -49,8 +49,7 @@ if __name__ == "__main__":
     ]
     slurmid = subprocess\
         .run(f"{slurm.batch}", shell=True, capture_output=True)\
-        .stdout.decode()\
-        .strip('\\n')
+        .stdout.decode()[:-2]
     print(f"""
     {Fore.GREEN}Scheduling Snakemake
         {Fore.LIGHTBLUE_EX}SETTINGS
@@ -61,6 +60,7 @@ if __name__ == "__main__":
             {setting_list("job_id", slurmid)}
             {setting_list("other_args", ' '.join(args)) if args else ''}
     
-    To cancel the job, run `scancel {slurmid}`
+    To cancel the job, run:
+        scancel {slurmid}
     """)
     

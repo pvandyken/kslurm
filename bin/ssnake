@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "source $SNAKEMAKE_VENV_DIR/activate",
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
-        "(tail -F panoptes.out & ) | grep -q \"Running on all addresses.\"",
+        "(tail -F panoptes.out & ) | grep -q \"Running on\"",
         "hostname -f",
         f"snakemake --wms-monitor \"http://$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
         "kill $PANOPTES_PID",

@@ -52,9 +52,11 @@ if __name__ == "__main__":
         "source $SNAKEMAKE_VENV_DIR/activate",
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
+        "(tail -F panoptes.out & ) | grep -q \"Running on all addresses.\""
         "hostname -f",
         f"snakemake --wms-monitor \"http://$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
-        "kill $PANOPTES_PID"
+        "kill $PANOPTES_PID",
+        "rm panoptes.out"
     ]
 
     # Run the process and collect the jobid output. We subtract the last
@@ -76,5 +78,4 @@ if __name__ == "__main__":
     
     To cancel the job, run:
         scancel {slurmid}
-    """)
-    
+    """)    

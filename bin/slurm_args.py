@@ -11,6 +11,7 @@ class SlurmCommand:
     ACCOUNT = 'account'
     COMMAND = 'command'
     DIRECTORY = 'directory'
+    TEST = 'test'
 
 
     def __init__(self, args: List[str], time=180, cpu=1, gpu=False, jupyter=False, account='def-lpalaniy', mem=4000):
@@ -29,6 +30,7 @@ class SlurmCommand:
         self.account = account
         self.mem = mem
         self.cwd  = Path.cwd()
+        self.test = False
         [self._add_arg(*a) for a in labelled]
 
     @property
@@ -66,7 +68,10 @@ class SlurmCommand:
 
     @property
     def batch(self):
-        s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
+        if self.test:
+            s = "cat"
+        else:
+            s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
         if self.command:
             return f"echo '{self.submit_script}' | {s}"
         else:
@@ -101,6 +106,8 @@ class SlurmCommand:
             self.jupyter=True
         elif label == self.DIRECTORY:
             self.cwd = Path(arg).resolve()
+        elif label == self.TEST:
+            self.test = True
         else:
             raise Exception("Unlabelled slurm argument")
         
@@ -140,5 +147,7 @@ def label_arg(arg):
         return SlurmCommand.JUPYTER
     elif Path(arg).exists() and Path(arg).is_dir():
         return SlurmCommand.DIRECTORY
+    elif arg == "-n" or arg == "--dry-run":
+        return SlurmCommand.TEST
     else:
         return SlurmCommand.COMMAND

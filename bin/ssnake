@@ -39,7 +39,8 @@ if __name__ == "__main__":
     profile = slurm.command_list[0]
     if not any([(Path.home() / ".config" / "snakemake" / "slurm" / "config").with_suffix(s).exists() for s in ['.yml', '.yaml']]):
         print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
-        exit()
+        if not slurm.test:
+            sys.exit(1)
     
     args = slurm.command_list[1:]
 
@@ -59,14 +60,22 @@ if __name__ == "__main__":
         "rm panoptes.out"
     ]
 
-    # Run the process and collect the jobid output. We subtract the last
-    # 2 characters of the string to remove the final "\n" characters
-    slurmid = subprocess\
+    # Run the process and collect the jobid output. 
+    output = subprocess\
         .run(f"{slurm.batch}", shell=True, capture_output=True)\
-        .stdout.decode()[:-2]
+        .stdout.decode()
 
-    # Print a helpful confirmation message
-    print(f"""
+    if slurm.test:
+        # output will be the issued command, so we print it
+        print(Fore.WHITE + output)
+    else:
+        # We subtract the last 2 characters of the output
+        # to remove the final "\n" characters and get the 
+        # job_id
+        slurmid = output[:-2]
+
+        # Print a helpful confirmation message
+        print(f"""
     {Fore.GREEN}Scheduling Snakemake
         {Fore.LIGHTBLUE_EX}SETTINGS
             {Fore.WHITE}{slurm.slurm_args}
@@ -78,4 +87,4 @@ if __name__ == "__main__":
     
     To cancel the job, run:
         scancel {slurmid}
-    """)    
+        """)    

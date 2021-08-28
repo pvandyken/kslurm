@@ -147,7 +147,7 @@ def label_arg(arg):
         return SlurmCommand.JUPYTER
     elif Path(arg).exists() and Path(arg).is_dir():
         return SlurmCommand.DIRECTORY
-    elif arg == "-n" or arg == "--dry-run":
+    elif arg == "-t" or arg == "--test":
         return SlurmCommand.TEST
     else:
         return SlurmCommand.COMMAND

@@ -49,6 +49,7 @@ if __name__ == "__main__":
 
     # Update our submission script
     slurm.submit_script = [
+        "source $SNAKEMAKE_VENV_DIR/activate",
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",
         "hostname -f",

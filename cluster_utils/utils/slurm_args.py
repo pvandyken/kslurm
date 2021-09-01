@@ -1,5 +1,5 @@
 from pathlib import Path
-import re
+import re, os
 from typing import List
 
 import cluster_utils.utils.arg_types as argtypes
@@ -23,6 +23,7 @@ class SlurmCommand:
         self.cwd  = Path.cwd()
         self.test = False
         [self._add_arg(*a) for a in labelled]
+        os.chdir(self.cwd)
 
     @property
     def slurm_args(self):

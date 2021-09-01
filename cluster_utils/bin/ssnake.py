@@ -3,8 +3,8 @@ import sys, subprocess
 from pathlib import Path
 from colorama import Fore, Style
 
-from app.utils.slurm_args import SlurmCommand
-import app.utils.toolz_stub as tz
+from cluster_utils.utils.slurm_args import SlurmCommand
+import cluster_utils.utils.toolz_stub as tz
 
 # def get_config_path(name):
 #     candidates = [
@@ -84,4 +84,7 @@ def main():
     
     To cancel the job, run:
         scancel {slurmid}
-        """)    
+        """) 
+
+if __name__ == "__main__":
+    main()

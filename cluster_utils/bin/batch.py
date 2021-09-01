@@ -2,7 +2,7 @@
 import sys, subprocess
 from colorama import Fore
 
-from app.utils.slurm_args import SlurmCommand
+from cluster_utils.utils.slurm_args import SlurmCommand
 
 def main():
 
@@ -18,3 +18,6 @@ def main():
     """)
     if slurm.command:
         subprocess.run(slurm.batch, shell=True)
+
+if __name__ == "__main__":
+    main()

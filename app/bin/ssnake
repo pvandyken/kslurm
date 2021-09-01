@@ -29,7 +29,7 @@ import app.utils.toolz_stub as tz
 def setting_list(name, setting):
     return Fore.YELLOW + name + ": " + Fore.WHITE + Style.BRIGHT + setting + Style.RESET_ALL
 
-if __name__ == "__main__":
+def main():
     slurm = SlurmCommand(sys.argv[1:], cpu=2)
     if len(slurm.command_list) < 1:
         print(f"{Fore.RED}Must provide a profile")

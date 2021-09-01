@@ -7,7 +7,7 @@ except:
 
 from app.utils.slurm_args import SlurmCommand
 
-if __name__ == "__main__":
+def main():
 
     slurm = SlurmCommand(sys.argv[1:])
     command = slurm.command if slurm.command else f"{Fore.RED}Must provide a command"

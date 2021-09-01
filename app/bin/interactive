@@ -6,7 +6,7 @@ except:
     from app.utils.colors import Fore
 from app.utils.slurm_args import SlurmCommand
 
-if __name__ == "__main__":
+def main():
 
     slurm = SlurmCommand(sys.argv[1:])
     print(f"{Fore.GREEN}Running interactive session with {Fore.WHITE + slurm.slurm_args}")

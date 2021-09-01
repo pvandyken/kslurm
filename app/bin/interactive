@@ -3,8 +3,8 @@ import sys, subprocess
 try:
     from colorama import Fore
 except:
-    from colors import Fore
-from slurm_args import SlurmCommand
+    from app.utils.colors import Fore
+from app.utils.slurm_args import SlurmCommand
 
 if __name__ == "__main__":
 

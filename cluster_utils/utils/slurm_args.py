@@ -1,17 +1,12 @@
 from pathlib import Path
 import re
+import collections as c
 from typing import Iterable, List, Tuple, Union
 
+import cluster_utils.utils.arg_types as argtypes
+
 class SlurmCommand:
-    TIME = 'time'
-    GPU = 'gpu'
-    CPU = 'cpus'
-    MEM = 'mem'
-    JUPYTER = 'jupyter'
-    ACCOUNT = 'account'
-    COMMAND = 'command'
-    DIRECTORY = 'directory'
-    TEST = 'test'
+    
 
 
     def __init__(self, args: List[str], time=180, cpu=1, gpu=False, jupyter=False, account='def-lpalaniy', mem=4000):
@@ -94,19 +89,19 @@ class SlurmCommand:
         self._output = f"--output=\"{output}\""
 
     def _add_arg(self, arg: str, label: str):
-        if label == self.TIME:
+        if label == argtypes.TIME:
             self.time = self._to_minutes(arg)
-        elif label == self.GPU:
+        elif label == argtypes.GPU:
             self.gpu = True
-        elif label == self.CPU:
+        elif label == argtypes.CPU:
             self.cpu = arg
-        elif label == self.MEM:
+        elif label == argtypes.MEM:
             self.mem = self._to_mb(arg)
-        elif label == self.JUPYTER:
+        elif label == argtypes.JUPYTER:
             self.jupyter=True
-        elif label == self.DIRECTORY:
+        elif label == argtypes.DIRECTORY:
             self.cwd = Path(arg).resolve()
-        elif label == self.TEST:
+        elif label == argtypes.TEST:
             self.test = True
         else:
             raise Exception("Unlabelled slurm argument")
@@ -127,14 +122,25 @@ class SlurmCommand:
         else:
             return num
 
+
+    
+
+
+    
+
 def delineate_command(args: List[str], labels: List[str]):
-    if SlurmCommand.COMMAND in labels:
-        i = labels.index(SlurmCommand.COMMAND)
+    if argtypes.COMMAND in labels:
+        i = labels.index(argtypes.COMMAND)
         return args[0:i], args[i:]
     else:
         return args, []
 
 def label_arg(arg):
+    for name, match in argtypes.data.items():
+        if match(arg):
+            return name
+    return argtypes.COMMAND
+
     if re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg):
         return SlurmCommand.TIME
     elif arg == "gpu":

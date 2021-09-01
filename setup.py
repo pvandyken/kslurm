@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="cluster_utiles",
+    name="cluster_utils",
     version="0.0.1",
     author="Peter Van Dyken",
     author_email="pvandyk2@uwo.ca",

@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 import sys, subprocess
 from pathlib import Path
-try:
-    from colorama import Fore, Style
-except:
-    from app.utils.colors import Fore, Style
+from colorama import Fore, Style
 
 from app.utils.slurm_args import SlurmCommand
 import app.utils.toolz_stub as tz

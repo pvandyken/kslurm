@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 import sys, subprocess
-try:
-    from colorama import Fore
-except:
-    from app.utils.colors import Fore
+from colorama import Fore
 
 from app.utils.slurm_args import SlurmCommand
 

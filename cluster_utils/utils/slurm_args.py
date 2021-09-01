@@ -1,14 +1,10 @@
 from pathlib import Path
 import re
-import collections as c
-from typing import Iterable, List, Tuple, Union
+from typing import List
 
 import cluster_utils.utils.arg_types as argtypes
 
 class SlurmCommand:
-    
-
-
     def __init__(self, args: List[str], time=180, cpu=1, gpu=False, jupyter=False, account='def-lpalaniy', mem=4000):
         labels = [label_arg(a) for a in args]
         slurm_args, self._command = delineate_command(args, labels)
@@ -122,12 +118,6 @@ class SlurmCommand:
         else:
             return num
 
-
-    
-
-
-    
-
 def delineate_command(args: List[str], labels: List[str]):
     if argtypes.COMMAND in labels:
         i = labels.index(argtypes.COMMAND)
@@ -140,20 +130,3 @@ def label_arg(arg):
         if match(arg):
             return name
     return argtypes.COMMAND
-
-    if re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg):
-        return SlurmCommand.TIME
-    elif arg == "gpu":
-        return SlurmCommand.GPU
-    elif re.match(r'^[0-9]+$', arg):
-        return SlurmCommand.CPU
-    elif re.match(r'^[0-9]+[MG]B?$', arg):
-        return SlurmCommand.MEM
-    elif arg == "jupyter":
-        return SlurmCommand.JUPYTER
-    elif Path(arg).exists() and Path(arg).is_dir():
-        return SlurmCommand.DIRECTORY
-    elif arg == "-t" or arg == "--test":
-        return SlurmCommand.TEST
-    else:
-        return SlurmCommand.COMMAND

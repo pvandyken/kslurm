@@ -3,8 +3,7 @@ import sys, subprocess
 from pathlib import Path
 from colorama import Fore, Style
 
-from cluster_utils.utils.slurm_args import SlurmCommand
-import cluster_utils.utils.toolz_stub as tz
+from cluster_utils.utils.slurm_command import SlurmCommand
 
 # def get_config_path(name):
 #     candidates = [

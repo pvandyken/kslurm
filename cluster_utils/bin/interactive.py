@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys, subprocess
 from colorama import Fore
-from cluster_utils.utils.slurm_args import SlurmCommand
+from cluster_utils.utils.slurm_command import SlurmCommand
 
 def main():
 

@@ -14,11 +14,11 @@ class Arg(abc.ABC, Generic[T]):
         self.id = id
         self.match = match
         self._value = value
-        self.format = format
+        self._format = format
 
     @property
     def value(self):
-        return self.format(self._value)
+        return self._format(self._value)
 
     @value.setter
     def value(self, value: str):
@@ -54,7 +54,7 @@ class PositionalArg(Arg[str]):
             value = self.value
         return PositionalArg(
             id=self.id,
-            value = self.format(value))
+            value = self._format(value))
 
 
 class ShapeArg(Arg[T]):
@@ -63,7 +63,7 @@ class ShapeArg(Arg[T]):
             value = self._value
         return ShapeArg[T](
             id=self.id,
-            format = self.format,
+            format = self._format,
             value = value,
             match = self.match)
 

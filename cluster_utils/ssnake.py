@@ -40,13 +40,7 @@ def main():
     slurm = SlurmCommand(sys.argv[1:], models)
 
     # Get the profile and check if it exists before submission
-    profile = str(slurm.args.profile)
-    profile_path = Path.home() / ".config" / "snakemake" / "slurm" / "config" / profile
-    if not any([profile_path.with_suffix(s).exists() for s in ['.yml', '.yaml']]):
-        print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
-        if not slurm.test:
-            sys.exit(1)
-    
+    profile = slurm.args.profile
     
 
     # Use parent directory name as the job name

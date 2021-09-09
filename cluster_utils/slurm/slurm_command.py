@@ -2,6 +2,7 @@ from cluster_utils.slurm.slurm_args.args import ArgList
 import os
 from typing import Generic, List, TypeVar
 import cluster_utils.args as arglib
+from cluster_utils.exceptions import CommandLineError
 from .job_templates import templates
 
 T = TypeVar("T", bound=ArgList)
@@ -73,7 +74,7 @@ class SlurmCommand(Generic[T]):
         if self.command:
             return f"echo '{self.submit_script}' | {s}"
         else:
-            raise Exception("No command given")
+            raise CommandLineError("No command given")
 
     @property
     def submit_script(self):

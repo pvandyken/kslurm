@@ -39,8 +39,8 @@ def main():
     models.profile 
     slurm = SlurmCommand(sys.argv[1:], models)
 
-    # Get the profile and check if it exists before submission
-    profile = slurm.args.profile
+    # Get the profile
+    profile = slurm.args.profile.value
     
 
     # Use parent directory name as the job name
@@ -61,7 +61,7 @@ def main():
 
     # Run the process and collect the jobid output. 
     output = subprocess\
-        .run(f"{slurm.batch}", shell=True, capture_output=True)\
+        .run(slurm.batch, shell=True, capture_output=True)\
         .stdout.decode()
 
     if slurm.test:

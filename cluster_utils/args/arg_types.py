@@ -4,7 +4,7 @@ import  abc
 import copy
 from colorama import Fore, Style
 
-from cluster_utils.exceptions import ValidationError
+from cluster_utils.exceptions import CommandLineError, ValidationError
 
 T = TypeVar("T")
 
@@ -82,12 +82,11 @@ class PositionalArg(Arg[T]):
                 validator = self.validator,
                 updated = True)
         except ValidationError as err:
-            print(f"""
+            raise CommandLineError(f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
         Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
-            {err.args[0]}
-            """)
-            exit()
+            {err.msg}
+            """, err)
 
 
 class ShapeArg(Arg[T]):
@@ -139,7 +138,7 @@ class KeywordArg(Arg[bool], Generic[S]):
             match: Callable[[str], bool],
             value: bool = False,
             num: int = 1,
-            validate: Callable[[str], bool] = lambda x: True,
+            validate: Callable[[str], str] = lambda x: x,
             err_message: str = "",
             values: List[str] = []):
         super().__init__(id=id, match=match, format=bool)
@@ -155,10 +154,6 @@ class KeywordArg(Arg[bool], Generic[S]):
     
     @values.setter
     def values(self, values: List[str]):
-        for value in values:
-            if not self.validate(value):
-                print("Some Error")
-                exit()
         self._values = values
     
     def set_value(self, value: str):
@@ -170,13 +165,21 @@ class KeywordArg(Arg[bool], Generic[S]):
             validate =  self.validate)
 
     def add_values(self, values: Iterable[str]):
-        return KeywordArg[S](
-            id=self.id, 
-            value = self._value, 
-            match=self.match,
-            num=self.num, 
-            validate=self.validate, 
-            values=list(values))
+        try:
+            return KeywordArg[S](
+                id=self.id, 
+                value = self._value, 
+                match=self.match,
+                num=self.num, 
+                validate=self.validate, 
+                values=list(map(self.validate, values)))
+        except ValidationError as err:
+            raise CommandLineError(f"""
+    {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
+        Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
+            {err.msg}
+            """, err) from err
+
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.id} = {self.values}>"

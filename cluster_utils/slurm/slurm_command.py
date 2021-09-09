@@ -2,8 +2,10 @@ from cluster_utils.args.arg_types import ShapeArg
 from cluster_utils.slurm.slurm_args.args import ArgList
 import os
 from typing import Generic, List, TypeVar
+import itertools as it
+from tabulate import tabulate
 import cluster_utils.args as arglib
-from cluster_utils.exceptions import CommandLineError
+from cluster_utils.exceptions import CommandLineError, TemplateError, ValidationError
 from .job_templates import templates
 from . import helpers
 
@@ -20,9 +22,18 @@ class SlurmCommand(Generic[T]):
         self.cpu = model.cpu
         self.mem = model.mem
 
-        parsed = arglib.parse_args(
-            args, model)
+        try:
+            parsed = arglib.parse_args(
+                args, model)
+        except CommandLineError as err:
+            print(err.msg)
+            if isinstance(err.src_err, TemplateError):
+                print("Choose from the following list of templates:\n")
+                self._list_templates()
+            exit()
 
+        if parsed.list_job_templates.value:
+            self._list_templates()
             
         if parsed.job_template.value:
             self._set_template(parsed.job_template.values[0])
@@ -95,7 +106,7 @@ class SlurmCommand(Generic[T]):
         if self.command:
             return f"echo '{self.submit_script}' | {s}"
         else:
-            raise CommandLineError("No command given")
+            raise ValidationError("No command given")
 
     @property
     def submit_script(self):
@@ -127,5 +138,10 @@ class SlurmCommand(Generic[T]):
         )
 
     def _list_templates(self):
-
-        pass
+        labelled_values = list(templates.values())
+        headers = ["name"] + list(labelled_values[0].keys())
+        values = [list(value.values()) for value in labelled_values]
+        entries = list(zip(templates.keys(), values))
+        table = [list(it.chain([entry[0]], entry[1])) for entry in entries]
+        print(tabulate(table, headers=headers, tablefmt="presto"))
+        exit()

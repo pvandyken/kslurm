@@ -3,7 +3,8 @@ import re
 from pathlib import Path
 import attr
 from cluster_utils.args import ShapeArg, KeywordArg, FlagArg
-import cluster_utils.slurm.slurm_args.formatters as formatters
+from . import formatters
+from . import validators
 
 @attr.s(auto_attribs=True)
 class ArgList:
@@ -40,6 +41,7 @@ class ArgList:
 
     job_template: KeywordArg[str] = KeywordArg[str](
         match=lambda arg : arg == '-j' or arg == '--job-template',
+        validate=validators.job_template,
         num=1)
 
     list_job_templates: FlagArg= FlagArg(

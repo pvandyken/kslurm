@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "cluster-utils"
+version = "0.1.0"
+description = ""
+authors = ["Peter Van Dyken <pvandyk2@uwo.ca>"]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<4.0"
+attrs = "^21.2.0"
+colorama = "^0.4.4"
+typing-extensions = "^3.10"
+
+[tool.poetry.dev-dependencies]
+black = "^21.8b0"
+pytest = "^6.2.5"
+tox = "^3.24.3"
+coverage = "^5.5"
+tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py37, py38, py39
+isolated_build = True
+
+[testenv]
+deps =
+    pytest
+install_project_deps = true
+commands =
+    pytest
+"""

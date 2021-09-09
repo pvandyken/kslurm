@@ -3,7 +3,7 @@ from typing import Any, Callable, DefaultDict, Dict, ItemsView, List, TypeVar, c
 
 import attr
 import cluster_utils.args.arg_types as arglib
-from cluster_utils.args.arg_types import Arg, ShapeArg, KeywordArg, PositionalArg, TailArg
+from cluster_utils.args.arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailArg
 import functools as fc
 import itertools as it
 
@@ -42,13 +42,15 @@ def parse_args(args: Iterable[str], models: T) -> T:
 
     specific_args = list(it.chain(
         model_cats.get(ShapeArg, []),
-        model_cats.get(KeywordArg, [])
+        model_cats.get(KeywordArg, []),
+        model_cats.get(FlagArg, [])
     ))
     
     labelled = [classify_arg(a, specific_args) for a in args]
     grouped = group_by_type(group_keywords(labelled))
     shape_args = grouped.get(ShapeArg, [])
     keyword_args = grouped.get(KeywordArg, [])
+    flag_args = grouped.get(FlagArg, [])
 
     nonspecific_args = cast(
         Iterable[PositionalArg[Any]], 
@@ -74,7 +76,7 @@ def parse_args(args: Iterable[str], models: T) -> T:
             raise Exception(f"{extras} are not valid arguments. Please add a TailArg to your "
                                 "model to collect extra arguments")
     
-    return update_model(it.chain(shape_args, positional_args, keyword_args, tail), models)
+    return update_model(it.chain(shape_args, positional_args, keyword_args, flag_args, tail), models)
 
 def classify_arg(arg: str, arg_list: Iterable[Arg[Any]]):
     for argtype in arg_list:

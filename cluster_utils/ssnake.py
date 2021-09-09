@@ -26,7 +26,7 @@ class SSnakeModel(ArgList):
 
 def main():
     models = SSnakeModel()
-    models.cpu.value = "2"
+    models.cpu.value = 2
     models.profile 
     slurm = SlurmCommand(sys.argv[1:], models)
 

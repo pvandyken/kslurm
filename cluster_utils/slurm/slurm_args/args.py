@@ -2,7 +2,7 @@ from cluster_utils.args.arg_types import TailArg
 import re
 from pathlib import Path
 import attr
-from cluster_utils.args import ShapeArg, KeywordArg
+from cluster_utils.args import ShapeArg, KeywordArg, FlagArg
 import cluster_utils.slurm.slurm_args.formatters as formatters
 
 @attr.s(auto_attribs=True)
@@ -12,10 +12,8 @@ class ArgList:
         format = formatters.time,
         value = formatters.time("03:00"))
 
-    gpu: ShapeArg[bool] = ShapeArg[bool](
-        match = lambda arg: arg == "gpu",
-        format = bool,
-        value = False)
+    gpu: FlagArg = FlagArg(
+        match = ["gpu"])
 
     cpu: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
@@ -27,20 +25,18 @@ class ArgList:
         format = formatters.mem,
         value = formatters.mem("4G"))
 
-    jupyter: ShapeArg[bool] = ShapeArg[bool](
-        match = lambda arg: arg == "jupyter",
-        format = bool,
-        value = False)
+    jupyter: FlagArg = FlagArg(
+        match=["jupyter"]
+    )
 
     directory: ShapeArg[Path] = ShapeArg[Path](
         match = lambda arg: Path(arg).exists() and Path(arg).is_dir(),
         format = Path,
         value = Path()) 
 
-    test: ShapeArg[bool] = ShapeArg[bool](
-        match = lambda arg: arg == "-t" or arg == "--test",
-        format = bool,
-        value = False)
+    test: FlagArg = FlagArg(
+        match=["-t", "--test"]
+    )
 
     job_template: KeywordArg[str] = KeywordArg[str](
         match=lambda arg : arg == '-j' or arg == '--job-template',

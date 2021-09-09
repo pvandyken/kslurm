@@ -86,6 +86,29 @@ class ShapeArg(Arg[T]):
             value = self._format(value),
             match = self.match)
 
+class FlagArg(Arg[bool]):
+    def __init__(self, *,
+            id: str = "",
+            match: List[str],
+            value: bool = False):
+
+        def check_match(val: str):
+            if val in match:
+                return True
+            return False
+        
+        super().__init__(id=id, match=check_match, format=bool)
+        self._value = value
+        self.match_list = match
+
+
+    def set_value(self, value: str):
+        return FlagArg(
+            id=self.id,
+            value = self._format(value),
+            match = self.match_list)
+
+
 S = TypeVar("S")
 
 class KeywordArg(Arg[bool], Generic[S]):

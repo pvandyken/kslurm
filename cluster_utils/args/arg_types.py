@@ -67,18 +67,18 @@ class ShapeArg(Arg[T]):
             value = value,
             match = self.match)
 
+S = TypeVar("S")
 
-class KeywordArg(Arg[T]):
+class KeywordArg(Arg[bool], Generic[S]):
     def __init__(self, *,
             id: str = "",
             match: Callable[[str], bool],
-            value: Union[str, T] = "",
-            format: Callable[[Union[str, T]], T]=lambda x: x,
+            value: Union[str, bool] = "",
             num: int = 1,
             validate: Callable[[str], bool] = lambda x: True,
             err_message: str = "",
             values: List[str] = []):
-        super().__init__(id=id, match=match, value=value, format=format)
+        super().__init__(id=id, match=match, value=value, format=bool)
         self.num = num
         self.validate = validate
         self.values = values
@@ -96,19 +96,18 @@ class KeywordArg(Arg[T]):
                 exit()
         self._values = values
     
-    def set_value(self, value: Union[str, T] = ""):
+    def set_value(self, value: Union[str, bool] = ""):
         if not value:
             value = self._value
-        return KeywordArg[T](
+        return KeywordArg[S](
             id = self.id,
             value = value,
             match = self.match,
-            format =  self.format, 
             num = self.num,
             validate =  self.validate)
 
     def add_values(self, values: Iterable[str]):
-        return KeywordArg[T](
+        return KeywordArg[S](
             id=self.id, 
             value = self._value, 
             match=self.match,

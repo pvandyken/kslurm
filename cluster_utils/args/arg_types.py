@@ -2,6 +2,9 @@ from __future__ import annotations
 from typing import Callable, Generic, Iterable, List, TypeVar, Union
 import  abc
 import copy
+from colorama import Fore, Style
+
+from cluster_utils.exceptions import ValidationError
 
 T = TypeVar("T")
 
@@ -53,7 +56,7 @@ class PositionalArg(Arg[T]):
             value: Union[None, T] = None, 
             id: str="positional",
             format: Callable[[str], T]=str,
-            validator: Callable[[str], bool] = lambda x: True):
+            validator: Callable[[str], str] = lambda x: x):
         super().__init__(id=id, match=lambda x: True, value=value, format=format)
         self.validator = validator
 
@@ -69,13 +72,19 @@ class PositionalArg(Arg[T]):
 
 
     def set_value(self, value: str):
-        if not self.validator(value):
-            raise Exception()
-        return PositionalArg[T](
-            id=self.id,
-            value = self._format(value),
-            format = self._format,
-            validator = self.validator)
+        try:
+            return PositionalArg[T](
+                id=self.id,
+                value = self._format(self.validator(value)),
+                format = self._format,
+                validator = self.validator)
+        except ValidationError as err:
+            print(f"""
+    {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
+        Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
+            {err.args[0]}
+            """)
+            exit()
 
 
 class ShapeArg(Arg[T]):

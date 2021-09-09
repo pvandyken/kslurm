@@ -1,8 +1,10 @@
+from cluster_utils.exceptions import ValidationError
 import attr
 from cluster_utils.args.arg_types import PositionalArg
 import sys, subprocess
 from pathlib import Path
 from colorama import Fore, Style
+import itertools as it
 
 from cluster_utils.slurm import SlurmCommand, ArgList
 
@@ -10,12 +12,19 @@ from cluster_utils.slurm import SlurmCommand, ArgList
 def setting_list(name: str, setting: str) -> str:
     return Fore.YELLOW + name + ": " + Fore.WHITE + Style.BRIGHT + setting + Style.RESET_ALL
 
-def profile_validator(profile: str) -> bool:
-    profile_path = Path.home() / ".config" / "snakemake" / "slurm" / "config" / profile
-    if any([profile_path.with_suffix(s).exists() for s in ['.yml', '.yaml']]):
-        return True
-    print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
-    return False
+def profile_validator(profile: str) -> str:
+    profile_path = Path.home() / ".config" / "snakemake"
+    configfiles = [profile_path.glob(f'*/config.{ext}') for ext in ['yml', 'yaml']]
+    profiles = [configfile.parent.name for configfile in it.chain(*configfiles)]
+    if profile in profiles:
+        return profile
+    if profiles:
+        profiles = "\n".join(profiles)
+        profilelist = f"Found the following profiles:\n{profiles}"
+    else:
+        profilelist = f"Did not find any valid profiles in {profile_path}"
+    raise ValidationError(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" "
+                            f"is not a valid profile.{Fore.RESET} \n\n{profilelist}")
 
 # Extended Model
 @attr.s(auto_attribs=True)

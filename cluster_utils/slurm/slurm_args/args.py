@@ -41,6 +41,10 @@ class ArgList:
     job_template: KeywordArg[str] = KeywordArg[str](
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1)
+
+    list_job_templates: FlagArg= FlagArg(
+        match=["-J", "--list", "-l"]
+    )
     
     account: KeywordArg[str] = KeywordArg[str](
         match=lambda arg: arg == '-a' or arg == '--account',

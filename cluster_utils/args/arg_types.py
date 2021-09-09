@@ -56,9 +56,11 @@ class PositionalArg(Arg[T]):
             value: Union[None, T] = None, 
             id: str="positional",
             format: Callable[[str], T]=str,
-            validator: Callable[[str], str] = lambda x: x):
+            validator: Callable[[str], str] = lambda x: x,
+            updated: bool = False):
         super().__init__(id=id, match=lambda x: True, value=value, format=format)
         self.validator = validator
+        self.updated = updated
 
     @property
     def value(self):
@@ -77,7 +79,8 @@ class PositionalArg(Arg[T]):
                 id=self.id,
                 value = self._format(self.validator(value)),
                 format = self._format,
-                validator = self.validator)
+                validator = self.validator,
+                updated = True)
         except ValidationError as err:
             print(f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
@@ -88,12 +91,22 @@ class PositionalArg(Arg[T]):
 
 
 class ShapeArg(Arg[T]):
+    def __init__(self,*,
+            id: str = "", 
+            match: Callable[[str], bool],
+            value: Union[None, T] = None,
+            format: Callable[[str], T]=str,
+            updated: bool = False):
+        super().__init__(id=id, match=match, value=value, format=format)
+        self.updated = updated
+
     def set_value(self, value: str):
         return ShapeArg[T](
             id=self.id,
             format = self._format,
             value = self._format(value),
-            match = self.match)
+            match = self.match,
+            updated = True)
 
 class FlagArg(Arg[bool]):
     def __init__(self, *,

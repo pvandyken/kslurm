@@ -1,40 +1,61 @@
+from cluster_utils.args.arg_types import ShapeArg
 from cluster_utils.slurm.slurm_args.args import ArgList
 import os
 from typing import Generic, List, TypeVar
 import cluster_utils.args as arglib
 from cluster_utils.exceptions import CommandLineError
 from .job_templates import templates
+from . import helpers
 
 T = TypeVar("T", bound=ArgList)
 
 class SlurmCommand(Generic[T]):
     def __init__(self,
                  args: List[str],
-                 arg_list: T):
+                 model: T):
         self._name = ""
         self._output = ""
 
-        parsed = arglib.parse_args(
-            args, arg_list)
+        self.time = model.time
+        self.cpu = model.cpu
+        self.mem = model.mem
 
-        self.time = parsed.time
-        self.cpu = parsed.cpu
+        parsed = arglib.parse_args(
+            args, model)
+
+            
+        if parsed.job_template.value:
+            self._set_template(parsed.job_template.values[0])
+
+        if parsed.time.updated:
+            self.time = parsed.time
+        if parsed.cpu.updated:
+            self.cpu = parsed.cpu
+        if parsed.mem.updated:
+            self.mem = parsed.mem
         self.gpu = bool(parsed.gpu.value)
         self.jupyter = parsed.jupyter
         self.account = parsed.account
-        self.mem = parsed.mem
         self.cwd = parsed.directory
         self.test = bool(parsed.test.value)
         self.job_template = parsed.job_template
         self._command = parsed.tail
 
-        
 
         os.chdir(self.cwd.value)
 
         self.submit_script = [self.command]
 
         self.args = parsed
+
+    @property
+    def time(self):
+        return helpers.slurm_time_format(self._time.value)
+
+
+    @time.setter
+    def time(self, time: ShapeArg[int]):
+        self._time = time
 
     @property
     def slurm_args(self):
@@ -95,7 +116,7 @@ class SlurmCommand(Generic[T]):
     def _set_template(self, template: str):
         if not template in templates:
             raise Exception(f"{template} is not a valid template")
-        self.mem = ArgList.mem.set_value(
+        self.mem = ArgList().mem.set_value(
             templates[template]["mem"]
         )
         self.cpu = ArgList().cpu.set_value(
@@ -104,3 +125,7 @@ class SlurmCommand(Generic[T]):
         self.time = ArgList().time.set_value(
             templates[template]["time"]
         )
+
+    def _list_templates(self):
+
+        pass

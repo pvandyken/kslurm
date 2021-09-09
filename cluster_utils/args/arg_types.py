@@ -9,8 +9,8 @@ class Arg(abc.ABC, Generic[T]):
     def __init__(self, *,
             id: str = "",
             match: Callable[[str], bool],
-            value: Union[str, T] = "",
-            format: Callable[[Union[str, T]], T]=str):
+            value: Union[None, T] = None,
+            format: Callable[[str], T]=str):
         self.id = id
         self.match = match
         self._value = value
@@ -18,10 +18,13 @@ class Arg(abc.ABC, Generic[T]):
 
     @property
     def value(self):
-        return self._format(self._value)
+        if self._value is None:
+            raise Exception()
+        return self._value
+        
 
     @value.setter
-    def value(self, value: str):
+    def value(self, value: Union[None, T]):
         self._value = value
 
     def __eq__(self, o: object) -> bool:
@@ -31,7 +34,7 @@ class Arg(abc.ABC, Generic[T]):
             return False
     
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.id} = {self.value}>"
+        return f"<{self.__class__.__name__}: {self.id} = {self._value}>"
 
     def __str__(self) -> str:
         return str(self.value)
@@ -45,26 +48,42 @@ class Arg(abc.ABC, Generic[T]):
     def set_value(self, value: str) -> Arg[T]:
         pass
 
-class PositionalArg(Arg[str]):
-    def __init__(self, value: str = "", id: str="positional"):
-        super().__init__(id=id, match=lambda x: True, value=value)
+class PositionalArg(Arg[T]):
+    def __init__(self,
+            value: Union[None, T] = None, 
+            id: str="positional",
+            format: Callable[[str], T]=str,
+            validator: Callable[[str], bool] = lambda x: True):
+        super().__init__(id=id, match=lambda x: True, value=value, format=format)
+        self.validator = validator
 
-    def set_value(self, value: str = ""):
-        if not value:
-            value = self.value
-        return PositionalArg(
+    @property
+    def value(self):
+        if self._value is None:
+            raise Exception()
+        return self._value
+
+    @value.setter
+    def value(self, value: Union[None, T]):
+        self._value = value
+
+
+    def set_value(self, value: str):
+        if not self.validator(value):
+            raise Exception()
+        return PositionalArg[T](
             id=self.id,
-            value = self._format(value))
+            value = self._format(value),
+            format = self._format,
+            validator = self.validator)
 
 
 class ShapeArg(Arg[T]):
-    def set_value(self, value: Union[str, T] = ""):
-        if not value:
-            value = self._value
+    def set_value(self, value: str):
         return ShapeArg[T](
             id=self.id,
             format = self._format,
-            value = value,
+            value = self._format(value),
             match = self.match)
 
 S = TypeVar("S")
@@ -73,12 +92,13 @@ class KeywordArg(Arg[bool], Generic[S]):
     def __init__(self, *,
             id: str = "",
             match: Callable[[str], bool],
-            value: Union[str, bool] = "",
+            value: bool = False,
             num: int = 1,
             validate: Callable[[str], bool] = lambda x: True,
             err_message: str = "",
             values: List[str] = []):
-        super().__init__(id=id, match=match, value=value, format=bool)
+        super().__init__(id=id, match=match, format=bool)
+        self._value = value
         self.num = num
         self.validate = validate
         self.values = values
@@ -96,12 +116,10 @@ class KeywordArg(Arg[bool], Generic[S]):
                 exit()
         self._values = values
     
-    def set_value(self, value: Union[str, bool] = ""):
-        if not value:
-            value = self._value
+    def set_value(self, value: str):
         return KeywordArg[S](
             id = self.id,
-            value = value,
+            value = self._format(value),
             match = self.match,
             num = self.num,
             validate =  self.validate)

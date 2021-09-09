@@ -29,50 +29,50 @@ class AttrModel:
         id="junk", 
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1,
-        value="job_template")
+        value=False)
 
     length_5_keyword: KeywordArg[str] = KeywordArg[str](
         id="length_5_keyword",
         match=lambda arg: arg == "--length_5_keyword",
         num=5,
-        value="length_5_keyword"
+        value=False
     )
 
     lazy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="lazy_inf_keyword",
         match = lambda arg: arg == "lazy_inf_keyword",
         num = 0,
-        value="lazy_inf_keyword"
+        value=False
     )
 
     greedy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="greedy_inf_keyword",
         match = lambda arg: arg == "greedy_inf_keyword",
         num = -1,
-        value="greedy_inf_keyword"
+        value=False
     )
 
-    positional: PositionalArg = PositionalArg(
+    positional: PositionalArg[str] = PositionalArg(
         id="positional",
         value = 'pos1'
     )
 
-    positional2: PositionalArg = PositionalArg(
+    positional2: PositionalArg[str] = PositionalArg(
         id="positional2",
         value = 'pos2'
     )
 
-    positional3: PositionalArg = PositionalArg(
+    positional3: PositionalArg[str] = PositionalArg(
         id="positional3",
         value = 'pos3'
     )
 
-    positional4: PositionalArg = PositionalArg(
+    positional4: PositionalArg[str] = PositionalArg(
         id="positional4",
         value = 'pos4'
     )
 
-    positional5: PositionalArg = PositionalArg(
+    positional5: PositionalArg[str] = PositionalArg(
         id="positional5",
         value = 'pos5'
     )

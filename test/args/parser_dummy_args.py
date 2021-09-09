@@ -13,20 +13,20 @@ def time(time: str):
 
 
 class Models:
-    three_positionals: List[PositionalArg] = [
+    three_positionals: List[PositionalArg[Any]] = [
         ArgList.positional,
         ArgList.positional2,
         ArgList.positional3
     ]
 
 class DummyArgs:
-    positionals: List[PositionalArg] = [
+    positionals: List[PositionalArg[Any]] = [
         ArgList.positional.set_value("Hello"),
         ArgList.positional2.set_value("beautiful"),
         ArgList.positional3.set_value("world"),
     ]
 
-    extra_positionals: List[PositionalArg] = [
+    extra_positionals: List[PositionalArg[Any]] = [
         ArgList.positional.set_value("Hello"),
         ArgList.positional2.set_value("beautiful"),
         ArgList.positional3.set_value("world"),

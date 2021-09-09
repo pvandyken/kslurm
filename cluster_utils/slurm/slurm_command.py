@@ -3,7 +3,6 @@ import os
 from typing import Generic, List, TypeVar
 import cluster_utils.args as arglib
 from .job_templates import templates
-from .slurm_args import formatters
 
 T = TypeVar("T", bound=ArgList)
 
@@ -92,8 +91,6 @@ class SlurmCommand(Generic[T]):
     def output(self, output: str):
         self._output = f"--output=\"{output}\""
 
-    
-
     def _set_template(self, template: str):
         if not template in templates:
             raise Exception(f"{template} is not a valid template")
@@ -104,5 +101,5 @@ class SlurmCommand(Generic[T]):
             templates[template]["cpus"]
         )
         self.time = ArgList().time.set_value(
-            formatters.time(templates[template]["time"])
+            templates[template]["time"]
         )

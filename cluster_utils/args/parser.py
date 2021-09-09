@@ -51,11 +51,11 @@ def parse_args(args: Iterable[str], models: T) -> T:
     keyword_args = grouped.get(KeywordArg, [])
 
     nonspecific_args = cast(
-        Iterable[PositionalArg], 
+        Iterable[PositionalArg[Any]], 
         grouped.get(PositionalArg, [])
     )
     positional_models = cast(
-        Iterable[PositionalArg], 
+        Iterable[PositionalArg[Any]], 
         model_cats.get(PositionalArg, [])
     )
     positional_args, extras = delineate_positional(nonspecific_args, positional_models)
@@ -139,7 +139,7 @@ def group_keyword(accumulant: Tuple[int, Iterable[Arg[Any]]], arg: Arg[Any]) -> 
         return new_keyword_group_size, it.chain(l, [cast(Arg[Any], arg)]) 
 
 
-def delineate_positional(args: Iterable[PositionalArg], positional_models: Iterable[PositionalArg]) -> Tuple[List[PositionalArg], List[PositionalArg]]:
+def delineate_positional(args: Iterable[PositionalArg[Any]], positional_models: Iterable[PositionalArg[Any]]) -> Tuple[List[PositionalArg[Any]], List[PositionalArg[Any]]]:
     args = list(args)
     models = list(positional_models)
     if len(args) < len(models):

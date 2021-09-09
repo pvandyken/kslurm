@@ -13,14 +13,16 @@ def setting_list(name: str, setting: str) -> str:
 def profile_validator(profile: str) -> bool:
     profile_path = Path.home() / ".config" / "snakemake" / "slurm" / "config" / profile
     if any([profile_path.with_suffix(s).exists() for s in ['.yml', '.yaml']]):
-        print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
         return True
+    print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
     return False
 
 # Extended Model
 @attr.s(auto_attribs=True)
 class SSnakeModel(ArgList):
-    profile: PositionalArg = PositionalArg()
+    profile: PositionalArg[str] = PositionalArg(
+        validator=profile_validator
+    )
 
 def main():
     models = SSnakeModel()

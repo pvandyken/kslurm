@@ -16,6 +16,7 @@ pytest = "^6.2.5"
 tox = "^3.24.3"
 coverage = "^5.5"
 tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
+hypothesis = "^6.20.0"
 
 [tool.poetry.scripts]
 kbatch = 'cluster_utils.batch:main'

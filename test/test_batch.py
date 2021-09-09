@@ -9,7 +9,7 @@ def test_batch_submits_testmode(capsys: CaptureFixture[str]):
             main()
         
         out = capsys.readouterr()
-        assert "--account=def-lpalaniy --time=180 --cpus-per-task=1 --mem=4000" in str(out)
+        assert "--account=def-lpalaniy --time=03:00:00 --cpus-per-task=1 --mem=4000" in str(out)
         subprocess.assert_called_once_with("echo '#!/bin/bash\ncommand' | cat", shell=True)
 
 def test_params_can_be_altered(capsys: CaptureFixture[str]):
@@ -29,9 +29,9 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             main()
         
         out = capsys.readouterr()
-        assert "--account=some-account --time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)
+        assert "--account=some-account --time=2-09:11:00 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)
         subprocess.assert_called_once_with(
             "echo '#!/bin/bash\ncommand' | sbatch --account=some-account "
-            "--time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1 "
+            "--time=2-09:11:00 --cpus-per-task=22 --mem=5000 --gres=gpu:1 "
             "--job-name=command --parsable ", shell=True)
         assert Path.cwd() == starting_cwd / 'test'

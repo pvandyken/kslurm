@@ -1,3 +1,4 @@
+from cluster_utils.exceptions import TemplateError
 import cluster_utils.slurm.slurm_args.validators as validators
 import pytest
 
@@ -17,4 +18,5 @@ class TestJobTemplateValidator:
         "notfound"
     ])
     def test_args_that_shouldnt_work(self, arg: str):
-        assert not validators.job_template(arg)
+        with pytest.raises(TemplateError):
+            assert not validators.job_template(arg)

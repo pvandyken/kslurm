@@ -15,12 +15,23 @@ def test_batch_submits_testmode(capsys: CaptureFixture[str]):
 def test_params_can_be_altered(capsys: CaptureFixture[str]):
     with mock.patch('subprocess.run') as subprocess:
         starting_cwd = Path.cwd()
-        with mock.patch('sys.argv', ['kbatch', '1-33:11', '5G', '22', 'gpu', './test', 'command']):
+        with mock.patch('sys.argv', [
+            'kbatch',
+            '1-33:11', 
+            '5G', 
+            '22', 
+            'gpu', 
+            '--account',
+            'some-account',
+            './test', 
+            'command'
+        ]):
             main()
         
         out = capsys.readouterr()
-        assert "--account=def-lpalaniy --time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)
+        assert "--account=some-account --time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)
         subprocess.assert_called_once_with(
-            "echo '#!/bin/bash\ncommand' | sbatch --account=def-lpalaniy "
-            "--time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1 --job-name=command --parsable ", shell=True)
+            "echo '#!/bin/bash\ncommand' | sbatch --account=some-account "
+            "--time=3431 --cpus-per-task=22 --mem=5000 --gres=gpu:1 "
+            "--job-name=command --parsable ", shell=True)
         assert Path.cwd() == starting_cwd / 'test'

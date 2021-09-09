@@ -1,49 +1,33 @@
-from typing import Callable, Iterable
+from typing import Callable
 import cluster_utils.args.arg_types as argt
+import attr, abc
 
-class ArgConstructor:
-    match: Callable[[str], bool]
+
+@attr.s(auto_attribs=True)
+class ArgConstructor(abc.ABC):
     id: str
-    arg: str
+    match: Callable[[str], bool]
+    format: Callable[[str], str]=lambda x: x
+    default: str = ""
 
-    def __init__(self, id: str,
-                 match: Callable[[str], bool],
-                 format: Callable[[str], str]=lambda x: x):
-        self.id = id
-        self.match = match
-        self.format = format
-
+    @abc.abstractmethod
     def __call__(self, arg: str) -> argt.Arg:
-        ...
+        pass
 
 class ShapeArgConstructor(ArgConstructor):
-    match: Callable[[str], bool]
-    id: str
-    arg: str
-
-    def __init__(self, id: str,
-                 match: Callable[[str], bool] = lambda x: True,
-                 format: Callable[[str], str]=lambda x: x):
-        super().__init__(id, match, format)
-    
-    def __call__(self, arg: str):
+    def __call__(self, arg: str = ""):
+        if not arg:
+            arg = self.default
         return argt.ShapeArg(self.id, self.format(arg))
 
+@attr.s(auto_attribs=True)
 class KeywordArgConstructor(ArgConstructor):
-    match: Callable[[str], bool]
-    id: str
-    arg: str
+    num: int = 1
+    validator: Callable[[str], str]=lambda x: x
 
-    def __init__(self, id: str,
-                 match: Callable[[str], bool],
-                 num: int = 0,
-                 validator: Callable[[Iterable[str]], bool]=lambda x: True,
-                 format: Callable[[str], str]=lambda x: x):
-        super().__init__(id, match, format)
-        self.validator = validator
-        self.num = num
-
-    def __call__(self, arg: str):
+    def __call__(self, arg: str = ""):
+        if not arg:
+            arg = self.default
         return argt.KeywordArg(self.id, self.format(arg), self.num, self.validator)
         
     

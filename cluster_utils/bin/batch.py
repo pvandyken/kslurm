@@ -2,11 +2,12 @@
 import sys, subprocess
 from colorama import Fore
 
-from cluster_utils.utils.slurm_command import SlurmCommand
+from cluster_utils.slurm import SlurmCommand
+from cluster_utils.slurm import ArgList
 
 def main():
 
-    slurm = SlurmCommand(sys.argv[1:])
+    slurm = SlurmCommand(sys.argv[1:], ArgList())
     command = slurm.command if slurm.command else f"{Fore.RED}Must provide a command"
 
     print(f"""

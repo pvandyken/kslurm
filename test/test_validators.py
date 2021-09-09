@@ -1,20 +1,20 @@
 import cluster_utils.slurm.slurm_args.validators as validators
 import pytest
 
-def test_job_template_validator():
-    should_work = [
+class TestJobTemplateValidator:
+
+    @pytest.mark.parametrize("arg", [
         "16core64gb24h",
         "Fat",
         "Regular"
-    ]
-    shouldnt_work = [
+    ])
+    def test_args_that_should_work(self, arg: str):
+        assert validators.job_template(arg)
+
+    @pytest.mark.parametrize("arg", [
         "random",
         "nonsense",
         "notfound"
-    ]
-
-    for x in should_work:
-        assert validators.job_template(x)
-    for x in shouldnt_work:
-        with pytest.raises(Exception):
-            validators.job_template(x)
+    ])
+    def test_args_that_shouldnt_work(self, arg: str):
+        assert not validators.job_template(arg)

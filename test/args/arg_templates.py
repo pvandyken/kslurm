@@ -11,41 +11,41 @@ def time(time: str):
     return str(int(min) + int(hours)*60 + int(days)*60*24)
 
 class AttrModel:
-    time: ShapeArg = ShapeArg(
+    time: ShapeArg[str] = ShapeArg(
         id = "random",
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = time,
         value = "03:00")
 
-    gpu: ShapeArg = ShapeArg(
+    gpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: arg == "gpu",
         value="gpu")
 
-    cpu: ShapeArg = ShapeArg(
+    cpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
         value = "1")
 
-    job_template: KeywordArg = KeywordArg(
+    job_template: KeywordArg[str] = KeywordArg[str](
         id="junk", 
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1,
         value="job_template")
 
-    length_5_keyword: KeywordArg = KeywordArg(
+    length_5_keyword: KeywordArg[str] = KeywordArg[str](
         id="length_5_keyword",
         match=lambda arg: arg == "--length_5_keyword",
         num=5,
         value="length_5_keyword"
     )
 
-    lazy_inf_keyword: KeywordArg = KeywordArg(
+    lazy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="lazy_inf_keyword",
         match = lambda arg: arg == "lazy_inf_keyword",
         num = 0,
         value="lazy_inf_keyword"
     )
 
-    greedy_inf_keyword: KeywordArg = KeywordArg(
+    greedy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="greedy_inf_keyword",
         match = lambda arg: arg == "greedy_inf_keyword",
         num = -1,

@@ -1,43 +1,42 @@
+import attr
+from cluster_utils.args.arg_types import PositionalArg
 import sys, subprocess
 from pathlib import Path
 from colorama import Fore, Style
 
-from cluster_utils.slurm import SlurmCommand
-
-# def get_config_path(name):
-#     candidates = [
-#         Path(parent, name).with_suffix(suffix) 
-#             for parent in [".", "config"] 
-#                 for suffix in [".yaml", ".yml"]
-#     ]
-#     exist = [c.exists() for c in candidates]
-#     if any(exist):
-#         return tz.second(
-#                 tz.first(
-#                 filter(lambda x: tz.first(x),
-#                 zip(exist, candidates)
-#         )))
-#     else:
-#         return None
+from cluster_utils.slurm import SlurmCommand, ArgList
 
 # Helper function for formatting the list of settings in our output
-def setting_list(name, setting):
+def setting_list(name: str, setting: str) -> str:
     return Fore.YELLOW + name + ": " + Fore.WHITE + Style.BRIGHT + setting + Style.RESET_ALL
 
+def profile_validator(profile: str) -> bool:
+    profile_path = Path.home() / ".config" / "snakemake" / "slurm" / "config" / profile
+    if any([profile_path.with_suffix(s).exists() for s in ['.yml', '.yaml']]):
+        print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
+        return True
+    return False
+
+# Extended Model
+@attr.s(auto_attribs=True)
+class SSnakeModel(ArgList):
+    profile: PositionalArg = PositionalArg()
+
 def main():
-    slurm = SlurmCommand(sys.argv[1:], cpu=2)
-    if len(slurm.command_list) < 1:
-        print(f"{Fore.RED}Must provide a profile")
-        exit()
+    models = SSnakeModel()
+    models.cpu.value = "2"
+    models.profile 
+    slurm = SlurmCommand(sys.argv[1:], models)
 
     # Get the profile and check if it exists before submission
-    profile = slurm.command_list[0]
-    if not any([(Path.home() / ".config" / "snakemake" / "slurm" / "config").with_suffix(s).exists() for s in ['.yml', '.yaml']]):
+    profile = str(slurm.args.profile)
+    profile_path = Path.home() / ".config" / "snakemake" / "slurm" / "config" / profile
+    if not any([profile_path.with_suffix(s).exists() for s in ['.yml', '.yaml']]):
         print(f"{Fore.RED}\"{Fore.LIGHTRED_EX + profile + Fore.RED}\" is not a valid profile")
         if not slurm.test:
             sys.exit(1)
     
-    args = slurm.command_list[1:]
+    
 
     # Use parent directory name as the job name
     slurm.name = Path.cwd().name
@@ -50,7 +49,7 @@ def main():
         "PANOPTES_PID=$!",
         "(tail -F panoptes.out & ) | grep -q \"Running on\"",
         "hostname -f",
-        f"snakemake --wms-monitor \"http://$(hostname -f):5000\" --profile {profile} {' '.join(args)}",
+        f"snakemake --wms-monitor \"http://$(hostname -f):5000\" --profile {profile} {slurm.command}",
         "kill $PANOPTES_PID",
         "rm panoptes.out"
     ]
@@ -78,7 +77,7 @@ def main():
             {setting_list("profile", profile)}
             {setting_list("job_name", slurm.name)}
             {setting_list("job_id", slurmid)}
-            {setting_list("other_args", ' '.join(args)) if args else ''}
+            {setting_list("other_args", slurm.command)}
     
     To cancel the job, run:
         scancel {slurmid}

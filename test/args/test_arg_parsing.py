@@ -1,5 +1,5 @@
 from pytest import fixture
-from typing import List, cast
+from typing import List, cast, Any
 import functools as ft
 import cluster_utils.args.parser as sc
 from cluster_utils.args import Arg, KeywordArg
@@ -19,9 +19,9 @@ def test_get_keywork_group_size(args: DummyArgs):
     assert group_sizes == [0, 0, 1, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0]
 
 class TestGroupKeywords:
-    def _reduce_arg_list(self, args: List[Arg]):
+    def _reduce_arg_list(self, args: List[Arg[Any]]):
         return  ft.reduce(
-                    sc.group_keyword, args, (0, cast(List[Arg], []))
+                    sc.group_keyword, args, (0, cast(List[Arg[Any]], []))
                 )
     
     def test_collects_nonkeyword_into_empty_running_list(self, args: DummyArgs):

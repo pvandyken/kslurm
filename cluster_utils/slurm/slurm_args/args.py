@@ -4,61 +4,45 @@ from pathlib import Path
 import attr
 from cluster_utils.args import ShapeArg, KeywordArg
 import cluster_utils.slurm.slurm_args.formatters as formatters
-TIME = 'time'
-GPU = 'gpu'
-CPU = 'cpus'
-MEM = 'mem'
-JUPYTER = 'jupyter'
-ACCOUNT = 'account'
-COMMAND = 'command'
-DIRECTORY = 'directory'
-TEST = 'test'
-JOB_TEMPLATE = 'job template'
-
-shape_arg = ShapeArg
-keyword_arg = KeywordArg
 
 @attr.s(auto_attribs=True)
 class ArgList:
-    time: ShapeArg = shape_arg(
-             id = "time",
-             match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
-             format = formatters.time,
-             value = "03:00")
+    time: ShapeArg[int] = ShapeArg(
+        match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
+        format = formatters.time,
+        value = "03:00")
 
-    gpu: shape_arg = shape_arg(
-             id = "gpu", 
-             match = lambda arg: arg == "gpu")
+    gpu: ShapeArg[bool] = ShapeArg(
+        match = lambda arg: arg == "gpu",
+        format = bool)
 
-    cpu: shape_arg = shape_arg(
-             id = "cpu", 
-             match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
-             value = "1")
+    cpu: ShapeArg[int] = ShapeArg(
+        match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
+        value = 1,
+        format = int)
 
-    mem: shape_arg = shape_arg(
-             id = "mem", 
-             match = lambda arg: bool(re.match(r'^[0-9]+[MG]B?$', arg)),
-             format = formatters.mem,
-             value = "4G")
+    mem: ShapeArg[str] = ShapeArg(
+        match = lambda arg: bool(re.match(r'^[0-9]+[MG]B?$', arg)),
+        format = formatters.mem,
+        value = "4G")
 
-    jupyter: shape_arg = shape_arg(
-             id = "jupyter", 
-             match = lambda arg: arg == "jupyter")
+    jupyter: ShapeArg[bool] = ShapeArg(
+        match = lambda arg: arg == "jupyter",
+        format = bool)
 
-    directory: shape_arg = shape_arg(
-             id = "directory", 
-             match = lambda arg: Path(arg).exists() and Path(arg).is_dir())
+    directory: ShapeArg[Path] = ShapeArg(
+        match = lambda arg: Path(arg).exists() and Path(arg).is_dir(),
+        format = Path) # type: ignore
 
-    test: shape_arg = shape_arg(
-             id = "test", 
-             match = lambda arg: arg == "-t" or arg == "--test")
+    test: ShapeArg[bool] = ShapeArg(
+        match = lambda arg: arg == "-t" or arg == "--test",
+        format = bool)
 
-    job_template: keyword_arg = keyword_arg(
-              id="job template", 
-              match=lambda arg : arg == '-j' or arg == '--job-template',
-              num=1)
+    job_template: KeywordArg[str] = KeywordArg(
+        match=lambda arg : arg == '-j' or arg == '--job-template',
+        num=1)
     
-    account: keyword_arg = keyword_arg(
+    account: KeywordArg[str] = KeywordArg(
         match=lambda arg: arg == '-a' or arg == '--account',
         num=1,
         values=['def-lpalaniy']

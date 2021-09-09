@@ -1,15 +1,16 @@
 from __future__ import annotations
-from typing import Callable, Iterable, List
+from typing import Callable, Generic, Iterable, List, TypeVar, Union
 import  abc
 import copy
 
+T = TypeVar("T")
 
-class Arg(abc.ABC):
+class Arg(abc.ABC, Generic[T]):
     def __init__(self, *,
             id: str = "",
             match: Callable[[str], bool],
-            value: str = "",
-            format: Callable[[str], str]=lambda x: x):
+            value: Union[str, T] = "",
+            format: Callable[[Union[str, T]], T]=str):
         self.id = id
         self.match = match
         self._value = value
@@ -33,7 +34,7 @@ class Arg(abc.ABC):
         return f"<{self.__class__.__name__}: {self.id} = {self.value}>"
 
     def __str__(self) -> str:
-        return self.value
+        return str(self.value)
 
     def setid(self, id: str):
         c = copy.copy(self)
@@ -41,11 +42,11 @@ class Arg(abc.ABC):
         return c
 
     @abc.abstractmethod
-    def set_value(self, value: str) -> Arg:
+    def set_value(self, value: str) -> Arg[T]:
         pass
 
-class PositionalArg(Arg):
-    def __init__(self, id: str="positional", value: str = ""):
+class PositionalArg(Arg[str]):
+    def __init__(self, value: str = "", id: str="positional"):
         super().__init__(id=id, match=lambda x: True, value=value)
 
     def set_value(self, value: str = ""):
@@ -56,51 +57,64 @@ class PositionalArg(Arg):
             value = self.format(value))
 
 
-class ShapeArg(Arg):
-    def set_value(self, value: str = ""):
+class ShapeArg(Arg[T]):
+    def set_value(self, value: Union[str, T] = ""):
         if not value:
-            value = self.value
-        return ShapeArg(
+            value = self._value
+        return ShapeArg[T](
             id=self.id,
             format = self.format,
-            value = self.format(value),
+            value = value,
             match = self.match)
 
 
-class KeywordArg(Arg):
+class KeywordArg(Arg[T]):
     def __init__(self, *,
             id: str = "",
             match: Callable[[str], bool],
-            value: str = "",
-            format: Callable[[str], str]=lambda x: x,
+            value: Union[str, T] = "",
+            format: Callable[[Union[str, T]], T]=lambda x: x,
             num: int = 1,
-            validate: Callable[[str], str] = lambda x: x,
+            validate: Callable[[str], bool] = lambda x: True,
+            err_message: str = "",
             values: List[str] = []):
         super().__init__(id=id, match=match, value=value, format=format)
         self.num = num
         self.validate = validate
         self.values = values
+        self.err_message = err_message
 
+    @property
+    def values(self) -> List[str]:
+        return self._values
     
-    def set_value(self, value: str = ""):
+    @values.setter
+    def values(self, values: List[str]):
+        for value in values:
+            if not self.validate(value):
+                print("Some Error")
+                exit()
+        self._values = values
+    
+    def set_value(self, value: Union[str, T] = ""):
         if not value:
-            value = self.value
-        return KeywordArg(
+            value = self._value
+        return KeywordArg[T](
             id = self.id,
-            value = self.format(value),
+            value = value,
             match = self.match,
             format =  self.format, 
             num = self.num,
             validate =  self.validate)
 
     def add_values(self, values: Iterable[str]):
-        return KeywordArg(
+        return KeywordArg[T](
             id=self.id, 
-            value = self.value, 
+            value = self._value, 
             match=self.match,
             num=self.num, 
             validate=self.validate, 
-            values=[self.validate(value) for value in values])
+            values=list(values))
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.id} = {self.values}>"
@@ -115,7 +129,7 @@ class KeywordArg(Arg):
             return False
 
 
-class TailArg(KeywordArg):
+class TailArg(KeywordArg[str]):
     def __init__(self):
         super().__init__(id="tail", num=-1, match=lambda x: True)
 

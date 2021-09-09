@@ -1,16 +1,16 @@
 from cluster_utils.slurm.slurm_args.args import ArgList
 import os
-from typing import List
-from pathlib import Path
+from typing import Generic, List, TypeVar
 import cluster_utils.args as arglib
 from .job_templates import templates
 from .slurm_args import formatters
 
+T = TypeVar("T", bound=ArgList)
 
-class SlurmCommand:
+class SlurmCommand(Generic[T]):
     def __init__(self,
                  args: List[str],
-                 arg_list: ArgList):
+                 arg_list: T):
         self._name = ""
         self._output = ""
 
@@ -28,9 +28,13 @@ class SlurmCommand:
         self.job_template = parsed.job_template
         self._command = parsed.tail
 
-        os.chdir(Path(self.cwd.value))
+        
+
+        os.chdir(self.cwd.value)
 
         self.submit_script = [self.command]
+
+        self.args = parsed
 
     @property
     def slurm_args(self):
@@ -42,10 +46,6 @@ class SlurmCommand:
     @property
     def command(self):
         return str(self._command)
-
-    @property
-    def command_list(self):
-        return self._command
 
     @property
     def name(self):

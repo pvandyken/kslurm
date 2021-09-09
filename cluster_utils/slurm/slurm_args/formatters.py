@@ -1,6 +1,8 @@
 import re
+from typing import Union
 
-def time(time: str):
+def time(time: Union[int, str]):
+    time = str(time)
     if ':' in time:
         if '-' in time:
             days, hhmm = time.split('-')
@@ -15,9 +17,10 @@ def time(time: str):
         except:
             raise TypeError(f"Invalid format for time: \"{time}\"\n"
                             f"Must be as [xx-]xx:xx or x where x is a number")
-    return str(int(min) + int(hours)*60 + int(days)*60*24)
+    return int(min) + int(hours)*60 + int(days)*60*24
 
-def mem(mem: str):
+def mem(mem: Union[str, int]):
+    mem = str(mem)
     match = re.match(r'^[0-9]+', mem)
     if match:
         num = int(match.group())
@@ -26,4 +29,4 @@ def mem(mem: str):
     if 'G' in mem:
         return str(num * 1000)
     else:
-        return str(num)
+        return num

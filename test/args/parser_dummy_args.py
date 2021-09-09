@@ -1,6 +1,6 @@
 from cluster_utils.args.arg_types import Arg, PositionalArg
 from .arg_templates import AttrModel as ArgList
-from typing import List
+from typing import List, Any
 
 def time(time: str):
     if '-' in time:
@@ -35,7 +35,7 @@ class DummyArgs:
         ArgList.positional3.set_value("Extra!"),
     ]
 
-    two_keyword: List[Arg] = [
+    two_keyword: List[Arg[Any]] = [
         ArgList.time,
         ArgList.gpu,
         ArgList.job_template,
@@ -52,7 +52,7 @@ class DummyArgs:
         ArgList.positional
     ]
 
-    positional_wrapped_keyword: List[Arg] = [
+    positional_wrapped_keyword: List[Arg[Any]] = [
         ArgList.time,
         ArgList.positional,
         ArgList.job_template,
@@ -60,7 +60,7 @@ class DummyArgs:
         ArgList.positional
     ]
 
-    lazy_keywords: List[Arg] = [
+    lazy_keywords: List[Arg[Any]] = [
         ArgList.time,
         ArgList.positional,
         ArgList.lazy_inf_keyword,
@@ -74,7 +74,7 @@ class DummyArgs:
         ArgList.time
     ]
 
-    greedy_keywords: List[Arg] = [
+    greedy_keywords: List[Arg[Any]] = [
         ArgList.time,
         ArgList.positional,
         ArgList.greedy_inf_keyword,

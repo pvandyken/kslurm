@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, Dict, ItemsView, List, TypeVar, cast, Iterable, Tuple
+from typing import Any, Callable, DefaultDict, Dict, ItemsView, List, TypeVar, cast, Iterable, Tuple
 
 import attr
 import cluster_utils.args.arg_types as arglib
@@ -8,15 +8,16 @@ import functools as fc
 import itertools as it
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 def relabel_args(models: object):
     if hasattr(models, "__attrs_attrs__"):
         return [
-            cast(Arg, arg.setid(name)) for name, arg in attr.asdict(models, recurse=False).items()
+            cast(Arg[Any], arg.setid(name)) for name, arg in attr.asdict(models, recurse=False).items()
         ]
     elif isinstance(models, dict):
         return [
-            arg.setid(name) for name, arg in cast(ItemsView[str, arglib.Arg], models.items() )
+            arg.setid(name) for name, arg in cast(ItemsView[str, Arg[Any]], models.items() )
         ]
     else:
         raise Exception(f"{type(models)} is not a supported object for arg models")
@@ -27,7 +28,7 @@ def group_by_type(items: Iterable[T]) -> Dict[type, List[T]]:
         groupedDict[key] += list(value)
     return groupedDict
 
-def update_model(arg_updates: Iterable[arglib.Arg], model: T) -> T:
+def update_model(arg_updates: Iterable[Arg[Any]], model: T) -> T:
     update = { 
         arg.id: arg for arg in arg_updates
     }
@@ -75,31 +76,32 @@ def parse_args(args: Iterable[str], models: T) -> T:
     
     return update_model(it.chain(shape_args, positional_args, keyword_args, tail), models)
 
-def classify_arg(arg: str, arg_list: Iterable[arglib.Arg]):
+def classify_arg(arg: str, arg_list: Iterable[Arg[Any]]):
     for argtype in arg_list:
         if argtype.match(arg):
             return argtype.set_value(arg)
-    return cast(Arg, PositionalArg().set_value(arg))
+    return cast(Arg[Any], PositionalArg().set_value(arg))
 
 
-def group_keywords(args: List[arglib.Arg]) -> Iterable[arglib.Arg]:
+def group_keywords(args: List[Arg[Any]]) -> Iterable[Arg[Any]]:
     return fc.reduce(
         group_keyword, 
         args, 
-        ( 0, cast(List[Arg], []) )
+        ( 0, cast(List[Arg[Any]], []) )
     )[1]
     
 
-def get_keyword_group_size(arg: arglib.Arg):
+def get_keyword_group_size(arg: Arg[Any]):
     if isinstance(arg, arglib.KeywordArg):
         return arg.num
     else:
         return 0
 
-def group_keyword(accumulant: Tuple[int, Iterable[Arg]], arg: Arg) -> Tuple[int, Iterable[Arg]]:
+def group_keyword(accumulant: Tuple[int, Iterable[Arg[Any]]], arg: Arg[Any]) -> "Tuple[int, Iterable[Arg[Any]]]":
     group_size, running_list = accumulant
     new_keyword_group_size = get_keyword_group_size(arg)
 
+    kcast: Callable[[Any], KeywordArg[Any]] = lambda x: cast(KeywordArg[Any], x)
     l = list(running_list)
     if l:
         last_arg = l[-1]
@@ -108,33 +110,33 @@ def group_keyword(accumulant: Tuple[int, Iterable[Arg]], arg: Arg) -> Tuple[int,
    
     if group_size:
         assert isinstance(last_arg, KeywordArg)
+        kcast(last_arg)
         return (
             group_size - 1, 
             it.chain(
                 l[:-1], 
-                [last_arg.add_values(it.chain(
+                [kcast(last_arg.add_values(it.chain(
                     last_arg.values,
                     [arg.value]
-                ))]
+                )))]
             )
         )
     elif isinstance(last_arg, KeywordArg) and \
-        get_keyword_group_size(last_arg) == 0 and \
+        get_keyword_group_size(kcast(last_arg)) == 0 and \
         not isinstance(arg, ShapeArg) and \
         not isinstance(arg, KeywordArg):
         return (
             group_size, 
             it.chain(
                 l[:-1], 
-                [last_arg.add_values(it.chain(
+                [kcast(last_arg.add_values(it.chain(
                     last_arg.values,
                     [arg.value]
-                ))]
+                )))] 
             )
         )
     else:
-        assert isinstance(arg, Arg)
-        return new_keyword_group_size, it.chain(l, [arg])
+        return new_keyword_group_size, it.chain(l, [cast(Arg[Any], arg)]) 
 
 
 def delineate_positional(args: Iterable[PositionalArg], positional_models: Iterable[PositionalArg]) -> Tuple[List[PositionalArg], List[PositionalArg]]:

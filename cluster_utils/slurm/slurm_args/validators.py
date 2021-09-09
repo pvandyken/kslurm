@@ -1,8 +1,9 @@
 from ..job_templates import templates
 
 
-def job_template(arg: str) -> str:
+def job_template(arg: str) -> bool:
     if arg in templates:
-        return arg
+        return True
     else:
-        raise Exception(f"{arg} is not a valid job-template")
+        return False
+        #raise Exception(f"{arg} is not a valid job-template")

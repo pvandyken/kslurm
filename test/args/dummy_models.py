@@ -22,27 +22,27 @@ def time(time: str):
 
 @attr.s(auto_attribs=True)
 class AttrModel:
-    time: ShapeArg = ShapeArg(
+    time: ShapeArg[str] = ShapeArg(
         id = "random",
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = time,
         value = "03:00")
 
-    gpu: ShapeArg = ShapeArg(
+    gpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: arg == "gpu",
         value="gpu")
 
-    cpu: ShapeArg = ShapeArg(
+    cpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
         value = "1")
 
-    job_template: KeywordArg = KeywordArg(
+    job_template: KeywordArg[str] = KeywordArg(
         id="junk", 
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1,
         value="job_template")
 
-    length_5_keyword: KeywordArg = KeywordArg(
+    length_5_keyword: KeywordArg[str] = KeywordArg(
         id="length_5_keyword",
         match=lambda arg: arg == "--length_5_keyword",
         num=5,
@@ -52,11 +52,11 @@ class AttrModel:
     tail: TailArg = TailArg()
 
 class TypedDictModel(TypedDict):
-    time: ShapeArg
-    gpu: ShapeArg
-    cpu: ShapeArg
-    job_template: KeywordArg 
-    length_5_keyword: KeywordArg 
+    time: ShapeArg[str]
+    gpu: ShapeArg[str]
+    cpu: ShapeArg[str]
+    job_template: KeywordArg[str] 
+    length_5_keyword: KeywordArg[str] 
     tail: TailArg
 
 typed_dict_model = TypedDictModel(
@@ -74,13 +74,13 @@ typed_dict_model = TypedDictModel(
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
         value = "1"),
 
-    job_template=  KeywordArg(
+    job_template = KeywordArg[str](
         id="junk", 
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1,
         value="job_template"),
 
-    length_5_keyword= KeywordArg(
+    length_5_keyword = KeywordArg[str](
         id="length_5_keyword",
         match=lambda arg: arg == "--length_5_keyword",
         num=5,
@@ -92,21 +92,21 @@ typed_dict_model = TypedDictModel(
 
 @attr.s(auto_attribs=True)
 class PositionalAndShapeModel:
-    time: ShapeArg = ShapeArg(
+    time: ShapeArg[str] = ShapeArg(
         id = "random",
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = time,
         value = "03:00")
 
-    gpu: ShapeArg = ShapeArg(
+    gpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: arg == "gpu",
         value="gpu")
 
-    cpu: ShapeArg = ShapeArg(
+    cpu: ShapeArg[str] = ShapeArg(
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
         value = "1")
 
-    job_template: KeywordArg = KeywordArg(
+    job_template: KeywordArg[str] = KeywordArg(
         id="junk", 
         match=lambda arg : arg == '-j' or arg == '--job-template',
         num=1,

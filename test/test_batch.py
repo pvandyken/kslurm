@@ -1,7 +1,7 @@
 from unittest import mock
 from pytest import CaptureFixture
 from pathlib import Path
-from cluster_utils.bin.batch import main
+from cluster_utils.batch import main
 
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
     with mock.patch('subprocess.run') as subprocess:

@@ -19,6 +19,10 @@ class Arg(abc.ABC):
     def value(self):
         return self.format(self._value)
 
+    @value.setter
+    def value(self, value: str):
+        self._value = value
+
     def __eq__(self, o: object) -> bool:
         if isinstance(o, self.__class__):
             return o.value == self.value

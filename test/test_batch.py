@@ -1,12 +1,12 @@
 from unittest import mock
 from pytest import CaptureFixture
 from pathlib import Path
-from cluster_utils.batch import main
+from cluster_utils.submission import kbatch
 
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
     with mock.patch('subprocess.run') as subprocess:
         with mock.patch('sys.argv', ['kbatch', '-t', 'command']):
-            main()
+            kbatch()
         
         out = capsys.readouterr()
         assert "--account=def-lpalaniy --time=03:00:00 --cpus-per-task=1 --mem=4000" in str(out)
@@ -26,7 +26,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             './test', 
             'command'
         ]):
-            main()
+            kbatch()
         
         out = capsys.readouterr()
         assert "--account=some-account --time=2-09:11:00 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)

@@ -91,11 +91,19 @@ class SlurmCommand(Generic[T]):
         self._name = name
 
     @property
-    def interactive(self):
+    def run(self):
         s = f"salloc {self.slurm_args}"
         if self.command:
             s += f" {self.command}"
         return s
+
+    @property
+    def alloc(self):
+        s = f"salloc {self.slurm_args}"
+        if self.command:
+            return f"echo '{self.submit_script}' | {s}"
+        else:
+            return self.run
 
     @property
     def batch(self):

@@ -20,8 +20,9 @@ tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
 hypothesis = "^6.20.0"
 
 [tool.poetry.scripts]
-kbatch = 'cluster_utils.batch:main'
-kalloc = 'cluster_utils.interactive:main'
+kbatch = 'cluster_utils.submission:kbatch'
+kalloc = 'cluster_utils.submission:kalloc'
+krun = 'cluster_utils.submission:krun'
 ksnake = 'cluster_utils.ssnake:main'
 
 [build-system]

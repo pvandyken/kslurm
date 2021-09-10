@@ -16,18 +16,11 @@ KRUN_CMD_MESSAGE = f""" \
         {SETTINGS_HEADER}
             {Fore.WHITE} {{args}}
         {COMMAND_HEADER}
-            {{command}}"""
+            {{command}}
+"""
 
 INTERACTIVE_MSG = f"""
     {Fore.GREEN}Running interactive session
         {SETTINGS_HEADER}
             {Fore.WHITE} {{args}}
-"""
-
-KALLOC_MSG = f"""
-    {Fore.GREEN}Running job as script 
-        {SETTINGS_HEADER}
-            {Fore.WHITE} {{args}}
-        {COMMAND_HEADER}
-            {{command}}
 """

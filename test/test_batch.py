@@ -19,19 +19,20 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             'kbatch',
             '1-33:11', 
             '5G', 
-            '22', 
             'gpu', 
             '--account',
             'some-account',
+            '-j',
+            'Regular',
             './test', 
             'command'
         ]):
             kbatch()
         
         out = capsys.readouterr()
-        assert "--account=some-account --time=2-09:11:00 --cpus-per-task=22 --mem=5000 --gres=gpu:1" in str(out)
+        assert "--account=some-account --time=2-09:11:00 --cpus-per-task=8 --mem=5000 --gres=gpu:1" in str(out)
         subprocess.assert_called_once_with(
             "echo '#!/bin/bash\ncommand' | sbatch --account=some-account "
-            "--time=2-09:11:00 --cpus-per-task=22 --mem=5000 --gres=gpu:1 "
+            "--time=2-09:11:00 --cpus-per-task=8 --mem=5000 --gres=gpu:1 "
             "--job-name=command --parsable ", shell=True)
         assert Path.cwd() == starting_cwd / 'test'

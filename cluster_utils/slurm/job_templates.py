@@ -1,35 +1,60 @@
-from typing import Dict
+from typing import Dict, cast
 from typing_extensions import TypedDict
+import itertools as it
+from tabulate import tabulate
+import attr, json
+from pathlib import Path
+import functools as ft
+from cluster_utils.args import ShapeArg
 
-class Template(TypedDict):
+
+class Templates(TypedDict):
     cpus: str
     mem: str
     time: str
 
-templates: Dict[str, Template] = {
-    "16core64gb24h": {"cpus": "16", "mem": "64000", "time": "24:00"},
-    "16core64gb3h": {"cpus": "16", "mem": "64000", "time": "3:00"},
-    "2core8gb16h": {"cpus": "2", "mem": "8000", "time": "16:00"},
-    "2core8gb": {"cpus": "2", "mem": "8000", "time": "1:00"},
-    "32core128gb12h": {"cpus": "2", "mem": "128000", "time": "12:00"},
-    "32core128gb3h": {"cpus": "32", "mem": "128000", "time": "3:00"},
-    "4core16gb12h": {"cpus": "4", "mem": "16000", "time": "12:00"},
-    "4core16gb24h": {"cpus": "4", "mem": "16000", "time": "24:00"},
-    "4core16gb": {"cpus": "4", "mem": "16000", "time": "3:00"},
-    "4core64gb12h": {"cpus": "4", "mem": "64000", "time": "12:00"},
-    "5core32gb24h": {"cpus": "5", "mem": "32000", "time": "24:00"},
-    "5core32gb72h": {"cpus": "5", "mem": "32000", "time": "72:00"},
-    "8core32gb12h": {"cpus": "8", "mem": "32000", "time": "12:00"},
-    "8core32gb28h": {"cpus": "8", "mem": "32000", "time": "28:00"},
-    "8core32gb3h": {"cpus": "8", "mem": "32000", "time": "3:00"},
-    "Fat": {"cpus": "32", "mem": "128000", "time": "24:00"},
-    "LongFat": {"cpus": "32", "mem": "128000", "time": "72:00"},
-    "Long": {"cpus": "8", "mem": "32000", "time": "72:00"},
-    "LongSkinny": {"cpus": "1", "mem": "4000", "time": "72:00"},
-    "Quick": {"cpus": "1", "mem": "4000", "time": "0:10"},
-    "Regular": {"cpus": "8", "mem": "32000", "time": "24:00"},
-    "ShortFat": {"cpus": "32", "mem": "128000", "time": "3:00"},
-    "Short": {"cpus": "8", "mem": "32000", "time": "3:00"},
-    "ShortSkinny": {"cpus": "1", "mem": "4000", "time": "3:00"},
-    "Skinny": {"cpus": "1", "mem": "4000", "time": "24:00"},
-}
+
+@attr.s(auto_attribs=True)
+class TemplateArgs:
+    mem: ShapeArg[int]
+    cpu: ShapeArg[int]
+    time: ShapeArg[int]
+
+
+@ft.lru_cache
+def templates() -> Dict[str, Templates]:
+    file = Path(f"{__file__}/../../data/slurm_job_templates.json").resolve()
+
+    if not file.exists():
+        raise FileNotFoundError(
+            "Could not locate slurm_job_templates.json " f"at {file.resolve()}"
+        )
+    with file.open() as data_stream:
+        data = json.load(data_stream)
+    cast(Dict[str, Templates], data)
+    return data
+
+
+def set_template(
+    template: str, mem: ShapeArg[int], cpu: ShapeArg[int], time: ShapeArg[int]
+):
+    if template:
+        if not template in templates():
+            raise Exception(f"{template} is not a valid template")
+
+        return TemplateArgs(
+            mem=mem.set_value(templates()[template]["mem"]),
+            cpu=cpu.set_value(templates()[template]["cpus"]),
+            time=time.set_value(templates()[template]["time"]),
+        )
+    else:
+        return TemplateArgs(mem=mem, cpu=cpu, time=time)
+
+
+def list_templates():
+    labelled_values = list(templates().values())
+    headers = ["name"] + list(labelled_values[0].keys())
+    values = [list(value.values()) for value in labelled_values]
+    entries = list(zip(templates().keys(), values))
+    table = [list(it.chain([entry[0]], entry[1])) for entry in entries]
+    print(tabulate(table, headers=headers, tablefmt="presto"))

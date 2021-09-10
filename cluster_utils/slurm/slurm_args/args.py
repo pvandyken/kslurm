@@ -1,8 +1,7 @@
-from cluster_utils.args.arg_types import TailArg
 import re
 from pathlib import Path
 import attr
-from cluster_utils.args import ShapeArg, KeywordArg, FlagArg
+from cluster_utils.args import ShapeArg, KeywordArg, FlagArg, TailArg
 from . import formatters
 from . import validators
 

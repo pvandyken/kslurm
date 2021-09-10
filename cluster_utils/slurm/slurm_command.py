@@ -55,7 +55,7 @@ class SlurmCommand(Generic[T]):
 
         os.chdir(self.cwd.value)
 
-        self.submit_script = [self.command]
+        self.command_script = [self.command]
 
         self.args = parsed
 
@@ -99,9 +99,8 @@ class SlurmCommand(Generic[T]):
 
     @property
     def alloc(self):
-        s = f"salloc {self.slurm_args}"
         if self.command:
-            return f"echo '{self.submit_script}' | {s}"
+            return f"echo '{self.command}' | srun {self.slurm_args}"
         else:
             return self.run
 
@@ -112,16 +111,16 @@ class SlurmCommand(Generic[T]):
         else:
             s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
         if self.command:
-            return f"echo '{self.submit_script}' | {s}"
+            return f"echo '{self.command_script}' | {s}"
         else:
             raise ValidationError("No command given")
 
     @property
-    def submit_script(self):
+    def command_script(self):
         return self._submit_script
 
-    @submit_script.setter
-    def submit_script(self, command: List[str]):
+    @command_script.setter
+    def command_script(self, command: List[str]):
         self._submit_script = '\n'.join(['#!/bin/bash'] + command)
 
     @property

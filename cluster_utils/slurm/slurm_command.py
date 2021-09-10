@@ -15,8 +15,6 @@ class SlurmCommand(Generic[T]):
         self._name = ""
         self._output = ""
 
-        
-
         try:
             parsed = arglib.parse_args(args, model)
         except CommandLineError as err:
@@ -37,16 +35,19 @@ class SlurmCommand(Generic[T]):
             template, mem=model.mem, cpu=model.cpu, time=model.time
         )
 
+        # Start by setting these three with model/template
         self.time = template_vals.time
         self.cpu = template_vals.cpu
         self.mem = template_vals.mem
 
+        # Then update if values were specifically supplied on the command line
         if parsed.time.updated:
             self.time = parsed.time
         if parsed.cpu.updated:
             self.cpu = parsed.cpu
         if parsed.mem.updated:
             self.mem = parsed.mem
+
         self.gpu = bool(parsed.gpu.value)
         self.jupyter = parsed.jupyter
         self.account = parsed.account
@@ -57,10 +58,13 @@ class SlurmCommand(Generic[T]):
 
         os.chdir(self.cwd.value)
 
-        self.command_script = [self.command]
+        self.script = [self.command]
 
         self.args = parsed
 
+    ###
+    # Job Paramaters
+    ###
     @property
     def time(self):
         return helpers.slurm_time_format(self._time.value)
@@ -68,17 +72,6 @@ class SlurmCommand(Generic[T]):
     @time.setter
     def time(self, time: ShapeArg[int]):
         self._time = time
-
-    @property
-    def slurm_args(self):
-        s = f"--account={self.account} --time={self.time} --cpus-per-task={self.cpu} --mem={self.mem}"
-        if self.gpu:
-            s += " --gres=gpu:1"
-        return s
-
-    @property
-    def command(self):
-        return str(self._command)
 
     @property
     def name(self):
@@ -92,18 +85,44 @@ class SlurmCommand(Generic[T]):
         self._name = name
 
     @property
-    def run(self):
-        s = f"salloc {self.slurm_args}"
-        if self.command:
-            s += f" {self.command}"
+    def output(self):
+        return self._output
+
+    @output.setter
+    def output(self, output: str):
+        self._output = f'--output="{output}"'
+    
+    ###
+    # Command line strings
+    ###
+    @property
+    def slurm_args(self):
+        s = f"--account={self.account} --time={self.time} --cpus-per-task={self.cpu} --mem={self.mem}"
+        if self.gpu:
+            s += " --gres=gpu:1"
         return s
 
     @property
-    def alloc(self):
+    def command(self):
+        return str(self._command)
+
+    @property
+    def script(self):
+        return self._script
+
+    @script.setter
+    def script(self, command: List[str]):
+        self._script = "\n".join(["#!/bin/bash"] + command)
+
+    ###
+    # Job submission commands
+    ###
+    @property
+    def run(self):
         if self.command:
-            return f"echo '{self.command}' | srun {self.slurm_args}"
+            return f"echo '{self.command}' | srun {self.slurm_args} bash"
         else:
-            return self.run
+            return f"salloc {self.slurm_args}"
 
     @property
     def batch(self):
@@ -112,24 +131,12 @@ class SlurmCommand(Generic[T]):
         else:
             s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
         if self.command:
-            return f"echo '{self.command_script}' | {s}"
+            return f"echo '{self.script}' | {s}"
         else:
             raise ValidationError("No command given")
 
-    @property
-    def command_script(self):
-        return self._submit_script
+    
 
-    @command_script.setter
-    def command_script(self, command: List[str]):
-        self._submit_script = "\n".join(["#!/bin/bash"] + command)
-
-    @property
-    def output(self):
-        return self._output
-
-    @output.setter
-    def output(self, output: str):
-        self._output = f'--output="{output}"'
+    
 
     

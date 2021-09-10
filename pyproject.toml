@@ -21,7 +21,6 @@ hypothesis = "^6.20.0"
 
 [tool.poetry.scripts]
 kbatch = 'cluster_utils.submission:kbatch'
-kalloc = 'cluster_utils.submission:kalloc'
 krun = 'cluster_utils.submission:krun'
 ksnake = 'cluster_utils.ssnake:main'
 

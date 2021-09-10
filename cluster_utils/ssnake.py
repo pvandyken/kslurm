@@ -48,7 +48,7 @@ def main():
     slurm.output = "snakemake-%j.out"
 
     # Update our submission script
-    slurm.command_script = [
+    slurm.script = [
         "source $SNAKEMAKE_VENV_DIR/activate",
         "panoptes --ip $(hostname -f) 1> panoptes.out 2>&1 &",
         "PANOPTES_PID=$!",

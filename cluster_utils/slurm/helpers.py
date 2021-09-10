@@ -12,3 +12,4 @@ def slurm_time_format(min: int) -> str:
         return f"{days}-{ex_hr:02d}:{ex_min:02d}:00"
     else:
         return f"{ex_hr:02d}:{ex_min:02d}:00"
+

@@ -29,6 +29,10 @@ class ArgList:
         match=["jupyter"]
     )
 
+    x11: FlagArg = FlagArg(
+        match=["x11", "--x11"]
+    )
+
     directory: ShapeArg[Path] = ShapeArg[Path](
         match = lambda arg: Path(arg).exists() and Path(arg).is_dir(),
         format = Path,

@@ -50,6 +50,7 @@ class SlurmCommand(Generic[T]):
 
         self.gpu = bool(parsed.gpu.value)
         self.jupyter = parsed.jupyter
+        self.x11 = bool(parsed.x11)
         self.account = parsed.account
         self.cwd = parsed.directory
         self.test = bool(parsed.test.value)
@@ -100,6 +101,8 @@ class SlurmCommand(Generic[T]):
         s = f"--account={self.account} --time={self.time} --cpus-per-task={self.cpu} --mem={self.mem}"
         if self.gpu:
             s += " --gres=gpu:1"
+        if self.x11:
+            s += " --x11"
         return s
 
     @property

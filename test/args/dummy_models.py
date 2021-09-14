@@ -38,15 +38,15 @@ class AttrModel:
 
     job_template: KeywordArg[str] = KeywordArg(
         id="junk", 
-        match=lambda arg : arg == '-j' or arg == '--job-template',
+        match=['-j', '--job-template'],
         num=1,
-        value="job_template")
+        value=False)
 
     length_5_keyword: KeywordArg[str] = KeywordArg(
         id="length_5_keyword",
-        match=lambda arg: arg == "--length_5_keyword",
+        match=['--length_5_keyword'],
         num=5,
-        value="length_5_keyword"
+        value=False
     )
 
     tail: TailArg = TailArg()
@@ -76,15 +76,15 @@ typed_dict_model = TypedDictModel(
 
     job_template = KeywordArg[str](
         id="junk", 
-        match=lambda arg : arg == '-j' or arg == '--job-template',
+        match=['-j', '--job-template'],
         num=1,
-        value="job_template"),
+        value=False),
 
     length_5_keyword = KeywordArg[str](
         id="length_5_keyword",
-        match=lambda arg: arg == "--length_5_keyword",
+        match=['--length_5_keyword'],
         num=5,
-        value="length_5_keyword"
+        value=False
     ),
 
     tail = TailArg()
@@ -108,21 +108,21 @@ class PositionalAndShapeModel:
 
     job_template: KeywordArg[str] = KeywordArg(
         id="junk", 
-        match=lambda arg : arg == '-j' or arg == '--job-template',
+        match=['-j', '--job-template'],
         num=1,
-        value="job_template")
+        value=False)
 
-    positional: PositionalArg = PositionalArg(
+    positional: PositionalArg[str] = PositionalArg(
         id="positional",
         value = 'pos1'
     )
 
-    positional2: PositionalArg = PositionalArg(
+    positional2: PositionalArg[str] = PositionalArg(
         id="positional2",
         value = 'pos2'
     )
 
-    positional3: PositionalArg = PositionalArg(
+    positional3: PositionalArg[str] = PositionalArg(
         id="positional3",
         value = 'pos3'
     )

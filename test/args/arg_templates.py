@@ -27,27 +27,27 @@ class AttrModel:
 
     job_template: KeywordArg[str] = KeywordArg[str](
         id="junk", 
-        match=lambda arg : arg == '-j' or arg == '--job-template',
+        match=['-j', '--job-template'],
         num=1,
         value=False)
 
     length_5_keyword: KeywordArg[str] = KeywordArg[str](
         id="length_5_keyword",
-        match=lambda arg: arg == "--length_5_keyword",
+        match=['--length_5_keyword'],
         num=5,
         value=False
     )
 
     lazy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="lazy_inf_keyword",
-        match = lambda arg: arg == "lazy_inf_keyword",
+        match = ['lazy_inf_keyword'],
         num = 0,
         value=False
     )
 
     greedy_inf_keyword: KeywordArg[str] = KeywordArg[str](
         id="greedy_inf_keyword",
-        match = lambda arg: arg == "greedy_inf_keyword",
+        match = ["greedy_inf_keyword"],
         num = -1,
         value=False
     )

@@ -1,44 +1,20 @@
-from collections import defaultdict
-from typing import Any, Callable, DefaultDict, Dict, ItemsView, List, TypeVar, cast, Iterable, Tuple
+from typing import Any, Callable, List, TypeVar, cast, Iterable, Tuple
 
-import attr
-import cluster_utils.args.arg_types as arglib
-from cluster_utils.args.arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailArg
 import functools as fc
 import itertools as it
+
+import cluster_utils.args.helpers as helpers
+from .arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailArg
 
 T = TypeVar("T")
 S = TypeVar("S")
 
-def relabel_args(models: object):
-    if hasattr(models, "__attrs_attrs__"):
-        return [
-            cast(Arg[Any], arg.setid(name)) for name, arg in attr.asdict(models, recurse=False).items()
-        ]
-    elif isinstance(models, dict):
-        return [
-            arg.setid(name) for name, arg in cast(ItemsView[str, Arg[Any]], models.items() )
-        ]
-    else:
-        raise Exception(f"{type(models)} is not a supported object for arg models")
-
-def group_by_type(items: Iterable[T]) -> Dict[type, List[T]]:
-    groupedDict = cast(DefaultDict[type, List[T]], defaultdict(list))
-    for key, value in it.groupby(items, type):
-        groupedDict[key] += list(value)
-    return groupedDict
-
-def update_model(arg_updates: Iterable[Arg[Any]], model: T) -> T:
-    update = { 
-        arg.id: arg for arg in arg_updates
-    }
-    return model.__class__(**update)
 
 
 def parse_args(args: Iterable[str], models: T) -> T:
-    model_list = relabel_args(models)
+    model_list = helpers.get_arg_list(models)
 
-    model_cats = group_by_type(model_list)
+    model_cats = helpers.group_by_type(model_list)
 
     specific_args = list(it.chain(
         model_cats.get(ShapeArg, []),
@@ -47,7 +23,7 @@ def parse_args(args: Iterable[str], models: T) -> T:
     ))
     
     labelled = [classify_arg(a, specific_args) for a in args]
-    grouped = group_by_type(group_keywords(labelled))
+    grouped = helpers.group_by_type(group_keywords(labelled))
     shape_args = grouped.get(ShapeArg, [])
     keyword_args = grouped.get(KeywordArg, [])
     flag_args = grouped.get(FlagArg, [])
@@ -76,7 +52,7 @@ def parse_args(args: Iterable[str], models: T) -> T:
             raise Exception(f"{extras} are not valid arguments. Please add a TailArg to your "
                                 "model to collect extra arguments")
     
-    return update_model(it.chain(shape_args, positional_args, keyword_args, flag_args, tail), models)
+    return helpers.update_model(it.chain(shape_args, positional_args, keyword_args, flag_args, tail), models)
 
 def classify_arg(arg: str, arg_list: Iterable[Arg[Any]]):
     for argtype in arg_list:
@@ -94,7 +70,7 @@ def group_keywords(args: List[Arg[Any]]) -> Iterable[Arg[Any]]:
     
 
 def get_keyword_group_size(arg: Arg[Any]):
-    if isinstance(arg, arglib.KeywordArg):
+    if isinstance(arg, KeywordArg):
         return arg.num
     else:
         return 0

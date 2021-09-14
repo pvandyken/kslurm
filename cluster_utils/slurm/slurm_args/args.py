@@ -44,7 +44,8 @@ class ArgList:
         examples=[
             "3000MB (3 GB)",
             "16G (16GB)"
-        ])
+        ],
+        help="Amount of memory to request")
 
     x11: FlagArg = FlagArg(
         match=["x11", "--x11"],
@@ -56,7 +57,7 @@ class ArgList:
         format = Path,
         value = Path(),
         name = "Directory",
-        syntax="/absolute/path | relative/path",
+        syntax="/absolute/path | ./relative/path",
         help="Change working directory before submitting the command. All other "
              "relative paths will be evaluated relative to the new directory.") 
 
@@ -66,9 +67,10 @@ class ArgList:
     )
 
     job_template: KeywordArg[str] = KeywordArg[str](
-        match=lambda arg : arg == '-j' or arg == '--job-template',
+        match=['-j', '--job-template'],
         validate=validators.job_template,
         num=1,
+        values_name="template",
         help="Set CPU, memory, and time from a template. "
              "Run with -J to see list of templates. Any "
              "template item can be overridden by supplying "
@@ -80,10 +82,11 @@ class ArgList:
     )
     
     account: KeywordArg[str] = KeywordArg[str](
-        match=lambda arg: arg == '-a' or arg == '--account',
+        match=['-a', '--account'],
         num=1,
         values=['def-lpalaniy'],
-        help="Compute account to submit the job under."
+        help="Compute account to submit the job under.",
+        values_name="name"
     )
     
     tail: TailArg = TailArg()

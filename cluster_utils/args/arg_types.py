@@ -138,19 +138,21 @@ class FlagArg(Arg[bool]):
 
 S = TypeVar("S")
 
-class KeywordArg(Arg[bool], Generic[S]):
+class KeywordArg(FlagArg, Generic[S]):
     def __init__(self, *,
             id: str = "",
-            match: Callable[[str], bool],
+            match: List[str],
             value: bool = False,
             num: int = 1,
             validate: Callable[[str], str] = lambda x: x,
             values: List[str] = [],
-            help: str = ""):
-        super().__init__(id=id, match=match, format=bool, help=help, value=value)
+            help: str = "",
+            values_name: str = ""):
+        super().__init__(id=id, match=match, help=help, value=value)
         self.num = num
         self.validate = validate
         self.values = values
+        self.values_name = values_name
 
     @property
     def values(self) -> List[str]:
@@ -198,5 +200,5 @@ class KeywordArg(Arg[bool], Generic[S]):
 
 class TailArg(KeywordArg[str]):
     def __init__(self):
-        super().__init__(id="tail", num=-1, match=lambda x: True)
+        super().__init__(id="tail", num=-1, match=[])
 

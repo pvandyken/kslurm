@@ -1,4 +1,4 @@
-from cluster_utils.args.arg_types import ShapeArg
+from cluster_utils.args import ShapeArg
 from cluster_utils.slurm.slurm_args.args import ArgList
 import os
 from typing import Generic, List, TypeVar
@@ -24,7 +24,7 @@ class SlurmCommand(Generic[T]):
                 templates.list_templates()
             exit()
 
-        if parsed.list_job_templates.value:
+        if parsed.list_job_templates.value and not parsed.help.value:
             templates.list_templates()
             exit()
 
@@ -55,6 +55,7 @@ class SlurmCommand(Generic[T]):
         self.test = bool(parsed.test.value)
         self.job_template = parsed.job_template
         self._command = parsed.tail
+        self.help = bool(parsed.help.value)
 
         os.chdir(self.cwd.value)
 

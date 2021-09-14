@@ -199,6 +199,7 @@ class KeywordArg(FlagArg, Generic[S]):
 
 
 class TailArg(KeywordArg[str]):
-    def __init__(self):
+    def __init__(self, name: str = "Tail"):
         super().__init__(id="tail", num=-1, match=[])
+        self.name = name
 

@@ -88,8 +88,13 @@ class ArgList:
         help="Compute account to submit the job under.",
         values_name="name"
     )
+
+    help: FlagArg = FlagArg(
+        match=['-h', '--help'],
+        help="Print this help message"
+    )
     
-    tail: TailArg = TailArg()
+    tail: TailArg = TailArg("Command")
 
 
 

@@ -21,7 +21,7 @@ class TemplateArgs:
     time: ShapeArg[int]
 
 
-@ft.lru_cache
+@ft.lru_cache(None)
 def templates() -> Dict[str, Templates]:
     file = Path(f"{__file__}/../../data/slurm_job_templates.json").resolve()
 

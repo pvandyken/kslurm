@@ -10,14 +10,16 @@ T = TypeVar("T")
 
 class Arg(abc.ABC, Generic[T]):
     def __init__(self, *,
-            id: str = "",
+            id: str,
             match: Callable[[str], bool],
-            value: Union[None, T] = None,
-            format: Callable[[str], T]=str):
+            value: Union[None, T],
+            format: Callable[[str], T],
+            help: str):
         self.id = id
         self.match = match
-        self._value = value
+        self.value = value
         self._format = format
+        self.help = help
 
     @property
     def value(self):
@@ -57,10 +59,13 @@ class PositionalArg(Arg[T]):
             id: str="positional",
             format: Callable[[str], T]=str,
             validator: Callable[[str], str] = lambda x: x,
-            updated: bool = False):
-        super().__init__(id=id, match=lambda x: True, value=value, format=format)
+            updated: bool = False,
+            help: str = "",
+            name: str = ""):
+        super().__init__(id=id, match=lambda x: True, value=value, format=format, help=help)
         self.validator = validator
         self.updated = updated
+        self.name = name
 
     @property
     def value(self):
@@ -75,12 +80,10 @@ class PositionalArg(Arg[T]):
 
     def set_value(self, value: str):
         try:
-            return PositionalArg[T](
-                id=self.id,
-                value = self._format(self.validator(value)),
-                format = self._format,
-                validator = self.validator,
-                updated = True)
+            c = copy.copy(self)
+            c.value = self._format(self.validator(value))
+            c.updated = True
+            return c
         except ValidationError as err:
             raise CommandLineError(f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
@@ -95,40 +98,41 @@ class ShapeArg(Arg[T]):
             match: Callable[[str], bool],
             value: Union[None, T] = None,
             format: Callable[[str], T]=str,
-            updated: bool = False):
-        super().__init__(id=id, match=match, value=value, format=format)
+            updated: bool = False,
+            help: str = "",
+            name: str = "",
+            syntax: str = ""):
+        super().__init__(id=id, match=match, value=value, format=format, help=help)
         self.updated = updated
+        self.name = name
+        self.syntax = syntax
 
     def set_value(self, value: str):
-        return ShapeArg[T](
-            id=self.id,
-            format = self._format,
-            value = self._format(value),
-            match = self.match,
-            updated = True)
+        c = copy.copy(self)
+        c.value = self._format(value)
+        c.updated = True
+        return c
 
 class FlagArg(Arg[bool]):
     def __init__(self, *,
             id: str = "",
             match: List[str],
-            value: bool = False):
+            value: bool = False,
+            help: str = ""):
 
         def check_match(val: str):
             if val in match:
                 return True
             return False
         
-        super().__init__(id=id, match=check_match, format=bool)
-        self._value = value
+        super().__init__(id=id, match=check_match, format=bool, value=value, help=help)
         self.match_list = match
 
 
     def set_value(self, value: str):
-        return FlagArg(
-            id=self.id,
-            value = self._format(value),
-            match = self.match_list)
-
+        c = copy.copy(self)
+        c.value = self._format(value)
+        return c
 
 S = TypeVar("S")
 
@@ -139,14 +143,12 @@ class KeywordArg(Arg[bool], Generic[S]):
             value: bool = False,
             num: int = 1,
             validate: Callable[[str], str] = lambda x: x,
-            err_message: str = "",
-            values: List[str] = []):
-        super().__init__(id=id, match=match, format=bool)
-        self._value = value
+            values: List[str] = [],
+            help: str = ""):
+        super().__init__(id=id, match=match, format=bool, help=help, value=value)
         self.num = num
         self.validate = validate
         self.values = values
-        self.err_message = err_message
 
     @property
     def values(self) -> List[str]:
@@ -157,22 +159,20 @@ class KeywordArg(Arg[bool], Generic[S]):
         self._values = values
     
     def set_value(self, value: str):
-        return KeywordArg[S](
-            id = self.id,
-            value = self._format(value),
-            match = self.match,
-            num = self.num,
-            validate =  self.validate)
+        c = copy.copy(self)
+        c.value = self._format(value)
+        # We need to obliterate any values in order for argparse to work
+        # Otherwise any default args will be included in the final list.
+        # A more elegant solution would delete default args organically
+        # if user-supplied args are added.
+        c.values = []
+        return c
 
     def add_values(self, values: Iterable[str]):
         try:
-            return KeywordArg[S](
-                id=self.id, 
-                value = self._value, 
-                match=self.match,
-                num=self.num, 
-                validate=self.validate, 
-                values=list(map(self.validate, values)))
+            c = copy.copy(self)
+            c.values = list(map(self.validate, values))
+            return c
         except ValidationError as err:
             raise CommandLineError(f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}

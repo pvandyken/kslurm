@@ -50,7 +50,7 @@ class SlurmCommand(Generic[T]):
 
         self.gpu = bool(parsed.gpu.value)
         self.jupyter = parsed.jupyter
-        self.x11 = bool(parsed.x11)
+        self.x11 = bool(parsed.x11.value)
         self.account = parsed.account
         self.cwd = parsed.directory
         self.test = bool(parsed.test.value)

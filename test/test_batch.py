@@ -30,6 +30,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             kbatch()
         
         out = capsys.readouterr()
+        print(str(out))
         assert "--account=some-account --time=2-09:11:00 --cpus-per-task=8 --mem=5000 --gres=gpu:1" in str(out)
         subprocess.assert_called_once_with(
             "echo '#!/bin/bash\ncommand' | sbatch --account=some-account "

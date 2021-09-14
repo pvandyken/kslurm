@@ -10,7 +10,8 @@ class ArgList:
     time: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = formatters.time,
-        value = formatters.time("03:00"))
+        value = formatters.time("03:00"),
+        help="")
 
     gpu: FlagArg = FlagArg(
         match = ["gpu"])

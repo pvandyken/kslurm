@@ -4,8 +4,8 @@ import os
 from typing import Generic, List, TypeVar
 import cluster_utils.args as arglib
 from cluster_utils.exceptions import CommandLineError, TemplateError, ValidationError
-from . import job_templates as templates
-from . import helpers
+from cluster_utils.slurm import job_templates as templates
+from cluster_utils.slurm import helpers
 
 T = TypeVar("T", bound=ArgList)
 

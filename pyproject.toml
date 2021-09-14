@@ -36,6 +36,8 @@ isolated_build = True
 [testenv]
 deps =
     pytest
+    tabulate
+    hypothesis
 install_project_deps = true
 commands =
     pytest

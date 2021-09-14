@@ -22,7 +22,6 @@ hypothesis = "^6.20.0"
 [tool.poetry.scripts]
 kbatch = 'cluster_utils.submission:kbatch'
 krun = 'cluster_utils.submission:krun'
-ksnake = 'cluster_utils.ssnake:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

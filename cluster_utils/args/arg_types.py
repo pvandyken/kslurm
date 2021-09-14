@@ -101,11 +101,13 @@ class ShapeArg(Arg[T]):
             updated: bool = False,
             help: str = "",
             name: str = "",
-            syntax: str = ""):
+            syntax: str = "",
+            examples: List[str] = []):
         super().__init__(id=id, match=match, value=value, format=format, help=help)
         self.updated = updated
         self.name = name
         self.syntax = syntax
+        self.examples = examples
 
     def set_value(self, value: str):
         c = copy.copy(self)

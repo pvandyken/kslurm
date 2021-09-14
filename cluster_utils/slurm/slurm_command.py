@@ -49,7 +49,6 @@ class SlurmCommand(Generic[T]):
             self.mem = parsed.mem
 
         self.gpu = bool(parsed.gpu.value)
-        self.jupyter = parsed.jupyter
         self.x11 = bool(parsed.x11.value)
         self.account = parsed.account
         self.cwd = parsed.directory

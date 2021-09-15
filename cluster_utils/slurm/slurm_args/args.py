@@ -84,7 +84,7 @@ class ArgList:
     account: KeywordArg[str] = KeywordArg[str](
         match=['-a', '--account'],
         num=1,
-        values=['def-lpalaniy'],
+        values=['ctb-akhanf'],
         help="Compute account to submit the job under.",
         values_name="name"
     )

@@ -35,10 +35,10 @@ def kbatch():
             # output will be the issued command, so we print it
             print(Fore.WHITE + output)
         else:
-            # We subtract the last 2 characters of the output
-            # to remove the final "\n" characters and get the 
+            # We subtract the last character of the output
+            # to remove the final "\n" character and get the 
             # job_id
-            slurmid = output[:-2]
+            slurmid = output[:-1]
 
             print(f"""To cancel the job, run:
         scancel {slurmid}

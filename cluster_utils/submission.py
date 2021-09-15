@@ -9,6 +9,14 @@ def kbatch():
     """Submit a job using sbatch
 
     Supports scripts (e.g. ./script.sh) or direct commands (e.g. cp dir/file.txt dir2)
+
+    When your command contains bash interpreted elements such as $VARIABLES and 
+    $(subshells), these will be immediately expanded. Normally, this behaviour
+    is fine, but sometimes they should only be interpretted on the allocated cluster.
+    For instance, $SLURM_TMPDIR will evaluate to "" unless it is interpretted later.
+    To force this behaviour, wrap the $VARIABLE or $(subshell) in quotes:
+        '$SLURM_TMPDIR'
+        '$(hostname)'
     """
 
     slurm = SlurmCommand(sys.argv[1:], ArgList())

@@ -117,7 +117,7 @@ def _positional_table(args: List[PositionalArg[Any]]):
 def _keyword_table(args: List[KeywordArg[Any]]):
     if args:
         names = [bold(', '.join(arg.match_list)) for arg in args]
-        value_names = [dim(f"[{arg.values_name}]") for arg in args]
+        value_names = [dim(f"<{arg.values_name}>") for arg in args]
         defaults = _get_defaults([arg.values for arg in args])
         helps = _get_helps(args)
         return tabulate(

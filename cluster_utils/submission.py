@@ -27,7 +27,22 @@ def kbatch():
 
     print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
     if slurm.command:
-        subprocess.run(slurm.batch, shell=True)
+        output = subprocess\
+            .run(slurm.batch, shell=True, capture_output=True)\
+            .stdout.decode()
+
+        if slurm.test:
+            # output will be the issued command, so we print it
+            print(Fore.WHITE + output)
+        else:
+            # We subtract the last 2 characters of the output
+            # to remove the final "\n" characters and get the 
+            # job_id
+            slurmid = output[:-2]
+
+            print(f"""To cancel the job, run:
+        scancel {slurmid}
+        """)
 
 def krun():
     """Start an interactive session

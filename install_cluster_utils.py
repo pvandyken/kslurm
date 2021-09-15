@@ -167,6 +167,14 @@ def check_os():
     else:
         return True
 
+def check_python():
+    major, minor = sys.version_info[0:2]
+    if major == 3 and minor > 6:
+        return True
+    else:
+        print("Please run script with Python version 3.7 or greater")
+        print(f"Current python version: {sys.version}")
+
 def install(data_dir: Path, bin_dir: Path):
     """
     Installs Software.
@@ -225,7 +233,7 @@ def uninstall(data_dir: Path, bin_dir: Path) -> int:
     return 0
 
 def main():
-    if not check_os():
+    if not check_os() or not check_python():
         return 1
     parser = argparse.ArgumentParser(
         description="Installs the latest (or given) version of cluster utils"

@@ -16,7 +16,7 @@ def _header(header: str):
 
 def _section(header: str, body: str):
     return "\n".join([
-        _indent(1, _header('Shape args')),
+        _indent(1, _header(header)),
         _indent(2, body)
     ]) if body else ""
 
@@ -122,7 +122,7 @@ def _keyword_table(args: List[KeywordArg[Any]]):
         helps = _get_helps(args)
         return tabulate(
             zip(names, value_names, defaults, helps),
-            list(map(bold, ["\n", "Value", "Default", ""])),
+            list(map(bold, ["\n", "", "Default", ""])),
             colalign=("right",),
             tablefmt="plain"
         )

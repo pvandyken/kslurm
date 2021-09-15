@@ -141,7 +141,7 @@ def string_to_bool(value: str) -> bool:
 
 
 def data_dir() -> Path:
-    if os.getenv("POETRY_HOME"):
+    if os.getenv("CLUSTER_HOME"):
         return Path(os.getenv("CLUSTER_HOME")).expanduser() # type: ignore
 
     
@@ -242,7 +242,7 @@ def main():
 
     
 
-    if args.uninstall or string_to_bool(os.getenv("POETRY_UNINSTALL", "0")):
+    if args.uninstall or string_to_bool(os.getenv("CLUSTER_UTILS_UNINSTALL", "0")):
         return uninstall(data_dir(), bin_dir())
 
     display_pre_message(bin_dir())

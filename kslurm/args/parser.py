@@ -3,7 +3,7 @@ from typing import Any, Callable, List, TypeVar, cast, Iterable, Tuple
 import functools as fc
 import itertools as it
 
-import cluster_utils.args.helpers as helpers
+import kslurm.args.helpers as helpers
 from .arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailArg
 
 T = TypeVar("T")

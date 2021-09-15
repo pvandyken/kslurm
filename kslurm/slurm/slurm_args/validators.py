@@ -1,5 +1,5 @@
 from ..job_templates import templates
-from cluster_utils.exceptions import TemplateError
+from kslurm.exceptions import TemplateError
 
 
 def job_template(arg: str) -> str:

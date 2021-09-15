@@ -1,9 +1,11 @@
 import re
 from pathlib import Path
+
 import attr
-from cluster_utils.args import ShapeArg, KeywordArg, FlagArg, TailArg
-from cluster_utils.slurm.slurm_args import formatters
-from cluster_utils.slurm.slurm_args import validators
+
+from kslurm.args import ShapeArg, KeywordArg, FlagArg, TailArg
+from kslurm.slurm.slurm_args import formatters
+from kslurm.slurm.slurm_args import validators
 
 @attr.s(auto_attribs=True)
 class ArgList:

@@ -1,8 +1,28 @@
 [tool.poetry]
-name = "cluster-utils"
+name = "kslurm"
 version = "0.1.0"
-description = ""
+description = "Helper scripts and wrappers for running commands on SLURM compute clusters."
+license = "MIT"
+readme = "README.md"
 authors = ["Peter Van Dyken <pvandyk2@uwo.ca>"]
+repository = "https://github.com/pvandyken/kslurm"
+keywords = ["slurm", "compute cluster"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Utilities",
+    "Typing :: Typed"
+]
+packages = [
+    { include = "kslurm" }
+]
 
 [tool.poetry.dependencies]
 python = ">=3.7,<4.0"

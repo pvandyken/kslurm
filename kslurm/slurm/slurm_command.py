@@ -1,11 +1,12 @@
-from cluster_utils.args import ShapeArg
-from cluster_utils.slurm.slurm_args.args import ArgList
-import os
 from typing import Generic, List, TypeVar
-import cluster_utils.args as arglib
-from cluster_utils.exceptions import CommandLineError, TemplateError, ValidationError
-from cluster_utils.slurm import job_templates as templates
-from cluster_utils.slurm import helpers
+
+import os
+
+import kslurm.args as arglib
+from kslurm.exceptions import CommandLineError, TemplateError, ValidationError
+from kslurm.slurm import job_templates as templates, helpers
+from kslurm.args import ShapeArg
+from kslurm.slurm.slurm_args.args import ArgList
 
 T = TypeVar("T", bound=ArgList)
 

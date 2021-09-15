@@ -1,10 +1,11 @@
 from __future__ import annotations
 from typing import Callable, Generic, Iterable, List, TypeVar, Union
-import  abc
-import copy
+
+import  abc, copy
+
 from colorama import Fore, Style
 
-from cluster_utils.exceptions import CommandLineError, ValidationError
+from kslurm.exceptions import CommandLineError, ValidationError
 
 T = TypeVar("T")
 

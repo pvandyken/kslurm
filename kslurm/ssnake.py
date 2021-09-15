@@ -1,12 +1,13 @@
-from cluster_utils.exceptions import ValidationError
-import attr
-from cluster_utils.args.arg_types import PositionalArg
 import sys, subprocess
 from pathlib import Path
-from colorama import Fore, Style
 import itertools as it
 
-from cluster_utils.slurm import SlurmCommand, ArgList
+import attr
+from colorama import Fore, Style
+
+from kslurm.args.arg_types import PositionalArg
+from kslurm.exceptions import ValidationError
+from kslurm.slurm import SlurmCommand, ArgList
 
 # Helper function for formatting the list of settings in our output
 def setting_list(name: str, setting: str) -> str:

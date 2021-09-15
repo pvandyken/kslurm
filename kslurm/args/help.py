@@ -1,11 +1,14 @@
 from typing import Any, List, TypeVar, cast
+
 import textwrap
 import itertools as it
 from pathlib import Path
+
 from tabulate import tabulate
+
 from .arg_types import Arg, FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
 from .helpers import group_by_type, get_arg_list
-from cluster_utils.colors import bold, dim, green, cyan, magenta
+from kslurm.colors import bold, dim, green, cyan, magenta
 
 def _syntax_format(syntax: str):
     lines = [cyan(bold(line.strip())) for line in syntax.split(" | ")]

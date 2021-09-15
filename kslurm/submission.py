@@ -1,8 +1,8 @@
 import sys, subprocess
 from colorama import Fore
 
-from cluster_utils.slurm import SlurmCommand, ArgList
-from cluster_utils.args import print_help
+from kslurm.slurm import SlurmCommand, ArgList
+from kslurm.args import print_help
 from . import text as txt
 
 def kbatch():

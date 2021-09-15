@@ -1,11 +1,14 @@
 from typing import Dict, cast
 from typing_extensions import TypedDict
-import itertools as it
-from tabulate import tabulate
+
 import attr, json
 from pathlib import Path
+import itertools as it
 import functools as ft
-from cluster_utils.args import ShapeArg
+
+from tabulate import tabulate
+
+from kslurm.args import ShapeArg
 
 
 class Templates(TypedDict):

@@ -40,7 +40,8 @@ def kbatch():
             # job_id
             slurmid = output[:-1]
 
-            print(f"""To cancel the job, run:
+            print(f"""Scheduled job {slurmid}.
+    To cancel, run:
         scancel {slurmid}
         """)
 

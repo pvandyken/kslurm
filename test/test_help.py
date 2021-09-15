@@ -1,5 +1,5 @@
-import cluster_utils.args.help as help
-import cluster_utils.slurm.slurm_args.args as models
+import kslurm.args.help as help
+import kslurm.slurm.slurm_args.args as models
 
 def test_basics():
     pass

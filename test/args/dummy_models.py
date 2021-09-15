@@ -1,5 +1,5 @@
 from typing_extensions import TypedDict
-from cluster_utils.args.arg_types import ShapeArg, KeywordArg, TailArg, PositionalArg
+from kslurm.args.arg_types import ShapeArg, KeywordArg, TailArg, PositionalArg
 import re
 import attr
 

@@ -1,5 +1,5 @@
-from cluster_utils.exceptions import TemplateError
-import cluster_utils.slurm.slurm_args.validators as validators
+from kslurm.exceptions import TemplateError
+import kslurm.slurm.slurm_args.validators as validators
 import pytest
 
 class TestJobTemplateValidator:

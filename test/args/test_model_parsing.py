@@ -3,9 +3,9 @@ from _pytest.fixtures import SubRequest
 from typing import Union, cast
 import re
 
-import cluster_utils.args.parser as sc
-import cluster_utils.args.helpers as helpers
-from cluster_utils.args import ShapeArg, KeywordArg
+import kslurm.args.parser as sc
+import kslurm.args.helpers as helpers
+from kslurm.args import ShapeArg, KeywordArg
 
 from .parser_dummy_args import ArgStr
 from .dummy_models import AttrModel, TypedDictModel, typed_dict_model, time

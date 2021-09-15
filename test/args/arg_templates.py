@@ -1,4 +1,4 @@
-from cluster_utils.args.arg_types import ShapeArg, KeywordArg, PositionalArg, TailArg
+from kslurm.args.arg_types import ShapeArg, KeywordArg, PositionalArg, TailArg
 import re
 
 def time(time: str):

@@ -1,4 +1,4 @@
-from cluster_utils.args.arg_types import Arg, PositionalArg
+from kslurm.args.arg_types import Arg, PositionalArg
 from .arg_templates import AttrModel as ArgList
 from typing import List, Any
 

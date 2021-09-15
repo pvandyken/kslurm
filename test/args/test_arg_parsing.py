@@ -1,8 +1,8 @@
 from pytest import fixture
 from typing import List, cast, Any
 import functools as ft
-import cluster_utils.args.parser as sc
-from cluster_utils.args import Arg, KeywordArg
+import kslurm.args.parser as sc
+from kslurm.args import Arg, KeywordArg
 
 from .parser_dummy_args import Models as dummy_models, ArgList, DummyArgs
 

@@ -43,7 +43,8 @@ HOME_DIR = "KSLURM_HOME"
 
 ENTRYPOINTS = [
     "kbatch",
-    "krun"
+    "krun",
+    "kjupyter"
 ]
 
 PRE_MESSAGE = """# Welcome to {software}!

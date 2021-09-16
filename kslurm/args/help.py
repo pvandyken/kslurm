@@ -7,7 +7,6 @@ from rich.table import Table
 from rich.console import Group
 from rich.padding import Padding
 from rich.text import Text
-from rich.markdown import Markdown
 
 from .arg_types import Arg, FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
 from .helpers import group_by_type, get_arg_list
@@ -56,6 +55,8 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
     command_line_example = f"[b]USAGE:[/] {script_name} [hot]<keywords and flags>[/] {' '.join(positional_names)}"
     if tail:
         command_line_example += f" [cyan]<{tail[0].name.lower()}>[/]"
+    command_line_example += "\n\n"
+
     shape_section = _section('Shape args', _shape_table(shapes))
     keyword_section = _section('keyword args', _keyword_table(keywords))
     positional_section = _section('positional args', _positional_table(positionals))
@@ -96,12 +97,12 @@ def _help_table(
 
 def _shape_table(args: List[ShapeArg[Any]]):
     if args:
-        names = [Text(arg.name, style="bold") for arg in args]
-        syntaxes = [_syntax_format(arg.syntax) for arg in args]
-        examples = [Text("\n".join(arg.examples), style="grey") for arg in args]
-        eg = ["➔" if example else "" for example in examples ]
-        defaults = _get_defaults([arg.raw_value for arg in args])
-        helps = _get_helps(args)
+        names =    [ Text(arg.name, style="bold")                for arg in args]
+        syntaxes = [ _syntax_format(arg.syntax)                  for arg in args]
+        examples = [ Text("\n".join(arg.examples), style="grey") for arg in args]
+        eg =       [ "➔" if example else ""                     for example in examples ]
+        defaults =   _get_defaults([arg.raw_value                for arg in args])
+        helps =      _get_helps(args)
 
         header = ["", "Syntax", "", "Examples", "Default", ""]
         body = zip(names, syntaxes, eg, examples, defaults, helps)

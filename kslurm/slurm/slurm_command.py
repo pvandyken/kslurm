@@ -55,7 +55,7 @@ class SlurmCommand(Generic[T]):
         self.cwd = parsed.directory
         self.test = bool(parsed.test.value)
         self.job_template = parsed.job_template
-        self._command = parsed.tail
+        self._command = parsed.tail.values
         self.help = bool(parsed.help.value)
 
         os.chdir(self.cwd.value)
@@ -78,7 +78,7 @@ class SlurmCommand(Generic[T]):
     @property
     def name(self):
         if not self._name:
-            return self._command.values[0]
+            return self._command[0]
         else:
             return self._name
 
@@ -108,7 +108,11 @@ class SlurmCommand(Generic[T]):
 
     @property
     def command(self):
-        return str(self._command)
+        return " ".join(self._command)
+
+    @command.setter
+    def command(self, commands: List[str]):
+        self._command = commands
 
     @property
     def script(self):

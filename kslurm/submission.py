@@ -79,3 +79,23 @@ def krun():
     if not slurm.test:
         subprocess.run(slurm.run, shell=True)
 
+def kjupyter():
+    """Start a Jupyter session
+    
+    Begins a Jupyter session on an interactive node. By default, it requests 3hr. No
+    more time than this should be requested, as this could significantly delay the 
+    start of the server.  
+    
+    For the command to work, a virtualenv containing jupyter-lab should already be
+    activated. Use `pip install jupyter-lab`
+    """
+    slurm = SlurmCommand(sys.argv[1:], ArgList())
+    if slurm.help:
+        print_help(sys.argv[0], ArgList(), krun.__doc__) # type: ignore
+        exit()
+    
+    slurm.command = ['jupyter-lab', "'$(hostname -f)'", "--no-browser"]
+    print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
+
+    if not slurm.test:
+        subprocess.run(slurm.run, shell=True)

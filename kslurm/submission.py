@@ -1,6 +1,6 @@
 import sys, subprocess
 from colorama import Fore
-
+from pathlib import Path
 from kslurm.slurm import SlurmCommand, ArgList
 from kslurm.args import print_help
 from . import text as txt
@@ -99,3 +99,15 @@ def kjupyter():
 
     if not slurm.test:
         subprocess.run(slurm.run, shell=True)
+
+def install_library() -> None:
+    print("Installing")
+    python = Path.home().joinpath(".local/share/kutils/venv/bin/python")
+    specification = "git+https://github.com/pvandyken/kslurm.git"
+
+    subprocess.run(
+        [str(python), "-m", "pip", "install", specification],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=True,
+    )

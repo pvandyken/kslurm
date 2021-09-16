@@ -49,7 +49,8 @@ ENTRYPOINTS = [
 
 PRE_MESSAGE = """# Welcome to {software}!
 This will download and install the latest version of {software},
-a dependency and package manager for Python.
+providing helper scripts and wrappers for running commands on
+SLURM compute clusters.
 It will add the following commands to {software}'s bin directory:
 
 {entrypoints}
@@ -199,7 +200,7 @@ def make_env(data_dir: Path) -> Path:
 def install_library(env_path: Path) -> None:
     print("Installing")
     python = env_path.joinpath("bin/python")
-    specification = "git+https://github.com/pvandyken/cluster_utils.git"
+    specification = "git+https://github.com/pvandyken/kslurm.git"
 
     subprocess.run(
         [str(python), "-m", "pip", "install", specification],

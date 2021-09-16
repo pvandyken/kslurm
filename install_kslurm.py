@@ -173,7 +173,7 @@ POST_MESSAGE_CONFIGURE_FISH = """
 You can execute `set -U fish_user_paths {software_home_bin} $fish_user_paths`
 """
 
-METADATA_URL = ""
+METADATA_URL = "https://pypi.org/pypi/kslurm/json"
 VERSION_REGEX = re.compile(
     r"v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?"
     "("
@@ -283,14 +283,14 @@ def check_python():
         print("Please run script with Python version 3.7 or greater")
         print(f"Current python version: {sys.version}")
 
-def install(version: str, data_dir: Path, bin_dir: Path):
+def install(version: str, specification: str, data_dir: Path, bin_dir: Path):
     """
     Installs Software.
     """
     data_dir.mkdir(parents=True, exist_ok=True)
     bin_dir.mkdir(parents=True, exist_ok=True)
     env_path = make_env(data_dir)
-    install_library(version, env_path)
+    install_library(specification, env_path)
     make_bin(bin_dir, data_dir)
 
     data_dir.joinpath("VERSION").write_text(version)
@@ -303,12 +303,12 @@ def make_env(data_dir: Path) -> Path:
     EnvBuilder(with_pip=True, clear=True).create(str(env_path))
     return env_path
 
-def install_library(version: str, env_path: Path) -> None:
+def install_library(specification: str, env_path: Path) -> None:
     print("Installing")
     python = env_path.joinpath("bin/python")
 
     subprocess.run(
-        [str(python), "-m", "pip", "install", version],
+        [str(python), "-m", "pip", "install", specification],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=True,
@@ -320,7 +320,7 @@ def make_bin(bin_dir: Path, data_dir: Path) -> None:
 
     for script in ENTRYPOINTS:
         target_script = "venv/bin/" + script
-        if bin_dir.joinpath(script).exists():
+        if bin_dir.joinpath(script).is_symlink():
             bin_dir.joinpath(script).unlink()
 
         bin_dir.joinpath(script).symlink_to(
@@ -464,23 +464,26 @@ def main():
         return uninstall(data_dir(), bin_dir())
 
     if args.git:
-        version = f"git+{args.git}"
+        version = args.git
+        specification = f"git+{args.git}"
     elif args.path:
         version = cast(str, args.path)
+        specification = version
     else:
         version = get_version(args.version, args.preview, args.force, data_dir())
         if version:
-            version = f"python=={version}"
+            specification = f"kslurm=={version}"
+
     
     if version is None:
         return 0
 
     display_pre_message(bin_dir())
     try:
-        install(version, data_dir(), bin_dir())
+        install(version, specification, data_dir(), bin_dir()) # type: ignore
     except subprocess.CalledProcessError as e:
         print(
-            f"\nAn error has occurred: {e}\n{e.stderr.decode()}"
+            f"\nAn error has occurred: {e}\n{e.stderr}"
         )
         return e.returncode
     display_post_message(bin_dir())

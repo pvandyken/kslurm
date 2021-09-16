@@ -101,7 +101,7 @@ def kjupyter():
         subprocess.run(slurm.run, shell=True)
 
 def install_library() -> None:
-    print("Installing")
+    print("Checking for Updates")
     python = Path.home().joinpath(".local/share/kutils/venv/bin/python")
     specification = "git+https://github.com/pvandyken/kslurm.git"
 

@@ -38,6 +38,9 @@ import sys
 
 SHELL = os.getenv("SHELL", "")
 
+NAME = "kslurm"
+HOME_DIR = "KSLURM_HOME"
+
 ENTRYPOINTS = [
     "kbatch",
     "krun"
@@ -91,7 +94,7 @@ def display_post_message(bin_dir: Path) -> None:
 
     print(
     message.format(
-        software="Cluster Utils",
+        software=NAME,
         software_home_bin=bin_dir,
         software_executable_name=ENTRYPOINTS[0],
         software_executable=bin_dir.joinpath(ENTRYPOINTS[0]),
@@ -128,7 +131,7 @@ def get_post_message_unix(bin_dir: Path) -> Tuple[str, str]:
 
 def display_pre_message(bin_dir: Path) -> None:
     kwargs = {
-        "software": "Cluster Utils",
+        "software": NAME,
         "software_home_bin": bin_dir,
         "entrypoints": ", ".join(ENTRYPOINTS)
     }
@@ -141,8 +144,8 @@ def string_to_bool(value: str) -> bool:
 
 
 def data_dir() -> Path:
-    if os.getenv("CLUSTER_HOME"):
-        return Path(os.getenv("CLUSTER_HOME")).expanduser() # type: ignore
+    if os.getenv(HOME_DIR):
+        return Path(os.getenv(HOME_DIR)).expanduser() # type: ignore
 
     
     path = os.getenv("XDG_DATA_HOME", Path.home() / ".local/share")
@@ -151,8 +154,8 @@ def data_dir() -> Path:
     return path
 
 def bin_dir(version: Optional[str] = None) -> Path:
-    if os.getenv("CLUSTER_HOME"):
-        return Path(os.getenv("CLUSTER_HOME"), "bin").expanduser() # type: ignore
+    if os.getenv(HOME_DIR):
+        return Path(os.getenv(HOME_DIR), "bin").expanduser() # type: ignore
 
     user_base = site.getuserbase()
 
@@ -220,10 +223,10 @@ def make_bin(bin_dir: Path, data_dir: Path) -> None:
 def uninstall(data_dir: Path, bin_dir: Path) -> int:
     if not data_dir.exists():
         print(
-            "Cluster-utils is not currently installed."
+            f"{NAME} is not currently installed."
         )
         return 1
-    print("Removing Cluster-utils")
+    print(f"Removing {NAME}")
 
     shutil.rmtree(str(data_dir))
     for script in ENTRYPOINTS:
@@ -236,11 +239,11 @@ def main():
     if not check_os() or not check_python():
         return 1
     parser = argparse.ArgumentParser(
-        description="Installs the latest (or given) version of cluster utils"
+        description=f"Installs the latest (or given) version of {NAME}"
     )
     parser.add_argument(
         "--uninstall",
-        help="uninstall cluster utils",
+        help=f"uninstall {NAME}",
         dest="uninstall",
         action="store_true",
         default=False,
@@ -250,7 +253,7 @@ def main():
 
     
 
-    if args.uninstall or string_to_bool(os.getenv("CLUSTER_UTILS_UNINSTALL", "0")):
+    if args.uninstall or string_to_bool(os.getenv("KSLURM_UNINSTALL", "0")):
         return uninstall(data_dir(), bin_dir())
 
     display_pre_message(bin_dir())

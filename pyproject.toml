@@ -29,8 +29,8 @@ python = ">=3.7,<4.0"
 attrs = "^21.2.0"
 colorama = "^0.4.4"
 typing-extensions = "^3.10"
-tabulate = "^0.8.9"
 rich = "^10.9.0"
+tabulate = "^0.8.9"
 
 [tool.poetry.dev-dependencies]
 black = "^21.8b0"
@@ -61,6 +61,7 @@ deps =
     pytest
     tabulate
     hypothesis
+    rich
 install_project_deps = true
 commands =
     pytest

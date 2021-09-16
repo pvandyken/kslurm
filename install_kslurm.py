@@ -25,7 +25,7 @@
 # The entire library can be found at https://github.com/python-poetry/poetry
 
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast, List, Iterable
 from venv import EnvBuilder
 from pathlib import Path
 from venv import EnvBuilder
@@ -35,6 +35,12 @@ import site
 import shutil
 import argparse
 import sys
+import re
+import json
+import functools as ft
+from urllib.request import Request, urlopen
+from contextlib import closing
+from io import UnsupportedOperation
 
 SHELL = os.getenv("SHELL", "")
 
@@ -46,6 +52,85 @@ ENTRYPOINTS = [
     "krun",
     "kjupyter"
 ]
+
+FOREGROUND_COLORS = {
+    "black": 30,
+    "red": 31,
+    "green": 32,
+    "yellow": 33,
+    "blue": 34,
+    "magenta": 35,
+    "cyan": 36,
+    "white": 37,
+}
+
+BACKGROUND_COLORS = {
+    "black": 40,
+    "red": 41,
+    "green": 42,
+    "yellow": 43,
+    "blue": 44,
+    "magenta": 45,
+    "cyan": 46,
+    "white": 47,
+}
+
+OPTIONS = {"bold": 1, "underscore": 4, "blink": 5, "reverse": 7, "conceal": 8}
+
+
+def style(fg: Optional[str], bg: Optional[str], options: Optional[Iterable[str]]):
+    codes = cast(List[int], [])
+
+    if fg:
+        codes.append(FOREGROUND_COLORS[fg])
+
+    if bg:
+        codes.append(BACKGROUND_COLORS[bg])
+
+    if options:
+        for option in options:
+            codes.append(OPTIONS[option])
+
+    return "\033[{}m".format(";".join(map(str, codes)))
+
+
+STYLES = {
+    "info": style("cyan", None, None),
+    "comment": style("yellow", None, None),
+    "success": style("green", None, None),
+    "error": style("red", None, None),
+    "warning": style("yellow", None, None),
+    "b": style(None, None, ("bold",)),
+}
+
+
+def is_decorated():
+    
+
+    if not hasattr(sys.stdout, "fileno"):
+        return False
+
+    try:
+        return os.isatty(sys.stdout.fileno())
+    except UnsupportedOperation:
+        return False
+
+
+def is_interactive():
+    if not hasattr(sys.stdin, "fileno"):
+        return False
+
+    try:
+        return os.isatty(sys.stdin.fileno())
+    except UnsupportedOperation:
+        return False
+
+
+def colorize(style: str, text: str):
+    if not is_decorated():
+        return text
+
+    return "{}{}\033[0m".format(STYLES[style], text)
 
 PRE_MESSAGE = """# Welcome to {software}!
 This will download and install the latest version of {software},
@@ -87,6 +172,17 @@ Add `export PATH="{software_home_bin}:$PATH"` to your shell configuration file.
 POST_MESSAGE_CONFIGURE_FISH = """
 You can execute `set -U fish_user_paths {software_home_bin} $fish_user_paths`
 """
+
+METADATA_URL = ""
+VERSION_REGEX = re.compile(
+    r"v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?"
+    "("
+    "[._-]?"
+    r"(?:(stable|beta|b|rc|RC|alpha|a|patch|pl|p)((?:[.-]?\d+)*)?)?"
+    "([.-]?dev)?"
+    ")?"
+    r"(?:\+[^\s]+)?"
+)
 
 def display_post_message(bin_dir: Path) -> None:
     if SHELL == "fish":
@@ -145,6 +241,13 @@ def string_to_bool(value: str) -> bool:
     return value in {"true", "1", "y", "yes"}
 
 
+def get(url: str):
+    request = Request(url, headers={"User-Agent": "Python kslurm"})
+
+    with closing(urlopen(request)) as r:
+        return r.read()
+
+
 def data_dir() -> Path:
     if os.getenv(HOME_DIR):
         return Path(os.getenv(HOME_DIR)).expanduser() # type: ignore
@@ -180,14 +283,17 @@ def check_python():
         print("Please run script with Python version 3.7 or greater")
         print(f"Current python version: {sys.version}")
 
-def install(data_dir: Path, bin_dir: Path):
+def install(version: str, data_dir: Path, bin_dir: Path):
     """
     Installs Software.
     """
     data_dir.mkdir(parents=True, exist_ok=True)
+    bin_dir.mkdir(parents=True, exist_ok=True)
     env_path = make_env(data_dir)
-    install_library(env_path)
+    install_library(version, env_path)
     make_bin(bin_dir, data_dir)
+
+    data_dir.joinpath("VERSION").write_text(version)
 
     return 0
 
@@ -197,13 +303,12 @@ def make_env(data_dir: Path) -> Path:
     EnvBuilder(with_pip=True, clear=True).create(str(env_path))
     return env_path
 
-def install_library(env_path: Path) -> None:
+def install_library(version: str, env_path: Path) -> None:
     print("Installing")
     python = env_path.joinpath("bin/python")
-    specification = "git+https://github.com/pvandyken/kslurm.git"
 
     subprocess.run(
-        [str(python), "-m", "pip", "install", specification],
+        [str(python), "-m", "pip", "install", version],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=True,
@@ -237,6 +342,66 @@ def uninstall(data_dir: Path, bin_dir: Path) -> int:
 
     return 0
 
+def get_version(requested_version: Optional[str], preview: bool, force: bool, data_dir: Path):
+    current_version = None
+    if data_dir.joinpath("VERSION").exists():
+        current_version = data_dir.joinpath("VERSION").read_text().strip()
+
+    print(colorize("info", "Retrieving Poetry metadata"))
+
+    metadata = json.loads(get(METADATA_URL).decode())
+
+    def _compare_versions(x:str, y:str):
+        mx = VERSION_REGEX.match(x)
+        my = VERSION_REGEX.match(y)
+
+        if mx and my:
+            vx = tuple(int(p) for p in mx.groups()[:3]) + (mx.group(5),)
+            vy = tuple(int(p) for p in my.groups()[:3]) + (my.group(5),)
+
+            if vx < vy:
+                return -1
+            elif vx > vy:
+                return 1
+
+            return 0
+        else:
+            raise Exception("Could not match version information")
+
+    print("")
+    releases = sorted(
+        metadata["releases"].keys(), key=ft.cmp_to_key(_compare_versions)
+    )
+
+    if requested_version and requested_version not in releases:
+        print(
+            colorize("error", f"Version {requested_version} does not exist.")
+        )
+
+        return None
+
+    version = requested_version
+    if not version:
+        for release in reversed(releases):
+            m = VERSION_REGEX.match(release)
+            if m and m.group(5) and not preview:
+                continue
+
+            version = release
+
+            break
+    assert isinstance(version, str)
+    if current_version == version and not force:
+        print(
+            "The latest version ({}) is already installed.".format(
+                colorize("b", version)
+            )
+        )
+
+        return None
+
+    return cast(str, version)
+
 def main():
     if not check_os() or not check_python():
         return 1
@@ -251,6 +416,46 @@ def main():
         default=False,
     )
 
+    parser.add_argument(
+        "-f",
+        "--force",
+        help="install on top of existing version",
+        dest="force",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--path",
+        dest="path",
+        action="store",
+        help=(
+            "Install from a given path (file or directory) instead of "
+            "fetching the latest version of Poetry available online."
+        ),
+    )
+
+    parser.add_argument(
+        "-p",
+        "--preview",
+        help="install preview version",
+        dest="preview",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--git",
+        dest="git",
+        action="store",
+        help=(
+            "Install from a git repository instead of fetching the latest version "
+            "of Poetry available online."
+        ),
+    )
+
+    parser.add_argument("--version", help="install named version", dest="version")
+
     args = parser.parse_args()
 
     
@@ -258,9 +463,21 @@ def main():
     if args.uninstall or string_to_bool(os.getenv("KSLURM_UNINSTALL", "0")):
         return uninstall(data_dir(), bin_dir())
 
+    if args.git:
+        version = f"git+{args.git}"
+    elif args.path:
+        version = cast(str, args.path)
+    else:
+        version = get_version(args.version, args.preview, args.force, data_dir())
+        if version:
+            version = f"python=={version}"
+    
+    if version is None:
+        return 0
+
     display_pre_message(bin_dir())
     try:
-        install(data_dir(), bin_dir())
+        install(version, data_dir(), bin_dir())
     except subprocess.CalledProcessError as e:
         print(
             f"\nAn error has occurred: {e}\n{e.stderr.decode()}"

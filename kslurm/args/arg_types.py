@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Generic, Iterable, List, Optional, TypeVar, Union
+from typing import Callable, Generic, Iterable, List, Optional, TypeVar
 
 import  abc, copy
 

@@ -6,7 +6,7 @@ Utility functions to make working with SLURM easier.
 Cluster utils is meant to be run in a SLURM environment, and thus will only install on linux. Open a shell and run the following command:
 
 ```
-curl -sSL https://raw.githubusercontent.com/pvandyken/cluster_utils/master/install_cluster_utils.py | python -
+curl -sSL https://raw.githubusercontent.com/pvandyken/cluster_utils/master/install_kslurm.py | python -
 ```
 
 If you wish to uninstall, run the same command with --uninstall added to the end.

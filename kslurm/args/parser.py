@@ -95,7 +95,7 @@ def group_keyword(accumulant: Tuple[int, Iterable[Arg[Any]]], arg: Arg[Any]) -> 
                 l[:-1], 
                 [kcast(last_arg.add_values(it.chain(
                     last_arg.values,
-                    [arg.value]
+                    [arg.raw_value]
                 )))]
             )
         )
@@ -109,7 +109,7 @@ def group_keyword(accumulant: Tuple[int, Iterable[Arg[Any]]], arg: Arg[Any]) -> 
                 l[:-1], 
                 [kcast(last_arg.add_values(it.chain(
                     last_arg.values,
-                    [arg.value]
+                    [arg.raw_value]
                 )))] 
             )
         )

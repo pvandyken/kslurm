@@ -12,7 +12,7 @@ class ArgList:
     time: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = formatters.time,
-        value = formatters.time("03:00"),
+        value = "03:00",
         name="Time",
         syntax="[d-]dd:dd",
         help="Amount of time requested. Written as [days-]hr:min.",
@@ -27,7 +27,7 @@ class ArgList:
 
     cpu: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^[0-9]+$', arg)),
-        value = 1,
+        value = "1",
         format = int,
         name = "Number of CPUs",
         syntax="d",
@@ -40,7 +40,7 @@ class ArgList:
     mem: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^[0-9]+[MG]B?$', arg)),
         format = formatters.mem,
-        value = formatters.mem("4G"),
+        value = "4G",
         name = "Memory",
         syntax="d(M|G)[B]",
         examples=[
@@ -57,7 +57,7 @@ class ArgList:
     directory: ShapeArg[Path] = ShapeArg[Path](
         match = lambda arg: Path(arg).exists() and Path(arg).is_dir(),
         format = Path,
-        value = Path(),
+        value = ".",
         name = "Directory",
         syntax="/absolute/path | ./relative/path",
         help="Change working directory before submitting the command. All other "

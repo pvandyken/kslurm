@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, Generic, Iterable, List, TypeVar, Union
+from typing import Callable, Generic, Iterable, List, Optional, TypeVar, Union
 
 import  abc, copy
 
@@ -13,13 +13,13 @@ class Arg(abc.ABC, Generic[T]):
     def __init__(self, *,
             id: str,
             match: Callable[[str], bool],
-            value: Union[None, T],
+            value: Optional[str],
             format: Callable[[str], T],
             help: str):
         self.id = id
         self.match = match
-        self.value = value
         self._format = format
+        self.value = value
         self.help = help
 
     @property
@@ -30,8 +30,13 @@ class Arg(abc.ABC, Generic[T]):
         
 
     @value.setter
-    def value(self, value: Union[None, T]):
-        self._value = value
+    def value(self, value: Optional[str]):
+        if value is None:
+            self._value = value
+            self.raw_value = ""
+        else:
+            self._value = self._format(value)
+            self.raw_value = value
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, self.__class__):
@@ -56,7 +61,7 @@ class Arg(abc.ABC, Generic[T]):
 
 class PositionalArg(Arg[T]):
     def __init__(self,
-            value: Union[None, T] = None, 
+            value: Optional[str] = None, 
             id: str="positional",
             format: Callable[[str], T]=str,
             validator: Callable[[str], str] = lambda x: x,
@@ -73,16 +78,21 @@ class PositionalArg(Arg[T]):
         if self._value is None:
             raise Exception()
         return self._value
-
+    
     @value.setter
-    def value(self, value: Union[None, T]):
-        self._value = value
+    def value(self, value: Optional[str]):
+        if value is None:
+            self._value = value
+            self.raw_value = ""
+        else:
+            self._value = self._format(value)
+            self.raw_value = value
 
 
     def set_value(self, value: str):
         try:
             c = copy.copy(self)
-            c.value = self._format(self.validator(value))
+            c.value = self.validator(value)
             c.updated = True
             return c
         except ValidationError as err:
@@ -97,7 +107,7 @@ class ShapeArg(Arg[T]):
     def __init__(self,*,
             id: str = "", 
             match: Callable[[str], bool],
-            value: Union[None, T] = None,
+            value: Optional[str] = None,
             format: Callable[[str], T]=str,
             updated: bool = False,
             help: str = "",
@@ -112,7 +122,8 @@ class ShapeArg(Arg[T]):
 
     def set_value(self, value: str):
         c = copy.copy(self)
-        c.value = self._format(value)
+        c.value = value
+        c.raw_value = value
         c.updated = True
         return c
 
@@ -127,14 +138,18 @@ class FlagArg(Arg[bool]):
             if val in match:
                 return True
             return False
-        
-        super().__init__(id=id, match=check_match, format=bool, value=value, help=help)
+        if value:
+            raw_value = match[0]
+        else:
+            raw_value = ""
+
+        super().__init__(id=id, match=check_match, format=bool, value=raw_value, help=help)
         self.match_list = match
 
 
     def set_value(self, value: str):
         c = copy.copy(self)
-        c.value = self._format(value)
+        c.value = value
         return c
 
 S = TypeVar("S")
@@ -165,7 +180,7 @@ class KeywordArg(FlagArg, Generic[S]):
     
     def set_value(self, value: str):
         c = copy.copy(self)
-        c.value = self._format(value)
+        c.value = value
         # We need to obliterate any values in order for argparse to work
         # Otherwise any default args will be included in the final list.
         # A more elegant solution would delete default args organically

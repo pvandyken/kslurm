@@ -1,3 +1,4 @@
+from typing import Union
 from kslurm.args.arg_types import ShapeArg, KeywordArg, PositionalArg, TailArg
 import re
 
@@ -10,7 +11,7 @@ def time(time: str):
         hours, min = time.split(':')
     return str(int(min) + int(hours)*60 + int(days)*60*24)
 
-class AttrModel:
+class Templates:
     time: ShapeArg[str] = ShapeArg(
         id = "random",
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
@@ -45,7 +46,7 @@ class AttrModel:
         value=False
     )
 
-    greedy_inf_keyword: KeywordArg[str] = KeywordArg[str](
+    greedy_inf_keyword: KeywordArg[Union[str, bool]] = KeywordArg[Union[str, bool]](
         id="greedy_inf_keyword",
         match = ["greedy_inf_keyword"],
         num = -1,

@@ -4,7 +4,8 @@ import functools as ft
 import kslurm.args.parser as sc
 from kslurm.args import Arg, KeywordArg
 
-from .parser_dummy_args import Models as dummy_models, ArgList, DummyArgs
+from .arg_lists import Models as dummy_models, DummyArgs
+from .arg_templates import Templates
 
 @fixture
 def models():
@@ -51,7 +52,7 @@ class TestGroupKeywords:
         assert group_size == 0
         assert isinstance(args.two_keyword[5], KeywordArg)
         assert list(arg_list) == [args.two_keyword[5].add_values([
-            model.value for model in args.two_keyword[6:11]
+            model.raw_value for model in args.two_keyword[6:11]
         ])]
 
     def test_can_use_reduce_to_traverse_long_arg_lists(self, args: DummyArgs):
@@ -65,7 +66,7 @@ class TestGroupKeywords:
             self._reduce_arg_list(args.two_keyword[5:11])
         assert group_size == 0
         assert list(arg_list) == [args.two_keyword[5].add_values([
-            model.value for model in args.two_keyword[6:11]
+            model.raw_value for model in args.two_keyword[6:11]
         ])]
 
     def test_continues_collecting_when_past_keyword_group(self, args: DummyArgs):
@@ -76,10 +77,10 @@ class TestGroupKeywords:
         assert group_size == 0
         assert list(arg_list) == \
             args.two_keyword[0:2] + \
-            [args.two_keyword[2].add_values([args.two_keyword[3].value])] + \
+            [args.two_keyword[2].add_values([args.two_keyword[3].raw_value])] + \
             args.two_keyword[4:5] + \
             [args.two_keyword[5].add_values([
-                model.value for model in args.two_keyword[6:11]
+                model.raw_value for model in args.two_keyword[6:11]
             ])] + \
             args.two_keyword[11:]
 
@@ -106,10 +107,10 @@ class TestGroupKeywords:
             [model[2].add_values([
                 model.value for model in model[3:5]
             ])] + \
-            [model[5].add_values([ 
+            [model[5].add_values([ # type: ignore
                 model.value for model in model[6:10]
             ])] + \
-            model[10:]
+            model[10:] 
     
     def test_greedy_inf_keyword_consumes_remaining_arguments(self, args: DummyArgs):
         model = args.greedy_keywords
@@ -120,7 +121,7 @@ class TestGroupKeywords:
         assert list(arg_list) == \
             model[0:2] + \
             [model[2].add_values([
-                model.value for model in model[3:]
+                model.raw_value for model in model[3:]
             ])]
 
 
@@ -132,59 +133,59 @@ def test_group_keyword_correctly_forms_groups(args: DummyArgs):
     greedy = sc.group_keywords(args.greedy_keywords)
 
     assert list(two) == [
-        ArgList.time,
-        ArgList.gpu,
-        ArgList.job_template.add_values([
-            ArgList.positional.value
+        Templates.time,
+        Templates.gpu,
+        Templates.job_template.add_values([
+            Templates.positional.value
         ]),
-        ArgList.time,
-        ArgList.length_5_keyword.add_values([
-            ArgList.positional.value,
-            ArgList.time.value,
-            ArgList.gpu.value,
-            ArgList.positional.value,
-            ArgList.positional.value
+        Templates.time,
+        Templates.length_5_keyword.add_values([
+            Templates.positional.raw_value,
+            Templates.time.raw_value,
+            Templates.gpu.raw_value,
+            Templates.positional.raw_value,
+            Templates.positional.raw_value
         ]),
-        ArgList.gpu,
-        ArgList.positional,
-        ArgList.positional
+        Templates.gpu,
+        Templates.positional,
+        Templates.positional
     ]
 
     assert list(pos_wrapped) == [
-        ArgList.time,
-        ArgList.positional,
-        ArgList.job_template.add_values([
-            ArgList.positional.value
+        Templates.time,
+        Templates.positional,
+        Templates.job_template.add_values([
+            Templates.positional.raw_value
         ]),
-        ArgList.positional
+        Templates.positional
     ]
 
     assert list(lazy) == [
-        ArgList.time,
-        ArgList.positional,
-        ArgList.lazy_inf_keyword.add_values([
-            ArgList.positional.value,
-            ArgList.positional.value
+        Templates.time,
+        Templates.positional,
+        Templates.lazy_inf_keyword.add_values([
+            Templates.positional.raw_value,
+            Templates.positional.raw_value
         ]),
-        ArgList.lazy_inf_keyword.add_values([
-            ArgList.positional.value,
-            ArgList.positional.value,
-            ArgList.positional.value,
-            ArgList.positional.value
+        Templates.lazy_inf_keyword.add_values([
+            Templates.positional.raw_value,
+            Templates.positional.raw_value,
+            Templates.positional.raw_value,
+            Templates.positional.raw_value
         ]),
-        ArgList.time
+        Templates.time
     ]
 
     assert list(greedy) == [
-        ArgList.time,
-        ArgList.positional,
-        ArgList.greedy_inf_keyword.add_values([
-            ArgList.positional.value,
-            ArgList.time.value,
-            ArgList.lazy_inf_keyword.value,
-            ArgList.time.value,
-            ArgList.positional.value,
-            ArgList.time.value
+        Templates.time,
+        Templates.positional,
+        Templates.greedy_inf_keyword.add_values([
+            Templates.positional.raw_value,
+            Templates.time.raw_value,
+            Templates.lazy_inf_keyword.raw_value,
+            Templates.time.raw_value,
+            Templates.positional.raw_value,
+            Templates.time.raw_value
         ])
     
     ]
@@ -196,9 +197,9 @@ class TestDelineateCommand:
         labelled, extras = sc.delineate_positional(arg_set, model)
 
         assert list(labelled) == [
-            ArgList.positional.set_value("Hello"),
-            ArgList.positional2.set_value("beautiful"),
-            ArgList.positional3.set_value("world")
+            Templates.positional.set_value("Hello"),
+            Templates.positional2.set_value("beautiful"),
+            Templates.positional3.set_value("world")
         ]
 
         assert extras == []
@@ -211,14 +212,14 @@ class TestDelineateCommand:
 
         
         assert list(labelled) == [
-            ArgList.positional.set_value("Hello"),
-            ArgList.positional2.set_value("beautiful"),
-            ArgList.positional3.set_value("world"),
+            Templates.positional.set_value("Hello"),
+            Templates.positional2.set_value("beautiful"),
+            Templates.positional3.set_value("world"),
         ]
 
         assert extras == [
-            ArgList.positional3.set_value("Here"),
-            ArgList.positional3.set_value("Be"),
-            ArgList.positional3.set_value("Extra!"),
+            Templates.positional3.set_value("Here"),
+            Templates.positional3.set_value("Be"),
+            Templates.positional3.set_value("Extra!"),
         ]
 

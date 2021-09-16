@@ -7,7 +7,7 @@ import kslurm.args.parser as sc
 import kslurm.args.helpers as helpers
 from kslurm.args import ShapeArg, KeywordArg
 
-from .parser_dummy_args import ArgStr
+from .arg_lists import ArgStr
 from .dummy_models import AttrModel, TypedDictModel, typed_dict_model, time
 
 
@@ -16,7 +16,7 @@ ModelTypes = Union[AttrModel, TypedDictModel]
 
 @pytest.fixture(scope="module", params=[AttrModel(), typed_dict_model])
 def model(request: SubRequest) -> ModelTypes:
-    return cast(ModelTypes, request.param)
+    return cast(ModelTypes, request.param) # type: ignore
 
 @pytest.fixture
 def arg_list() -> ArgStr:

@@ -41,10 +41,10 @@ tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
 hypothesis = "^6.20.0"
 
 [tool.poetry.scripts]
-kbatch = 'kslurm.submission:kbatch'
-krun = 'kslurm.submission:krun'
-kjupyter = 'kslurm.submission:kjupyter'
-update = 'kslurm.submission:install_library'
+kbatch = 'kslurm.submission.kbatch:main'
+krun = 'kslurm.submission.kbatch.krun:main'
+kjupyter = 'kslurm.submission.kjupyter:main'
+kslurm = 'kslurm.kslurm:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

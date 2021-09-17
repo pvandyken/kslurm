@@ -8,7 +8,7 @@ from rich.console import Group
 from rich.padding import Padding
 from rich.text import Text
 
-from .arg_types import Arg, FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
+from .arg_types import Arg, ChoiceArg, FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
 from .helpers import group_by_type, get_arg_list
 from kslurm.style.console import console
 
@@ -45,6 +45,10 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
         List[FlagArg],
         grouped.get(FlagArg, [])
     )
+    choices = cast(
+        List[ChoiceArg[Any]],
+        grouped.get(ChoiceArg, [])
+    )
     tail = cast(
         List[TailArg],
         grouped.get(TailArg, [])
@@ -61,9 +65,12 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
     keyword_section = _section('keyword args', _keyword_table(keywords))
     positional_section = _section('positional args', _positional_table(positionals))
     flag_section = _section('flag args', _flag_table(flags))
+    choice_section = _section('choice args', _choice_table(choices))
     sections = list(filter(None, [
+        "\n",
         command_line_example,
         script_help,
+        choice_section,
         positional_section,
         shape_section,
         keyword_section,
@@ -81,6 +88,7 @@ def _get_helps(args: List[T]):
 
 def _get_defaults(args: List[Any]):
     return [Text(str(arg), style="default_col") for arg in args]
+
 
 def _help_table(
         rows: Iterable[Iterable[Union[Text,str]]], 
@@ -114,7 +122,7 @@ def _shape_table(args: List[ShapeArg[Any]]):
 def _positional_table(args: List[PositionalArg[Any]]):
     if args:
         names = [Text(arg.name, style="bold") for arg in args]
-        defaults = _get_defaults([arg.value for arg in args])
+        defaults = _get_defaults([arg.raw_value for arg in args])
         helps = _get_helps(args)
         body = zip(names, defaults, helps)
         header = ["", "Default", ""]
@@ -145,5 +153,14 @@ def _flag_table(args: List[FlagArg]):
     else:
         return ""
 
+def _choice_table(args: List[ChoiceArg[Any]]):
+    if args:
+        names = [Text(arg.name, style="bold") for arg in args]
+        choices = [Text(', '.join(arg.match_list), style='bold') for arg in args]
+        helps = _get_helps(args)
+        defaults = _get_defaults([arg.raw_value for arg in args])
 
-
+        body = zip(names, choices, defaults, helps)
+        return _help_table(body)
+    else:
+        return ""

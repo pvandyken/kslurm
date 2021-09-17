@@ -1,5 +1,5 @@
 from kslurm.exceptions import TemplateError
-import kslurm.slurm.slurm_args.validators as validators
+import kslurm.models.validators as validators
 import pytest
 
 class TestJobTemplateValidator:

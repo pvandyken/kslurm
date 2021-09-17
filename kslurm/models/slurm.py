@@ -4,11 +4,11 @@ from pathlib import Path
 import attr
 
 from kslurm.args import ShapeArg, KeywordArg, FlagArg, TailArg
-from kslurm.slurm.slurm_args import formatters
-from kslurm.slurm.slurm_args import validators
+import kslurm.models.formatters as formatters
+import kslurm.models.validators as validators
 
 @attr.s(auto_attribs=True)
-class ArgList:
+class SlurmModel:
     time: ShapeArg[int] = ShapeArg[int](
         match = lambda arg: bool(re.match(r'^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$', arg)),
         format = formatters.time,

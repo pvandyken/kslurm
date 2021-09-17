@@ -1,12 +1,12 @@
 from unittest import mock
 from pytest import CaptureFixture
 from pathlib import Path
-from kslurm.submission import kbatch
+from kslurm.submission.kbatch import kbatch
 
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
     with mock.patch('subprocess.run') as subprocess:
-        with mock.patch('sys.argv', ['kbatch', '-t', 'command']):
-            kbatch()
+        
+        kbatch('kbatch', ['-t', 'command'])
         
         out = capsys.readouterr()
         assert "--account=ctb-akhanf --time=03:00:00 --cpus-per-task=1 --mem=4000" in str(out)
@@ -15,8 +15,8 @@ def test_batch_submits_testmode(capsys: CaptureFixture[str]):
 def test_params_can_be_altered(capsys: CaptureFixture[str]):
     with mock.patch('subprocess.run') as subprocess:
         starting_cwd = Path.cwd()
-        with mock.patch('sys.argv', [
-            'kbatch',
+        
+        kbatch('kbatch', [
             '1-33:11', 
             '5G', 
             'gpu', 
@@ -26,8 +26,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             'Regular',
             './test', 
             'command'
-        ]):
-            kbatch()
+        ])
         
         out = capsys.readouterr()
         print(str(out))

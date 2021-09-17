@@ -7,7 +7,8 @@ from colorama import Fore, Style
 
 from kslurm.args.arg_types import PositionalArg
 from kslurm.exceptions import ValidationError
-from kslurm.slurm import SlurmCommand, ArgList
+from kslurm.slurm import SlurmCommand
+from kslurm.models import SlurmModel
 
 # Helper function for formatting the list of settings in our output
 def setting_list(name: str, setting: str) -> str:
@@ -29,14 +30,14 @@ def profile_validator(profile: str) -> str:
 
 # Extended Model
 @attr.s(auto_attribs=True)
-class SSnakeModel(ArgList):
+class SSnakeModel(SlurmModel):
     profile: PositionalArg[str] = PositionalArg(
         validator=profile_validator
     )
 
 def main():
     models = SSnakeModel()
-    models.cpu.value = 2
+    models.cpu.value = "2"
     models.profile 
     slurm = SlurmCommand(sys.argv[1:], models)
 

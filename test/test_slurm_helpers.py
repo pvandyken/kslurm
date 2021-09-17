@@ -1,7 +1,7 @@
 import pytest
 from kslurm.slurm.helpers import div_remainder, slurm_time_format
 from hypothesis import given, strategies as st
-from kslurm.slurm.slurm_args import formatters
+from kslurm.models import formatters
 
 @given(num=st.integers(), denom=st.integers())
 def test_div_remainder(num: int, denom: int):

@@ -3,12 +3,12 @@ from typing import Generic, List, TypeVar
 import os
 
 import kslurm.args as arglib
-from kslurm.exceptions import CommandLineError, TemplateError, ValidationError
+from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.slurm import job_templates as templates, helpers
 from kslurm.args import ShapeArg
-from kslurm.slurm.slurm_args.args import ArgList
+from kslurm.models import SlurmModel
 
-T = TypeVar("T", bound=ArgList)
+T = TypeVar("T", bound=SlurmModel)
 
 
 class SlurmCommand(Generic[T]):
@@ -18,11 +18,10 @@ class SlurmCommand(Generic[T]):
 
         try:
             parsed = arglib.parse_args(args, model)
-        except CommandLineError as err:
+        except TemplateError as err:
             print(err.msg)
-            if isinstance(err.src_err, TemplateError):
-                print("Choose from the following list of templates:\n")
-                templates.list_templates()
+            print("Choose from the following list of templates:\n")
+            templates.list_templates()
             exit()
 
         if parsed.list_job_templates.value and not parsed.help.value:
@@ -58,7 +57,7 @@ class SlurmCommand(Generic[T]):
         self._command = parsed.tail.values
         self.help = bool(parsed.help.value)
 
-        os.chdir(self.cwd.value)
+        os.chdir(self.cwd.value) # type: ignore
 
         self.script = [self.command]
 
@@ -69,7 +68,7 @@ class SlurmCommand(Generic[T]):
     ###
     @property
     def time(self):
-        return helpers.slurm_time_format(self._time.value)
+        return helpers.slurm_time_format(self._time.value) # type: ignore
 
     @time.setter
     def time(self, time: ShapeArg[int]):

@@ -1,3 +1,4 @@
+from kslurm.exceptions import CommandLineError
 from typing import Any, Callable, List, TypeVar, cast, Iterable, Tuple
 
 import functools as fc
@@ -9,9 +10,14 @@ from .arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailAr
 T = TypeVar("T")
 S = TypeVar("S")
 
-
-
 def parse_args(args: Iterable[str], models: T) -> T:
+    try:
+        return _parse_args(args, models)
+    except CommandLineError as err:
+        print(err.msg)
+        exit()
+
+def _parse_args(args: Iterable[str], models: T) -> T:
     model_list = helpers.get_arg_list(models)
 
     model_cats = helpers.group_by_type(model_list)
@@ -32,25 +38,25 @@ def parse_args(args: Iterable[str], models: T) -> T:
         Iterable[PositionalArg[Any]], 
         grouped.get(PositionalArg, [])
     )
+
     positional_models = cast(
-        Iterable[PositionalArg[Any]], 
-        model_cats.get(PositionalArg, [])
+        Iterable[PositionalArg[Any]],
+        filter(lambda x: isinstance(x, PositionalArg), model_list)
     )
     positional_args, extras = delineate_positional(nonspecific_args, positional_models)
 
     if TailArg in model_cats:
         tail_arg_list = cast(List[TailArg], list(model_cats[TailArg]))
         if len(tail_arg_list) > 1:
-            raise Exception("More than 1 TailArgs provided:"
+            raise CommandLineError("More than 1 TailArgs provided:"
                             f"{tail_arg_list}")
         
         tail_arg = tail_arg_list[0]
-        tail = [tail_arg.add_values([v.value for v in extras])]
+        tail = [tail_arg.add_values([v.raw_value for v in extras])]
     else:
         tail = cast(List[TailArg], [])
         if extras:
-            raise Exception(f"{extras} are not valid arguments. Please add a TailArg to your "
-                                "model to collect extra arguments")
+            raise CommandLineError(f"{extras} does not match any Shape, Keyword, or Positional Args ")
     
     return helpers.update_model(it.chain(shape_args, positional_args, keyword_args, flag_args, tail), models)
 
@@ -121,12 +127,12 @@ def delineate_positional(args: Iterable[PositionalArg[Any]], positional_models: 
     args = list(args)
     models = list(positional_models)
     if len(args) < len(models):
-        raise Exception("Two few positional arguments received.\n"
+        raise CommandLineError("Too few positional arguments received.\n"
                         f"Expected {models}\n"
                         f"but got {args}")
     
     positional_args = [
-        model.set_value(arg.value)
+        model.set_value(arg.raw_value)
         for arg, model in zip(args, models)
     ]
     

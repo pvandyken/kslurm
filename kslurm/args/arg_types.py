@@ -10,6 +10,8 @@ from kslurm.exceptions import CommandLineError, ValidationError
 T = TypeVar("T")
 
 class Arg(abc.ABC, Generic[T]):
+    raw_value: str
+
     def __init__(self, *,
             id: str,
             match: Callable[[str], bool],
@@ -28,7 +30,6 @@ class Arg(abc.ABC, Generic[T]):
             raise Exception()
         return self._value
         
-
     @value.setter
     def value(self, value: Optional[str]):
         if value is None:
@@ -65,29 +66,12 @@ class PositionalArg(Arg[T]):
             id: str="positional",
             format: Callable[[str], T]=str,
             validator: Callable[[str], str] = lambda x: x,
-            updated: bool = False,
             help: str = "",
             name: str = ""):
         super().__init__(id=id, match=lambda x: True, value=value, format=format, help=help)
         self.validator = validator
-        self.updated = updated
         self.name = name
-
-    @property
-    def value(self):
-        if self._value is None:
-            raise Exception()
-        return self._value
-    
-    @value.setter
-    def value(self, value: Optional[str]):
-        if value is None:
-            self._value = value
-            self.raw_value = ""
-        else:
-            self._value = self._format(value)
-            self.raw_value = value
-
+        self.updated = False
 
     def set_value(self, value: str):
         try:
@@ -98,9 +82,31 @@ class PositionalArg(Arg[T]):
         except ValidationError as err:
             raise CommandLineError(f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-        Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
+        Invalid value for "{Style.BRIGHT + self.name + Style.RESET_ALL}":
             {err.msg}
             """, err)
+
+class ChoiceArg(PositionalArg[T]):
+    def __init__(self, *,
+            value: Optional[str] = None, 
+            match: List[str] ,
+            id: str="positional",
+            format: Callable[[str], T]=str,
+            help: str = "",
+            name: str = ""):
+
+        def check_match(val: str):
+            if val in match:
+                return val
+            choices = "\n".join([f"\t\t• {m}" for m in match])
+            raise ValidationError(
+                f"Please select between:\n"
+                f"{choices}"
+            )
+        
+        super().__init__(value=value, id=id, format=format, validator=check_match, help=help, name=name)
+
+        self.match_list = match
 
 
 class ShapeArg(Arg[T]):
@@ -109,13 +115,12 @@ class ShapeArg(Arg[T]):
             match: Callable[[str], bool],
             value: Optional[str] = None,
             format: Callable[[str], T]=str,
-            updated: bool = False,
             help: str = "",
             name: str = "",
             syntax: str = "",
             examples: List[str] = []):
         super().__init__(id=id, match=match, value=value, format=format, help=help)
-        self.updated = updated
+        self.updated = False
         self.name = name
         self.syntax = syntax
         self.examples = examples

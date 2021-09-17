@@ -1,4 +1,4 @@
-from ..job_templates import templates
+from kslurm.slurm.job_templates import templates
 from kslurm.exceptions import TemplateError
 
 

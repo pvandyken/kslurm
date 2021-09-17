@@ -1,5 +1,5 @@
 from typing import List
-import sys, subprocess
+import sys, subprocess, shlex
 from kslurm.slurm import SlurmCommand
 from kslurm.models import SlurmModel
 from kslurm.args import print_help
@@ -26,7 +26,10 @@ def kjupyter(script: str, args: List[str]):
     print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
 
     if not slurm.test:
-        subprocess.run(slurm.run, shell=True)
+        proc = subprocess.Popen(shlex.split(slurm.run), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        while proc.poll() is None:
+            line = proc.stdout.readline()
+
 
 def main():
     kjupyter(sys.argv[0], sys.argv[1:])

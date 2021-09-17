@@ -11,6 +11,8 @@ curl -sSL https://raw.githubusercontent.com/pvandyken/kslurm/master/install_kslu
 
 If you wish to uninstall, run the same command with --uninstall added to the end.
 
+The package can be updated by running `kslurm update`. 
+
 # Features
 Currently offers two commands:
 * kbatch: for batch submission jobs (no immediate output)

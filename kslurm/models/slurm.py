@@ -47,7 +47,8 @@ class SlurmModel:
             "3000MB (3 GB)",
             "16G (16GB)"
         ],
-        help="Amount of memory to request")
+        help="Amount of memory to request"
+    )
 
     x11: FlagArg = FlagArg(
         match=["x11", "--x11"],
@@ -61,7 +62,8 @@ class SlurmModel:
         name = "Directory",
         syntax="/absolute/path | ./relative/path",
         help="Change working directory before submitting the command. All other "
-             "relative paths will be evaluated relative to the new directory.") 
+             "relative paths will be evaluated relative to the new directory."
+    ) 
 
     test: FlagArg = FlagArg(
         match=["-t", "--test"],
@@ -76,7 +78,8 @@ class SlurmModel:
         help="Set CPU, memory, and time from a template. "
              "Run with -J to see list of templates. Any "
              "template item can be overridden by supplying "
-             "the appropriate arg.")
+             "the appropriate arg."
+    )
 
     list_job_templates: FlagArg= FlagArg(
         match=["-J", "--list", "-l"],

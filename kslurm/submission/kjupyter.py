@@ -3,7 +3,7 @@ import sys, subprocess, shlex
 from kslurm.slurm import SlurmCommand
 from kslurm.models import SlurmModel
 from kslurm.args import print_help
-from .. import text as txt
+from kslurm import text as txt
 
 
 
@@ -22,14 +22,20 @@ def kjupyter(script: str, args: List[str]):
         print_help(sys.argv[0], SlurmModel(), krun.__doc__) # type: ignore
         exit()
     
-    slurm.command = ['jupyter-lab', "'$(hostname -f)'", "--no-browser"]
+    slurm.command = ['jupyter-lab', "$(hostname -f)", "--no-browser"]
     print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
 
     if not slurm.test:
-        proc = subprocess.Popen(shlex.split(slurm.run), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        
+        proc = subprocess.Popen(slurm.run, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while proc.poll() is None:
             line = proc.stdout.readline()
+            if line:
+                print(line)
 
 
 def main():
     kjupyter(sys.argv[0], sys.argv[1:])
+
+if __name__ == "__main__":
+    main()

@@ -28,18 +28,22 @@ def kbatch(script: str, args: List[str]):
 
     print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
     if slurm.command:
-        output = subprocess\
-            .run(slurm.batch, shell=True, capture_output=True)\
-            .stdout.decode()
+        proc = subprocess\
+            .run(slurm.batch, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+        out = proc.stdout.decode()
+    
+        if proc.returncode != 0:
+            print(Fore.WHITE + out)
+            return proc.returncode
         if slurm.test:
             # output will be the issued command, so we print it
-            print(Fore.WHITE + output)
+            print(Fore.WHITE + out)
         else:
             # We subtract the last character of the output
             # to remove the final "\n" character and get the 
             # job_id
-            slurmid = output[:-1]
+            slurmid = out[:-1]
 
             print(f"""Scheduled job {slurmid}.
     To cancel, run:

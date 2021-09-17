@@ -50,7 +50,8 @@ HOME_DIR = "KSLURM_HOME"
 ENTRYPOINTS = [
     "kbatch",
     "krun",
-    "kjupyter"
+    "kjupyter",
+    "kslurm"
 ]
 
 FOREGROUND_COLORS = {

@@ -10,7 +10,8 @@ HOME_DIR = "KSLURM_HOME"
 ENTRYPOINTS = [
     "kbatch",
     "krun",
-    "kjupyter"
+    "kjupyter",
+    "kslurm"
 ]
 
 def update(args: List[str]):

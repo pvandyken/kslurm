@@ -1,5 +1,5 @@
 from typing import List
-import sys, subprocess, shlex
+import sys, subprocess, re
 from kslurm.slurm import SlurmCommand
 from kslurm.models import SlurmModel
 from kslurm.args import print_help
@@ -22,15 +22,15 @@ def kjupyter(script: str, args: List[str]):
         print_help(sys.argv[0], SlurmModel(), krun.__doc__) # type: ignore
         exit()
     
-    slurm.command = ['jupyter-lab', "$(hostname -f)", "--no-browser"]
+    slurm.command = ['jupyter-lab', "--ip", "$(hostname -f)", "--no-browser"]
     print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
 
     if not slurm.test:
         
         proc = subprocess.Popen(slurm.run, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while proc.poll() is None:
-            line = proc.stdout.readline()
-            if line:
+            line = proc.stdout.readline().decode().strip()
+            if re.match(r"^https?:\/\/(?:[\w-]+\.)+(?:[\w]+):\d+\/lab\?token=\w+$", line):
                 print(line)
 
 

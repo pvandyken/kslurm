@@ -1,1 +1,1 @@
-from update import update # type: ignore
+from .update import update # type: ignore

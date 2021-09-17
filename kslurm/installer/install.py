@@ -32,11 +32,10 @@ def install(
         return e.returncode
 
 def make_env(data_dir: Path, update: bool = False) -> Path:
-    print("Making virtual env")
     env_path = data_dir / "venv"
     if update and is_venv(env_path):
         return env_path
-
+    print("Making virtual env")
     EnvBuilder(with_pip=True, clear=True).create(str(env_path))
     return env_path
 

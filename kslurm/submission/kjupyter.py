@@ -1,9 +1,10 @@
-from typing import List, no_type_check
+from typing import List
 import sys, subprocess, re, signal
 from kslurm.slurm import SlurmCommand
 from kslurm.models import SlurmModel
 from kslurm.args import print_help
 from kslurm import text as txt
+from kslurm.style.console import console
 
 
 
@@ -53,25 +54,26 @@ def kjupyter(script: str, args: List[str]):
                 domain = url.group(1)
                 port = url.group(2)
                 path = url.group(3)
-                print(f"""
-    Started Jupyter Server!
-    Web browser access:
+                console.print(f"""
+    [hot]Started Jupyter Server!![/]
+
+    [heading]Web browser access:[/]
         You'll need to set up an ssh tunnel. Open a new console
         and enter the tunnel script below.
         Then paste the browser url into your browser of choice!
 
-    VS Code access:
+    [heading]VS Code access:[/]
         Start a VS Code SSH session (see here for more info: 
         https://code.visualstudio.com/docs/remote/ssh). Open your
         Jupyter notebook file, then set the Jupyter server to remote:
             Command Pallete > "Jupyter: Specify local or remote Jupyter server for connections"
         When prompted, enter the Server URL
 
-    Tunnel script (replace <address> with your own address):
+    [heading]Tunnel script (replace <address> with your own address):[/]
         ssh -L {port}:{domain}:{port} <username@sub.domain.ext>
-    Browser URL:
+    [heading]Browser URL:[/]
         http://localhost:{port}{path}
-    Server URL:
+    [heading]Server URL:[/]
         {url.group(0)}
 
     Press Ctrl+C to exit the server

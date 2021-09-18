@@ -24,3 +24,28 @@ INTERACTIVE_MSG = f"""
         {SETTINGS_HEADER}
             {Fore.WHITE} {{args}}
 """
+
+JUPYTER_WELCOME = """
+    [hot]Started Jupyter Server!![/]
+
+    [heading]Web browser access:[/]
+        You'll need to set up an ssh tunnel. Open a new console
+        and enter the tunnel script below.
+        Then paste the browser url into your browser of choice!
+
+    [heading]VS Code access:[/]
+        Start a VS Code SSH session (see here for more info: 
+        https://code.visualstudio.com/docs/remote/ssh). Open your
+        Jupyter notebook file, then set the Jupyter server to remote:
+            Command Pallete > "Jupyter: Specify local or remote Jupyter server for connections"
+        When prompted, enter the Server URL
+
+    [heading]Tunnel script (replace <address> with your own address):[/]
+        ssh -L {port}:{domain}:{port} <username@sub.domain.ext>
+    [heading]Browser URL:[/]
+        http://localhost:{port}{path}
+    [heading]Server URL:[/]
+        {url}
+
+    Press Ctrl+C to exit the server
+"""

@@ -1,7 +1,8 @@
 from __future__ import annotations
-from typing import Callable, Generic, Iterable, List, Optional, TypeVar
 
-import  abc, copy
+import abc
+import copy
+from typing import Callable, Generic, Iterable, List, Optional, TypeVar
 
 from colorama import Fore, Style
 
@@ -9,15 +10,19 @@ from kslurm.exceptions import CommandLineError, ValidationError
 
 T = TypeVar("T")
 
+
 class Arg(abc.ABC, Generic[T]):
     raw_value: str
 
-    def __init__(self, *,
-            id: str,
-            match: Callable[[str], bool],
-            value: Optional[str],
-            format: Callable[[str], T],
-            help: str):
+    def __init__(
+        self,
+        *,
+        id: str,
+        match: Callable[[str], bool],
+        value: Optional[str],
+        format: Callable[[str], T],
+        help: str,
+    ):
         self.id = id
         self.match = match
         self._format = format
@@ -29,7 +34,7 @@ class Arg(abc.ABC, Generic[T]):
         if self._value is None:
             raise Exception()
         return self._value
-        
+
     @value.setter
     def value(self, value: Optional[str]):
         if value is None:
@@ -44,7 +49,7 @@ class Arg(abc.ABC, Generic[T]):
             return o.value == self.value
         else:
             return False
-    
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.id} = {self._value}>"
 
@@ -60,15 +65,20 @@ class Arg(abc.ABC, Generic[T]):
     def set_value(self, value: str) -> Arg[T]:
         pass
 
+
 class PositionalArg(Arg[T]):
-    def __init__(self,
-            value: Optional[str] = None, 
-            id: str="positional",
-            format: Callable[[str], T]=str,
-            validator: Callable[[str], str] = lambda x: x,
-            help: str = "",
-            name: str = ""):
-        super().__init__(id=id, match=lambda x: True, value=value, format=format, help=help)
+    def __init__(
+        self,
+        value: Optional[str] = None,
+        id: str = "positional",
+        format: Callable[[str], T] = str,
+        validator: Callable[[str], str] = lambda x: x,
+        help: str = "",
+        name: str = "",
+    ):
+        super().__init__(
+            id=id, match=lambda x: True, value=value, format=format, help=help
+        )
         self.validator = validator
         self.name = name
         self.updated = False
@@ -80,45 +90,58 @@ class PositionalArg(Arg[T]):
             c.updated = True
             return c
         except ValidationError as err:
-            raise CommandLineError(f"""
+            raise CommandLineError(
+                f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
         Invalid value for "{Style.BRIGHT + self.name + Style.RESET_ALL}":
             {err.msg}
-            """, err)
+            """,
+                err,
+            )
+
 
 class ChoiceArg(PositionalArg[T]):
-    def __init__(self, *,
-            value: Optional[str] = None, 
-            match: List[str] ,
-            id: str="positional",
-            format: Callable[[str], T]=str,
-            help: str = "",
-            name: str = ""):
-
+    def __init__(
+        self,
+        *,
+        value: Optional[str] = None,
+        match: List[str],
+        id: str = "positional",
+        format: Callable[[str], T] = str,
+        help: str = "",
+        name: str = "",
+    ):
         def check_match(val: str):
             if val in match:
                 return val
             choices = "\n".join([f"\t\t• {m}" for m in match])
-            raise ValidationError(
-                f"Please select between:\n"
-                f"{choices}"
-            )
-        
-        super().__init__(value=value, id=id, format=format, validator=check_match, help=help, name=name)
+            raise ValidationError(f"Please select between:\n" f"{choices}")
+
+        super().__init__(
+            value=value,
+            id=id,
+            format=format,
+            validator=check_match,
+            help=help,
+            name=name,
+        )
 
         self.match_list = match
 
 
 class ShapeArg(Arg[T]):
-    def __init__(self,*,
-            id: str = "", 
-            match: Callable[[str], bool],
-            value: Optional[str] = None,
-            format: Callable[[str], T]=str,
-            help: str = "",
-            name: str = "",
-            syntax: str = "",
-            examples: List[str] = []):
+    def __init__(
+        self,
+        *,
+        id: str = "",
+        match: Callable[[str], bool],
+        value: Optional[str] = None,
+        format: Callable[[str], T] = str,
+        help: str = "",
+        name: str = "",
+        syntax: str = "",
+        examples: List[str] = [],
+    ):
         super().__init__(id=id, match=match, value=value, format=format, help=help)
         self.updated = False
         self.name = name
@@ -132,43 +155,48 @@ class ShapeArg(Arg[T]):
         c.updated = True
         return c
 
-class FlagArg(Arg[bool]):
-    def __init__(self, *,
-            id: str = "",
-            match: List[str],
-            value: bool = False,
-            help: str = ""):
 
+class FlagArg(Arg[bool]):
+    def __init__(
+        self, *, id: str = "", match: List[str], value: bool = False, help: str = ""
+    ):
         def check_match(val: str):
             if val in match:
                 return True
             return False
+
         if value:
             raw_value = match[0]
         else:
             raw_value = ""
 
-        super().__init__(id=id, match=check_match, format=bool, value=raw_value, help=help)
+        super().__init__(
+            id=id, match=check_match, format=bool, value=raw_value, help=help
+        )
         self.match_list = match
-
 
     def set_value(self, value: str):
         c = copy.copy(self)
         c.value = value
         return c
 
+
 S = TypeVar("S")
 
+
 class KeywordArg(FlagArg, Generic[S]):
-    def __init__(self, *,
-            id: str = "",
-            match: List[str],
-            value: bool = False,
-            num: int = 1,
-            validate: Callable[[str], str] = lambda x: x,
-            values: List[str] = [],
-            help: str = "",
-            values_name: str = ""):
+    def __init__(
+        self,
+        *,
+        id: str = "",
+        match: List[str],
+        value: bool = False,
+        num: int = 1,
+        validate: Callable[[str], str] = lambda x: x,
+        values: List[str] = [],
+        help: str = "",
+        values_name: str = "",
+    ):
         super().__init__(id=id, match=match, help=help, value=value)
         self.num = num
         self.validate = validate
@@ -178,11 +206,11 @@ class KeywordArg(FlagArg, Generic[S]):
     @property
     def values(self) -> List[str]:
         return self._values
-    
+
     @values.setter
     def values(self, values: List[str]):
         self._values = values
-    
+
     def set_value(self, value: str):
         c = copy.copy(self)
         c.value = value
@@ -199,16 +227,18 @@ class KeywordArg(FlagArg, Generic[S]):
             c.values = list(map(self.validate, values))
             return c
         except ValidationError as err:
-            raise CommandLineError(f"""
+            raise CommandLineError(
+                f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
         Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
             {err.msg}
-            """, err) from err
-
+            """,
+                err,
+            ) from err
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.id} = {self.values}>"
-    
+
     def __str__(self) -> str:
         return " ".join(self.values)
 
@@ -223,4 +253,3 @@ class TailArg(KeywordArg[str]):
     def __init__(self, name: str = "Tail"):
         super().__init__(id="tail", num=-1, match=[])
         self.name = name
-

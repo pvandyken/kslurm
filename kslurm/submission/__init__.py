@@ -1,3 +1,12 @@
-from .kbatch import kbatch # type: ignore
-from .kjupyter import kjupyter # type: ignore
-from .krun import krun # type: ignore
+__submodules__ = ["kbatch", "kjupyter", "krun"]
+
+__ignore__ = ["main"]
+
+# <AUTOGEN_INIT>
+from kslurm.submission.kbatch import kbatch
+from kslurm.submission.kjupyter import kjupyter
+from kslurm.submission.krun import krun
+
+__all__ = ["kbatch", "kjupyter", "krun"]
+
+# </AUTOGEN_INIT>

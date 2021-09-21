@@ -1,9 +1,11 @@
-from typing import List
 import sys
+from typing import List
+
 from kslurm.args import parse_args
-from kslurm.models import KslurmModel
-from kslurm.submission import kjupyter, krun, kbatch
 from kslurm.installer import update
+from kslurm.models import KslurmModel
+from kslurm.submission import kbatch, kjupyter, krun
+
 
 def kslurm(script: str, args: List[str]) -> None:
     parsed = parse_args(sys.argv[1:], KslurmModel())
@@ -18,8 +20,10 @@ def kslurm(script: str, args: List[str]) -> None:
     if command == "update":
         update(tail.values)
 
+
 def main():
     kslurm(sys.argv[0], sys.argv[1:])
+
 
 if __name__ == "__main__":
     main()

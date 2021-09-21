@@ -1,11 +1,11 @@
+import os
 from typing import Generic, List, TypeVar
 
-import os
-
 import kslurm.args as arglib
-from kslurm.exceptions import TemplateError, ValidationError
-from kslurm.slurm import job_templates as templates, helpers
+import kslurm.models.job_templates as templates
+import kslurm.slurm.helpers as helpers
 from kslurm.args import ShapeArg
+from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.models import SlurmModel
 
 T = TypeVar("T", bound=SlurmModel)
@@ -57,7 +57,7 @@ class SlurmCommand(Generic[T]):
         self._command = parsed.tail.values
         self.help = bool(parsed.help.value)
 
-        os.chdir(self.cwd.value) # type: ignore
+        os.chdir(self.cwd.value)  # type: ignore
 
         self.script = [self.command]
 
@@ -68,7 +68,7 @@ class SlurmCommand(Generic[T]):
     ###
     @property
     def time(self):
-        return helpers.slurm_time_format(self._time.value) # type: ignore
+        return helpers.slurm_time_format(self._time.value)  # type: ignore
 
     @time.setter
     def time(self, time: ShapeArg[int]):
@@ -92,13 +92,16 @@ class SlurmCommand(Generic[T]):
     @output.setter
     def output(self, output: str):
         self._output = f'--output="{output}"'
-    
+
     ###
     # Command line strings
     ###
     @property
     def slurm_args(self):
-        s = f"--account={self.account} --time={self.time} --cpus-per-task={self.cpu} --mem={self.mem}"
+        s = (
+            f"--account={self.account} --time={self.time} "
+            f"--cpus-per-task={self.cpu} --mem={self.mem}"
+        )
         if self.gpu:
             s += " --gres=gpu:1"
         if self.x11:
@@ -136,14 +139,11 @@ class SlurmCommand(Generic[T]):
         if self.test:
             s = "cat"
         else:
-            s = f"sbatch {self.slurm_args} --job-name={self.name} --parsable {self.output}"
+            s = (
+                f"sbatch {self.slurm_args} --job-name={self.name} "
+                f"--parsable {self.output}"
+            )
         if self.command:
             return f"echo '{self.script}' | {s}"
         else:
             raise ValidationError("No command given")
-
-    
-
-    
-
-    

@@ -3,7 +3,7 @@ from colorama import Fore
 SETTINGS_HEADER = f"{Fore.LIGHTBLUE_EX}SETTINGS{Fore.RESET}"
 COMMAND_HEADER = f"{Fore.LIGHTBLUE_EX}COMMAND{Fore.RESET}"
 
-KBATCH_MSG = f""" 
+KBATCH_MSG = f"""
     {Fore.GREEN}Scheduling Batch Command
         {SETTINGS_HEADER}
             {Fore.WHITE}{{slurm_args}}
@@ -12,7 +12,7 @@ KBATCH_MSG = f"""
 """
 
 KRUN_CMD_MESSAGE = f""" \
-    {Fore.GREEN}Running job 
+    {Fore.GREEN}Running job
         {SETTINGS_HEADER}
             {Fore.WHITE} {{args}}
         {COMMAND_HEADER}
@@ -34,10 +34,11 @@ JUPYTER_WELCOME = """
         Then paste the browser url into your browser of choice!
 
     [heading]VS Code access:[/]
-        Start a VS Code SSH session (see here for more info: 
+        Start a VS Code SSH session (see here for more info:
         https://code.visualstudio.com/docs/remote/ssh). Open your
         Jupyter notebook file, then set the Jupyter server to remote:
-            Command Pallete > "Jupyter: Specify local or remote Jupyter server for connections"
+            Command Pallete > "Jupyter: Specify local or remote Jupyter server for
+            connections"
         When prompted, enter the Server URL
 
     [heading]Tunnel script (replace <address> with your own address):[/]

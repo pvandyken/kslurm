@@ -1,7 +1,10 @@
 import pytest
-from kslurm.slurm.helpers import div_remainder, slurm_time_format
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
+
 from kslurm.models import formatters
+from kslurm.slurm.helpers import div_remainder, slurm_time_format
+
 
 @given(num=st.integers(), denom=st.integers())
 def test_div_remainder(num: int, denom: int):
@@ -11,6 +14,7 @@ def test_div_remainder(num: int, denom: int):
     else:
         res, rem = div_remainder(num, denom)
         assert (res * denom) + rem == num
+
 
 @given(min=st.integers(min_value=0))
 def test_slurm_time_format(min: int):

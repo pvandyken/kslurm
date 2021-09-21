@@ -1,4 +1,4 @@
-Utility functions to make working with SLURM easier. 
+Utility functions to make working with SLURM easier.
 
 # Installation
 Cluster utils is meant to be run in a SLURM environment, and thus will only install on linux. Open a shell and run the following command:
@@ -9,7 +9,7 @@ curl -sSL https://raw.githubusercontent.com/pvandyken/kslurm/master/install_kslu
 
 If you wish to uninstall, run the same command with --uninstall added to the end.
 
-The package can be updated by running `kslurm update`. 
+The package can be updated by running `kslurm update`.
 
 # Features
 Currently offers three commands:
@@ -20,9 +20,9 @@ Currently offers three commands:
 All three use a regex-based argument parsing, meaning that instead of writing a SLURM file or supplying confusing `--arguments`, you can request resources with an intuitive syntax:
 
 ```
-krun 4 3:00 15G gpu 
+krun 4 3:00 15G gpu
 ```
-This command will request interactive session with __4__ cores, for __3hr__, using __15GB__ of memory, and a __gpu__.
+This command will request an interactive session with __4__ cores, for __3hr__, using __15GB__ of memory, and a __gpu__.
 
 Anything not specfically requested will fall back to a default. For instance, by default the commands will request 3hr jobs using 1 core with 4GB of memory. You can also run a predefined job template using -j _template_. Run either command with -J to get a list of all templates. Any template values can be overriden simply by providing the appropriate argument.
 
@@ -48,7 +48,7 @@ Note that you should never request more than the recommended amount of time for 
 
 ## kbatch
 
-Jobs that don't require monitoring of the output or immediate submission, or will run for more than three hours, should be submitted using `kbatch`. This command schedules the job, then returns control of the terminal. Output from the job will be placed in a file in your current working directory entitled `slurm-[jobid].out`. 
+Jobs that don't require monitoring of the output or immediate submission, or will run for more than three hours, should be submitted using `kbatch`. This command schedules the job, then returns control of the terminal. Output from the job will be placed in a file in your current working directory entitled `slurm-[jobid].out`.
 
 Improving on `sbatch`, `kbatch` does not require a script file. You can directly submit a command:
 

@@ -1,0 +1,25 @@
+default_language_version:
+  python: python3.9
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+    -   id: check-yaml
+    -   id: debug-statements
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+  - repo: https://github.com/psf/black
+    rev: 21.8b0
+    hooks:
+    - id: black
+  - repo: https://github.com/PyCQA/flake8.git
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        entry: flake8 --max-line-length=88 --ignore=E203,W503
+        exclude: test
+  - repo: https://github.com/pycqa/isort
+    rev: 5.9.3
+    hooks:
+      - id: isort
+        entry: isort --profile black

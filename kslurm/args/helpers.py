@@ -1,6 +1,7 @@
-from typing import Iterable, Dict, List, DefaultDict, TypeVar, cast, Any, ItemsView
 import itertools as it
 from collections import defaultdict
+from typing import Any, DefaultDict, Dict, ItemsView, Iterable, List, TypeVar, cast
+
 import attr
 
 from .arg_types import Arg
@@ -19,18 +20,18 @@ def group_by_type(items: Iterable[T]) -> Dict[type, List[T]]:
 def get_arg_list(models: object):
     if hasattr(models, "__attrs_attrs__"):
         return [
-            cast(Arg[Any], arg.setid(name)) for name, arg in attr.asdict(models, recurse=False).items()
+            cast(Arg[Any], arg.setid(name))
+            for name, arg in attr.asdict(models, recurse=False).items()
         ]
     elif isinstance(models, dict):
         return [
-            arg.setid(name) for name, arg in cast(ItemsView[str, Arg[Any]], models.items() )
+            arg.setid(name)
+            for name, arg in cast(ItemsView[str, Arg[Any]], models.items())
         ]
     else:
         raise Exception(f"{type(models)} is not a supported object for arg models")
 
 
 def update_model(arg_updates: Iterable[Arg[Any]], model: T) -> T:
-    update = { 
-        arg.id: arg for arg in arg_updates
-    }
+    update = {arg.id: arg for arg in arg_updates}
     return model.__class__(**update)

@@ -1,23 +1,27 @@
+from typing import Any, List
+
 from kslurm.args.arg_types import Arg, PositionalArg
+
 from .arg_templates import Templates
-from typing import List, Any
+
 
 def time(time: str):
-    if '-' in time:
-        days, hhmm = time.split('-')
-        hours, min = hhmm.split(':')
+    if "-" in time:
+        days, hhmm = time.split("-")
+        hours, min = hhmm.split(":")
     else:
         days = 0
-        hours, min = time.split(':')
-    return str(int(min) + int(hours)*60 + int(days)*60*24)
+        hours, min = time.split(":")
+    return str(int(min) + int(hours) * 60 + int(days) * 60 * 24)
 
 
 class Models:
     three_positionals: List[PositionalArg[Any]] = [
         Templates.positional,
         Templates.positional2,
-        Templates.positional3
+        Templates.positional3,
     ]
+
 
 class DummyArgs:
     positionals: List[PositionalArg[Any]] = [
@@ -51,7 +55,7 @@ class DummyArgs:
         Templates.positional,
         Templates.gpu,
         Templates.positional,
-        Templates.positional
+        Templates.positional,
     ]
 
     positional_wrapped_keyword: List[Arg[Any]] = [
@@ -59,7 +63,7 @@ class DummyArgs:
         Templates.positional,
         Templates.job_template,
         Templates.positional,
-        Templates.positional
+        Templates.positional,
     ]
 
     lazy_keywords: List[Arg[Any]] = [
@@ -73,7 +77,7 @@ class DummyArgs:
         Templates.positional,
         Templates.positional,
         Templates.positional,
-        Templates.time
+        Templates.time,
     ]
 
     greedy_keywords: List[Arg[Any]] = [
@@ -85,15 +89,12 @@ class DummyArgs:
         Templates.lazy_inf_keyword,
         Templates.time,
         Templates.positional,
-        Templates.time
+        Templates.time,
     ]
 
+
 class ArgStr:
-    positionals: List[str] = [
-        "Hello",
-        "beautiful",
-        "world"
-    ]
+    positionals: List[str] = ["Hello", "beautiful", "world"]
 
     extra_positionals: List[str] = [
         "Hello",
@@ -101,7 +102,7 @@ class ArgStr:
         "world",
         "Here",
         "be",
-        "extra"
+        "extra",
     ]
 
     two_keyword: List[str] = [
@@ -116,7 +117,7 @@ class ArgStr:
         "the",
         "five",
         "values",
-        "command"
+        "command",
     ]
 
     shapes_and_positionals: List[str] = [
@@ -125,10 +126,9 @@ class ArgStr:
         "--job-template",
         "parcour",
         "one",
-        "of"
-        "3",
+        "of" "3",
         "the",
         "five",
         "values",
-        "command"
+        "command",
     ]

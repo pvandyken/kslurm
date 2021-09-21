@@ -31,6 +31,7 @@ colorama = "^0.4.4"
 typing-extensions = "^3.10"
 rich = "^10.9.0"
 tabulate = "^0.8.9"
+pre-commit = "^2.15.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.8b0"
@@ -39,6 +40,9 @@ tox = "^3.24.3"
 coverage = "^5.5"
 tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
 hypothesis = "^6.20.0"
+isort = "^5.9.3"
+flake8 = "^3.9.2"
+mkinit = "^0.3.3"
 
 [tool.poetry.scripts]
 kbatch = 'kslurm.submission.kbatch:main'
@@ -50,6 +54,15 @@ kslurm = 'kslurm.kslurm:main'
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.flake8]
+# Recommend matching the black line length (default 88),
+# rather than using the flake8 default of 79:
+max-line-length = "88"
+extend-ignore = "E203,W503"
 [tool.tox]
 legacy_tox_ini = """
 [tox]

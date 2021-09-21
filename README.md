@@ -83,7 +83,7 @@ The full syntax is outlined below. You can always run a command with `-h` to get
 | :-------- | :------------------------: | ------------------------------------------------------------------------: | -------------------------------------------------------------: |
 | Time      | [d-]dd:dd -> [days-]hh:mm  |                                                                       3hr |                                   The amount of time requested |
 | CPUS      |     d -> just a number     |                                                                         1 |                                   The number of CPUs requested |
-| Memory    |            d(G             |                                                   M)[B] -> e.g. 4G, 500MB |                                                            4GB | The amount of memory requested |
+| Memory    |            d(G/M)[B] -> e.g. 4G, 500MB |                                                            4GB | The amount of memory requested |
 | Account   | --account <_account name_> | Currently hard coded to ctb-akhanf. Eventually will support configuration |                      The account under which to submit the job |
 | GPU       |            gpu             |                                                                     False |                         Provide flag to request 1 GPU instance |
 | Directory |  <_any valid directory_>   |                                                                        ./ | Change the current working directory before submitting the job |

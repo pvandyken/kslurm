@@ -8,7 +8,7 @@ authors = ["Peter Van Dyken <pvandyk2@uwo.ca>"]
 repository = "https://github.com/pvandyken/kslurm"
 keywords = ["slurm", "compute cluster"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",

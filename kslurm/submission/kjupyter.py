@@ -18,9 +18,9 @@ def kjupyter(script: str, args: List[str]):
     For the command to work, a virtualenv containing jupyter-lab should already be
     activated. Use `pip install jupyter-lab`
     """
-    slurm = SlurmCommand(sys.argv[1:], SlurmModel())
+    slurm = SlurmCommand(args, SlurmModel())
     if slurm.help:
-        print_help(sys.argv[0], SlurmModel(), krun.__doc__) # type: ignore
+        print_help(script, SlurmModel(), kjupyter.__doc__) # type: ignore
         exit()
     
     slurm.command = ['jupyter-lab', "--ip", "$(hostname -f)", "--no-browser"]

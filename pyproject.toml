@@ -57,6 +57,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+add_imports = ["from __future__ import absolute_import"]
+# We ignore __init__ file so that mkinit and isort don't undo each other
+extend_skip = ["__init__.py"]
 
 [tool.pyright]
 strict = ["kslurm/**"]

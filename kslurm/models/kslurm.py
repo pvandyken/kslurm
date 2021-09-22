@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import attr
 
 from kslurm.args import ChoiceArg, TailArg

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from typing import Any, List
 
 from kslurm.args.arg_types import Arg, PositionalArg

@@ -8,7 +8,23 @@ __submodules__ = [
 ]
 
 # <AUTOGEN_INIT>
-from kslurm.models.formatters import mem, time
+from kslurm.models.formatters import (
+    mem,
+    time,
+)
+from kslurm.models.kslurm import (
+    KslurmModel,
+)
+from kslurm.models.slurm import (
+    SlurmModel,
+)
+from kslurm.models.update import (
+    UpdateModel,
+    VERSION_REGEX,
+)
+from kslurm.models.validators import (
+    job_template,
+)
 from kslurm.models.job_templates import (
     TemplateArgs,
     Templates,
@@ -16,10 +32,6 @@ from kslurm.models.job_templates import (
     set_template,
     templates,
 )
-from kslurm.models.kslurm import KslurmModel
-from kslurm.models.slurm import SlurmModel
-from kslurm.models.update import VERSION_REGEX, UpdateModel
-from kslurm.models.validators import job_template
 
 __all__ = [
     "KslurmModel",

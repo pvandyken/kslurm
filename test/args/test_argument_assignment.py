@@ -1,4 +1,6 @@
 # type: ignore
+from __future__ import absolute_import
+
 import functools as ft
 from typing import Any, List, cast
 

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import textwrap
 from pathlib import Path
 from typing import Any, Iterable, List, Optional, TypeVar, Union, cast

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import functools as fc
 import itertools as it
 from typing import Any, Callable, Iterable, List, Tuple, TypeVar, cast

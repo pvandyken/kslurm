@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import functools as ft
 import itertools as it
 import json

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from kslurm.exceptions import TemplateError
 from kslurm.models.job_templates import templates
 

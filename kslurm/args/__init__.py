@@ -12,8 +12,12 @@ from kslurm.args.arg_types import (
     ShapeArg,
     TailArg,
 )
-from kslurm.args.help import print_help
-from kslurm.args.parser import parse_args
+from kslurm.args.help import (
+    print_help,
+)
+from kslurm.args.parser import (
+    parse_args,
+)
 
 __all__ = [
     "Arg",

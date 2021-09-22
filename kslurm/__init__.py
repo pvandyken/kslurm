@@ -14,15 +14,21 @@ from kslurm.args import (
     parse_args,
     print_help,
 )
-from kslurm.installer import ENTRYPOINTS, HOME_DIR, METADATA_URL, NAME, install, update
-from kslurm.kslurm import kslurm
+from kslurm.installer import (
+    ENTRYPOINTS,
+    HOME_DIR,
+    METADATA_URL,
+    NAME,
+    install,
+    update,
+)
 from kslurm.models import (
-    VERSION_REGEX,
     KslurmModel,
     SlurmModel,
     TemplateArgs,
     Templates,
     UpdateModel,
+    VERSION_REGEX,
     job_template,
     list_templates,
     mem,
@@ -30,8 +36,19 @@ from kslurm.models import (
     templates,
     time,
 )
-from kslurm.slurm import SlurmCommand, div_remainder, slurm_time_format
-from kslurm.submission import kbatch, kjupyter, krun
+from kslurm.slurm import (
+    SlurmCommand,
+    div_remainder,
+    slurm_time_format,
+)
+from kslurm.submission import (
+    kbatch,
+    kjupyter,
+    krun,
+)
+from kslurm.kslurm import (
+    kslurm,
+)
 
 __all__ = [
     "Arg",

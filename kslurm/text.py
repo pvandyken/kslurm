@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from colorama import Fore
 
 SETTINGS_HEADER = f"{Fore.LIGHTBLUE_EX}SETTINGS{Fore.RESET}"

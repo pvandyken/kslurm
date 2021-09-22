@@ -1,8 +1,25 @@
 # The following was adapted from install_poetry.py from Poetry,
 # published under the MIT License:
 
-# Copyright (c) 2018 Sébastien Eustace
+from __future__ import absolute_import
 
+import argparse
+import functools as ft
+import json
+import os
+import re
+import shutil
+import site
+import subprocess
+import sys
+from contextlib import closing
+from io import UnsupportedOperation
+from pathlib import Path
+from typing import Iterable, List, Optional, Tuple, cast
+from urllib.request import Request, urlopen
+from venv import EnvBuilder
+
+# Copyright (c) 2018 Sébastien Eustace
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -24,22 +41,6 @@
 
 # The entire library can be found at https://github.com/python-poetry/poetry
 
-
-import argparse
-import functools as ft
-import json
-import os
-import re
-import shutil
-import site
-import subprocess
-import sys
-from contextlib import closing
-from io import UnsupportedOperation
-from pathlib import Path
-from typing import Iterable, List, Optional, Tuple, cast
-from urllib.request import Request, urlopen
-from venv import EnvBuilder
 
 SHELL = os.getenv("SHELL", "")
 

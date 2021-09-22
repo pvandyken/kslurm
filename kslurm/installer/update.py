@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from typing import List
 
 from kslurm.args import parse_args

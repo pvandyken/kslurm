@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from rich.theme import Theme
 
 default = Theme(

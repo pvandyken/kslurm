@@ -67,7 +67,7 @@ jobs:
       - name: Black
         run: poetry run black . --check
       - name: Flake8
-        run: poetry run flake8 kslurm --max-line-length=88 --ignore=E203,W503
+        run: poetry run flake8
       - name: isort
         run: poetry run isort . -c
 

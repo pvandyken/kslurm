@@ -63,6 +63,7 @@ multi_line_output = 3
 # rather than using the flake8 default of 79:
 max-line-length = "88"
 extend-ignore = "E203,W503"
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]
@@ -70,12 +71,11 @@ envlist = py37, py38, py39
 isolated_build = True
 
 [testenv]
-deps =
+require_locked_deps = true
+locked_deps =
     pytest
-    tabulate
+    coverage
     hypothesis
-    rich
-install_project_deps = true
 commands =
     pytest
 """

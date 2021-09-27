@@ -12,6 +12,7 @@ repos:
     rev: 21.8b0
     hooks:
     - id: black
+      exclude: typings
   - repo: https://github.com/PyCQA/flake8.git
     rev: 3.9.2
     hooks:

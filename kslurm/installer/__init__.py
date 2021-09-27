@@ -1,17 +1,12 @@
-__submodules__ = ["install", "update"]
+__submodules__ = ["installer"]
 
 # <AUTOGEN_INIT>
-from kslurm.installer.install import (
-    install,
-)
-from kslurm.installer.update import (
-    ENTRYPOINTS,
-    HOME_DIR,
+from kslurm.installer.installer import (
     METADATA_URL,
-    NAME,
-    update,
+    install,
+    run_installation,
 )
 
-__all__ = ["ENTRYPOINTS", "HOME_DIR", "METADATA_URL", "NAME", "install", "update"]
+__all__ = ["METADATA_URL", "install", "run_installation"]
 
 # </AUTOGEN_INIT>

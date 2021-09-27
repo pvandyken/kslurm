@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 
+import json
 import os
-import shutil
 import site
-import tempfile
 from pathlib import Path
 from unittest.mock import call, mock_open
 
+from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import fixture
 from pytest_mock import MockerFixture
 
@@ -14,24 +14,24 @@ import kslurm.installer.utils as utils
 
 
 @fixture
-def venv(mocker: MockerFixture):
-    dir = Path(tempfile.gettempdir()) / "temp-library"
+def venv(mocker: MockerFixture, fs: FakeFilesystem):
+    dir = Path("/fake/path") / "temp-library"
 
     bin_dir = dir / "venv" / "bin"
-    bin_dir.mkdir(parents=True)
-    (dir / "VERSION").touch()
+    fs.create_dir(bin_dir)
+    fs.create_file(dir / "VERSION")
+
     p_exec = bin_dir / "python"
-    p_exec.touch()
+    fs.create_file(p_exec)
     mocker.patch("sys.executable", p_exec)
 
-    yield dir
-
-    shutil.rmtree(dir)
+    return dir
 
 
 @fixture
-def envvar_dir(mocker: MockerFixture):
-    dir = tempfile.gettempdir() + "/venv"
+def envvar_dir(mocker: MockerFixture, fs: FakeFilesystem):
+    dir = "fake/path/venv"
+    fs.create_dir(dir)
     mocker.patch("os.getenv", return_value=dir)
     return Path(dir)
 
@@ -74,3 +74,52 @@ def test_get(mocker: MockerFixture):
 
     assert call().read() in urlopen.mock_calls
     assert text == "Hello World"
+
+
+class TestGetCurrentVersion:
+    def test_returns_version_file_contents_if_exist(self, fs: FakeFilesystem):
+        datadir = Path("/fake/datadir")
+        fs.create_dir(datadir)
+        fs.create_file(datadir / "VERSION", contents="test string")
+
+        assert utils.get_current_version(datadir) == "test string"
+
+    def test_returns_none_if_no_version_file(self, fs: FakeFilesystem):
+        datadir = Path("/fake/path")
+        fs.create_dir(datadir)
+
+        assert utils.get_current_version(datadir) is None
+
+
+class TestGetVersion:
+    def _mock_data(self, mocker: MockerFixture, add_version: bool = False):
+        release_file = Path(__file__).parent / "fake_releases.json"
+        with release_file.open() as file:
+            data = json.load(file)
+        if add_version:
+            data["releases"]["1.2.0"] = ""
+        mocker.patch("json.loads", return_value=data)
+        mocker.patch.object(utils, "get")
+        self.fake_url = "https://example.org"
+
+    def test_returns_latest_non_prerelease_normally(self, mocker: MockerFixture):
+        self._mock_data(mocker)
+        assert utils.get_version(None, False, self.fake_url) == "1.1.10"
+
+    def test_returns_latest_release_when_preview(self, mocker: MockerFixture):
+        self._mock_data(mocker)
+        assert utils.get_version(None, True, self.fake_url) == "1.2.0a2"
+
+    def test_returns_specified_version_when_given(self, mocker: MockerFixture):
+        self._mock_data(mocker)
+        assert utils.get_version("1.1.1", False, self.fake_url) == "1.1.1"
+        assert utils.get_version("1.0.0-b6", True, self.fake_url) == "1.0.0b6"
+        assert utils.get_version("0.8.1.a0", False, self.fake_url) == "0.8.1a0"
+
+    def test_returns_none_when_given_version_doesnt_exist(self, mocker: MockerFixture):
+        self._mock_data(mocker)
+        assert utils.get_version("1.2.0", True, self.fake_url) is None
+
+    def test_returns_latest_non_dev_version_if_available(self, mocker: MockerFixture):
+        self._mock_data(mocker, True)
+        assert utils.get_version("1.2.0", True, self.fake_url) == "1.2.0"

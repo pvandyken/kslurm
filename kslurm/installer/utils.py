@@ -1,17 +1,15 @@
 from __future__ import absolute_import
 
-import functools as ft
 import json
 import os
-import re
 import site
 import sys
 from contextlib import closing
 from pathlib import Path
-from typing import cast
+from typing import Optional
 from urllib.request import Request, urlopen
 
-from kslurm.models import VERSION_REGEX
+from kslurm.installer.version import FlexVersion
 
 
 def data_dir(home_dir_var: str) -> Path:
@@ -85,58 +83,53 @@ def get(url: str):
 
 
 def get_version(
-    requested_version: str,
+    requested_version: Optional[str],
     preview: bool,
-    force: bool,
-    data_dir: Path,
     metadata_url: str,
 ):
-    version_regex = re.compile(VERSION_REGEX)
-    current_version = None
-    if data_dir.joinpath("VERSION").exists():
-        current_version = data_dir.joinpath("VERSION").read_text().strip()
+    """Retrieves version information and returns a valid version for installation.
+
+    If no specific version is requested, it will return the latest version. Otherwise,
+    it will check to make sure the requested version is valid.
+
+    Args:
+        requested_version (str or None): Specific version to request. If None, request
+            latest version.
+        preview (bool): Set to True to allow preview or development versions
+        metadata_url (str): url to pipy repository metadata
+
+    Returns:
+        Optional[str]: Valid version for installation. Returns None if requested
+            version does not exist
+    """
 
     metadata = json.loads(get(metadata_url).decode())
 
-    def _compare_versions(x: str, y: str):
-        mx = version_regex.match(x)
-        my = version_regex.match(y)
+    releases = sorted([FlexVersion.parse(k) for k in metadata["releases"].keys()])
 
-        if mx and my:
-            vx = tuple(int(p) for p in mx.groups()[:3]) + (mx.group(5),)
-            vy = tuple(int(p) for p in my.groups()[:3]) + (my.group(5),)
-
-            if vx < vy:
-                return -1
-            elif vx > vy:
-                return 1
-
-            return 0
-        else:
-            raise Exception("Could not match version information")
-
-    print("")
-    releases = sorted(metadata["releases"].keys(), key=ft.cmp_to_key(_compare_versions))
-
-    if requested_version and requested_version not in releases:
+    if requested_version:
+        version = FlexVersion.parse(requested_version)
+        for release in releases:
+            if version == release:
+                return release.raw_value
         print(f"Version {requested_version} does not exist.")
-
         return None
-
-    version = requested_version
-    if not version:
+    else:
         for release in reversed(releases):
-            m = version_regex.match(release)
-            if m and m.group(5) and not preview:
+            if release.prerelease and not preview:
                 continue
+            return release.raw_value
 
-            version = release
 
-            break
-    assert isinstance(version, str)
-    if current_version == version and not force:
-        print(f"The latest version ({version}) is already installed.")
+def get_current_version(datadir: Path) -> Optional[str]:
+    """Retrieves current version from the app data directory, if it exists
 
-        return None
+    Args:
+        datadir (Path): Path of the data directory
 
-    return cast(str, version)
+    Returns:
+        Optional[str]: The current version, otherwise None
+    """
+    if datadir.joinpath("VERSION").exists():
+        return datadir.joinpath("VERSION").read_text().strip()
+    return None

@@ -33,6 +33,7 @@ rich = "^10.9.0"
 tabulate = "^0.8.9"
 pre-commit = "^2.15.0"
 pytest-mock = "^3.6.1"
+semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.8b0"
@@ -45,6 +46,7 @@ isort = "^5.9.3"
 flake8 = "^3.9.2"
 mkinit = "^0.3.3"
 poethepoet = "^0.10.0"
+pyfakefs = "^4.5.1"
 
 [tool.poetry.scripts]
 kbatch = 'kslurm.submission.kbatch:main'
@@ -66,6 +68,9 @@ extend_skip = ["__init__.py"]
 [tool.pyright]
 strict = ["kslurm/**"]
 venv = ".venv"
+
+[tool.black]
+exclude = "typings/.*$"
 
 [tool.poe.tasks]
 setup = "pre-commit install"

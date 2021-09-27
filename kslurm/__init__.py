@@ -15,12 +15,9 @@ from kslurm.args import (
     print_help,
 )
 from kslurm.installer import (
-    ENTRYPOINTS,
-    HOME_DIR,
     METADATA_URL,
-    NAME,
     install,
-    update,
+    run_installation,
 )
 from kslurm.models import (
     KslurmModel,
@@ -47,6 +44,9 @@ from kslurm.submission import (
     krun,
 )
 from kslurm.kslurm import (
+    ENTRYPOINTS,
+    HOME_DIR,
+    NAME,
     kslurm,
 )
 
@@ -80,11 +80,11 @@ __all__ = [
     "mem",
     "parse_args",
     "print_help",
+    "run_installation",
     "set_template",
     "slurm_time_format",
     "templates",
     "time",
-    "update",
 ]
 
 # </AUTOGEN_INIT>

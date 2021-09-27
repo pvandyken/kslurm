@@ -6,6 +6,7 @@ import attr
 
 from kslurm.args import ShapeArg, TailArg
 
+# v(major_version).(minor_version).(patch_version).(sub_patch_version)
 VERSION_REGEX = (
     r"v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?"
     "("

@@ -31,8 +31,6 @@ colorama = "^0.4.4"
 typing-extensions = "^3.10"
 rich = "^10.9.0"
 tabulate = "^0.8.9"
-pre-commit = "^2.15.0"
-pytest-mock = "^3.6.1"
 semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
@@ -47,6 +45,8 @@ flake8 = "^3.9.2"
 mkinit = "^0.3.3"
 poethepoet = "^0.10.0"
 pyfakefs = "^4.5.1"
+pytest-mock = "^3.6.1"
+pre-commit = "^2.15.0"
 
 [tool.poetry.scripts]
 kbatch = 'kslurm.submission.kbatch:main'
@@ -70,12 +70,13 @@ strict = ["kslurm/**"]
 venv = ".venv"
 
 [tool.black]
-exclude = "typings/.*$"
+extend-exclude = ["typings/.*$"]
 
 [tool.poe.tasks]
 setup = "pre-commit install"
 mkinit = "mkinit --recursive --nomods --black -i kslurm"
 check_mkinit = "mkinit --recursive --nomods --black --diff kslurm"
+test = "tox"
 
 [tool.tox]
 legacy_tox_ini = """
@@ -95,6 +96,8 @@ locked_deps =
     pytest
     coverage
     hypothesis
+    pyfakefs
+    pytest-mock
 commands =
     pytest
 """

@@ -15,10 +15,6 @@ class ValidationError(CommandLineError):
     pass
 
 
-class TemplateError(CommandLineError):
-    pass
-
-
 class TailError(CommandLineError):
     pass
 
@@ -31,3 +27,7 @@ class CommandLineErrorGroup(CommandLineError):
     def __init__(self, msg: str, sub_errors: List[T] = []):
         super().__init__(msg)
         self.sub_errors = sub_errors
+
+
+class TemplateError(Exception):
+    pass

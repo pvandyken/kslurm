@@ -8,7 +8,7 @@ from _pytest.fixtures import SubRequest
 import kslurm.args.helpers as helpers
 import kslurm.args.parser as sc
 from kslurm.args import Arg
-from kslurm.exceptions import CommandLineError, CommandLineErrorGroup
+from kslurm.exceptions import CommandLineErrorGroup
 
 from .models import models
 from .models.common import ModelTest
@@ -37,7 +37,7 @@ def test_parse_args(model: ModelTest):
             try:
                 sc.parse_args(args, model.model, True)
             except CommandLineErrorGroup as err_group:
-                assert [err.msg for err in outcome] == [
+                assert [err.msg for err in outcome] == [  # type: ignore
                     err.msg for err in err_group.sub_errors
                 ]
             else:

@@ -5,12 +5,14 @@ __ignore__ = ["main"]
 # <AUTOGEN_INIT>
 from kslurm.args import (
     Arg,
+    ArgSorter,
     ChoiceArg,
     FlagArg,
     KeywordArg,
     PositionalArg,
     ShapeArg,
     TailArg,
+    group_by_type,
     parse_args,
     print_help,
 )
@@ -52,6 +54,7 @@ from kslurm.kslurm import (
 
 __all__ = [
     "Arg",
+    "ArgSorter",
     "ChoiceArg",
     "ENTRYPOINTS",
     "FlagArg",
@@ -70,6 +73,7 @@ __all__ = [
     "UpdateModel",
     "VERSION_REGEX",
     "div_remainder",
+    "group_by_type",
     "install",
     "job_template",
     "kbatch",

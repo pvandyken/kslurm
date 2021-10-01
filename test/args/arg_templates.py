@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 from typing import Union
 
-from kslurm.args.arg_types import KeywordArg, PositionalArg, ShapeArg, TailArg
+from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
 
 
 def time(time: str):
@@ -24,10 +24,10 @@ class Templates:
         value="03:00",
     )
 
-    gpu: ShapeArg[str] = ShapeArg(match=lambda arg: arg == "gpu", value="gpu")
+    gpu: FlagArg = FlagArg(match=["gpu"])
 
-    cpu: ShapeArg[str] = ShapeArg(
-        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), value="1"
+    number: ShapeArg[int] = ShapeArg(
+        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), value="1", format=int
     )
 
     job_template: KeywordArg[str] = KeywordArg[str](

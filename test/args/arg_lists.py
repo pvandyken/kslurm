@@ -7,24 +7,6 @@ from kslurm.args.arg_types import Arg, PositionalArg
 from .arg_templates import Templates
 
 
-def time(time: str):
-    if "-" in time:
-        days, hhmm = time.split("-")
-        hours, min = hhmm.split(":")
-    else:
-        days = 0
-        hours, min = time.split(":")
-    return str(int(min) + int(hours) * 60 + int(days) * 60 * 24)
-
-
-class Models:
-    three_positionals: List[PositionalArg[Any]] = [
-        Templates.positional,
-        Templates.positional2,
-        Templates.positional3,
-    ]
-
-
 class DummyArgs:
     positionals: List[PositionalArg[Any]] = [
         Templates.positional.set_value("Hello"),
@@ -56,8 +38,18 @@ class DummyArgs:
         Templates.positional,
         Templates.positional,
         Templates.gpu,
+        Templates.number,
+        Templates.time,
+    ]
+
+    positional_patchwork: List[Arg[Any]] = [
+        Templates.time,
         Templates.positional,
-        Templates.positional,
+        Templates.number,
+        Templates.positional2,
+        Templates.number,
+        Templates.positional3,
+        Templates.gpu,
     ]
 
     positional_wrapped_keyword: List[Arg[Any]] = [
@@ -84,7 +76,7 @@ class DummyArgs:
 
     greedy_keywords: List[Arg[Any]] = [
         Templates.time,
-        Templates.positional,
+        Templates.gpu,
         Templates.greedy_inf_keyword,
         Templates.positional,
         Templates.time,

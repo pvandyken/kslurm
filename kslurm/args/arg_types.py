@@ -6,9 +6,10 @@ from typing import Callable, Generic, Iterable, List, Optional, TypeVar
 
 from colorama import Fore, Style
 
-from kslurm.exceptions import CommandLineError, ValidationError
+from kslurm.exceptions import MandatoryArgError, ValidationError
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 
 class Arg(abc.ABC, Generic[T]):
@@ -32,7 +33,7 @@ class Arg(abc.ABC, Generic[T]):
     @property
     def value(self):
         if self._value is None:
-            raise Exception()
+            raise MandatoryArgError(f"{self.name} has not been provided a value.")
         return self._value
 
     @value.setter
@@ -46,7 +47,7 @@ class Arg(abc.ABC, Generic[T]):
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, self.__class__):
-            return o.value == self.value
+            return o._value == self._value
         else:
             return False
 
@@ -56,10 +57,17 @@ class Arg(abc.ABC, Generic[T]):
     def __str__(self) -> str:
         return str(self.value)
 
+    def __hash__(self) -> int:
+        return hash(hash(self.id) + hash(self.value))
+
     def setid(self, id: str):
         c = copy.copy(self)
         c.id = id
         return c
+
+    @property
+    def name(self) -> str:
+        return self.id
 
     @abc.abstractmethod
     def set_value(self, value: str) -> Arg[T]:
@@ -80,24 +88,31 @@ class PositionalArg(Arg[T]):
             id=id, match=lambda x: True, value=value, format=format, help=help
         )
         self.validator = validator
-        self.name = name
+        self._name = name
         self.updated = False
+        self.validation_err: Optional[ValidationError] = None
 
     def set_value(self, value: str):
+        c = copy.copy(self)
         try:
-            c = copy.copy(self)
             c.value = self.validator(value)
             c.updated = True
             return c
         except ValidationError as err:
-            raise CommandLineError(
+            c.validation_err = ValidationError(
                 f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
         Invalid value for "{Style.BRIGHT + self.name + Style.RESET_ALL}":
             {err.msg}
-            """,
-                err,
+            """
             )
+            return c
+
+    @property
+    def name(self):
+        if self._name:
+            return self._name
+        return self.id
 
 
 class ChoiceArg(PositionalArg[T]):
@@ -144,7 +159,7 @@ class ShapeArg(Arg[T]):
     ):
         super().__init__(id=id, match=match, value=value, format=format, help=help)
         self.updated = False
-        self.name = name
+        self._name = name
         self.syntax = syntax
         self.examples = examples
 
@@ -155,10 +170,21 @@ class ShapeArg(Arg[T]):
         c.updated = True
         return c
 
+    @property
+    def name(self):
+        if self._name:
+            return self._name
+        return self.id
+
 
 class FlagArg(Arg[bool]):
     def __init__(
-        self, *, id: str = "", match: List[str], value: bool = False, help: str = ""
+        self,
+        *,
+        id: str = "",
+        match: List[str],
+        value: Optional[bool] = False,
+        help: str = "",
     ):
         def check_match(val: str):
             if val in match:
@@ -167,6 +193,8 @@ class FlagArg(Arg[bool]):
 
         if value:
             raw_value = match[0]
+        elif value is None:
+            raw_value = None
         else:
             raw_value = ""
 
@@ -180,8 +208,9 @@ class FlagArg(Arg[bool]):
         c.value = value
         return c
 
-
-S = TypeVar("S")
+    @property
+    def name(self):
+        return ", ".join(self.match_list)
 
 
 class KeywordArg(FlagArg, Generic[S]):
@@ -190,7 +219,7 @@ class KeywordArg(FlagArg, Generic[S]):
         *,
         id: str = "",
         match: List[str],
-        value: bool = False,
+        value: Optional[bool] = False,
         num: int = 1,
         validate: Callable[[str], str] = lambda x: x,
         values: List[str] = [],
@@ -202,6 +231,7 @@ class KeywordArg(FlagArg, Generic[S]):
         self.validate = validate
         self.values = values
         self.values_name = values_name
+        self.validation_err: Optional[ValidationError] = None
 
     @property
     def values(self) -> List[str]:
@@ -222,19 +252,19 @@ class KeywordArg(FlagArg, Generic[S]):
         return c
 
     def add_values(self, values: Iterable[str]):
+        c = copy.copy(self)
         try:
-            c = copy.copy(self)
             c.values = list(map(self.validate, values))
             return c
         except ValidationError as err:
-            raise CommandLineError(
+            c.validation_err = ValidationError(
                 f"""
     {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
         Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
             {err.msg}
             """,
-                err,
-            ) from err
+            )
+            return c
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.id} = {self.values}>"
@@ -244,12 +274,21 @@ class KeywordArg(FlagArg, Generic[S]):
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, self.__class__):
-            return o.value == self.value and o.values == self.values
+            return o._value == self._value and o.values == self.values
         else:
             return False
+
+    def __hash__(self) -> int:
+        value_hash = hash(sum([hash(val) for val in self.values]))
+        return hash(super().__hash__() + value_hash)
 
 
 class TailArg(KeywordArg[str]):
     def __init__(self, name: str = "Tail"):
         super().__init__(id="tail", num=-1, match=[])
-        self.name = name
+        self._name = name
+        self.raise_exception = False
+
+    @property
+    def name(self):
+        return self._name

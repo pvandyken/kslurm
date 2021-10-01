@@ -36,4 +36,9 @@ def get_arg_list(models: object):
 
 def update_model(arg_updates: Iterable[Arg[Any]], model: T) -> T:
     update = {arg.id: arg for arg in arg_updates}
-    return model.__class__(**update)
+    if hasattr(model, "__attrs_attrs__"):
+        return model.__class__(**update)
+    elif isinstance(model, dict):
+        return cast(T, {**model, **update})
+    else:
+        raise Exception(f"{type(model)} is not a supported object for arg models")

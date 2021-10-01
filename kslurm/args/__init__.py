@@ -1,4 +1,4 @@
-__submodules__ = ["arg_types", "help", "parser"]
+__submodules__ = ["arg_types", "help", "parser", "arg_sorter"]
 
 __ignore__ = ["T", "S"]
 
@@ -18,15 +18,21 @@ from kslurm.args.help import (
 from kslurm.args.parser import (
     parse_args,
 )
+from kslurm.args.arg_sorter import (
+    ArgSorter,
+    group_by_type,
+)
 
 __all__ = [
     "Arg",
+    "ArgSorter",
     "ChoiceArg",
     "FlagArg",
     "KeywordArg",
     "PositionalArg",
     "ShapeArg",
     "TailArg",
+    "group_by_type",
     "parse_args",
     "print_help",
 ]

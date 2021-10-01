@@ -75,7 +75,7 @@ jobs:
         # Cryptic code to check if check_mkinit returns only whitespace.
         # If it does, the check passes. Adapted from
         # https://stackoverflow.com/questions/9767644/test-if-string-has-non-whitespace-characters-in-bash
-        run: "[[ $(poetry run poe -q check_mkinit ) != *[![:space:]]* ]] || echo Run poetry run poe mkinit to correct __init__ files && exit 1"
+        run: "[[ $(poetry run poe -q check_mkinit ) != *[![:space:]]* ]] || (echo 'Run poetry run poe mkinit to correct __init__ files' && exit 1)"
 
 
   test:

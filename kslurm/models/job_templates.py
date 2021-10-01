@@ -1,12 +1,14 @@
-from typing import Dict, cast
-from typing_extensions import TypedDict
+from __future__ import absolute_import
 
-import attr, json
-from pathlib import Path
-import itertools as it
 import functools as ft
+import itertools as it
+import json
+from pathlib import Path
+from typing import Dict, cast
 
+import attr
 from tabulate import tabulate
+from typing_extensions import TypedDict
 
 from kslurm.args import ShapeArg
 
@@ -42,7 +44,7 @@ def set_template(
     template: str, mem: ShapeArg[int], cpu: ShapeArg[int], time: ShapeArg[int]
 ):
     if template:
-        if not template in templates():
+        if template not in templates():
             raise Exception(f"{template} is not a valid template")
 
         return TemplateArgs(

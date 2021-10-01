@@ -1,1 +1,12 @@
-from .update import update # type: ignore
+__submodules__ = ["installer"]
+
+# <AUTOGEN_INIT>
+from kslurm.installer.installer import (
+    METADATA_URL,
+    install,
+    run_installation,
+)
+
+__all__ = ["METADATA_URL", "install", "run_installation"]
+
+# </AUTOGEN_INIT>

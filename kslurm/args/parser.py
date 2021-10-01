@@ -1,141 +1,178 @@
-from kslurm.exceptions import CommandLineError
-from typing import Any, Callable, List, TypeVar, cast, Iterable, Tuple
+from __future__ import absolute_import
 
-import functools as fc
 import itertools as it
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import kslurm.args.helpers as helpers
-from .arg_types import Arg, FlagArg, ShapeArg, KeywordArg, PositionalArg, TailArg
+from kslurm.args.arg_sorter import ArgSorter
+from kslurm.args.arg_types import Arg, KeywordArg, PositionalArg, TailArg
+from kslurm.exceptions import (
+    CommandLineError,
+    CommandLineErrorGroup,
+    MandatoryArgError,
+    TailError,
+)
 
 T = TypeVar("T")
 S = TypeVar("S")
 
-def parse_args(args: Iterable[str], models: T) -> T:
+
+def parse_args(args: Iterable[str], models: T, escalate_errors: bool = False) -> T:
     try:
         return _parse_args(args, models)
     except CommandLineError as err:
         print(err.msg)
-        exit()
+        if isinstance(err, CommandLineErrorGroup):
+            [print(e.msg) for e in err.sub_errors]
+        if escalate_errors:
+            raise err
+        else:
+            exit()
+
 
 def _parse_args(args: Iterable[str], models: T) -> T:
     model_list = helpers.get_arg_list(models)
 
-    model_cats = helpers.group_by_type(model_list)
+    sorted_models = ArgSorter(model_list)
 
-    specific_args = list(it.chain(
-        model_cats.get(ShapeArg, []),
-        model_cats.get(KeywordArg, []),
-        model_cats.get(FlagArg, [])
-    ))
-    
-    labelled = [classify_arg(a, specific_args) for a in args]
-    grouped = helpers.group_by_type(group_keywords(labelled))
-    shape_args = grouped.get(ShapeArg, [])
-    keyword_args = grouped.get(KeywordArg, [])
-    flag_args = grouped.get(FlagArg, [])
+    matchers = sorted_models.dynamic_args
 
-    nonspecific_args = cast(
-        Iterable[PositionalArg[Any]], 
-        grouped.get(PositionalArg, [])
+    labelled = [_classify_arg(a, matchers) for a in args]
+    grouped_args = list(
+        _group_args(labelled, sorted_models.static_args, sorted_models.tail)
     )
 
-    positional_models = cast(
-        Iterable[PositionalArg[Any]],
-        filter(lambda x: isinstance(x, PositionalArg), model_list)
-    )
-    positional_args, extras = delineate_positional(nonspecific_args, positional_models)
+    updated = helpers.update_model(grouped_args, models)
 
-    if TailArg in model_cats:
-        tail_arg_list = cast(List[TailArg], list(model_cats[TailArg]))
-        if len(tail_arg_list) > 1:
-            raise CommandLineError("More than 1 TailArgs provided:"
-                            f"{tail_arg_list}")
-        
-        tail_arg = tail_arg_list[0]
-        tail = [tail_arg.add_values([v.raw_value for v in extras])]
+    sorted_args = ArgSorter(helpers.get_arg_list(updated))
+
+    validation_errs = filter(
+        None, [arg.validation_err for arg in sorted_args.validated_args]
+    )
+
+    tail_arg = sorted_args.tail
+    if tail_arg and tail_arg.raise_exception:
+        tail_err = [
+            TailError(
+                f"{tail_arg.values} does not match any Shape, Keyword, or Positional "
+                "Args."
+            )
+        ]
     else:
-        tail = cast(List[TailArg], [])
-        if extras:
-            raise CommandLineError(f"{extras} does not match any Shape, Keyword, or Positional Args ")
-    
-    return helpers.update_model(it.chain(shape_args, positional_args, keyword_args, flag_args, tail), models)
+        tail_err = []
 
-def classify_arg(arg: str, arg_list: Iterable[Arg[Any]]):
+    mandatory_arg_errs = cast(List[MandatoryArgError], [])
+    for arg in helpers.get_arg_list(updated):
+        try:
+            arg.value
+        except MandatoryArgError as err:
+            mandatory_arg_errs.append(err)
+
+    all_err = list(it.chain(validation_errs, tail_err, mandatory_arg_errs))
+
+    if all_err:
+        raise CommandLineErrorGroup("Problems found!", all_err)
+
+    return updated
+
+
+def _classify_arg(arg: str, arg_list: Iterable[Arg[Any]]):
     for argtype in arg_list:
         if argtype.match(arg):
             return argtype.set_value(arg)
     return cast(Arg[Any], PositionalArg().set_value(arg))
 
 
-def group_keywords(args: List[Arg[Any]]) -> Iterable[Arg[Any]]:
-    return fc.reduce(
-        group_keyword, 
-        args, 
-        ( 0, cast(List[Arg[Any]], []) )
-    )[1]
-    
+def _group_args(
+    args: List[Arg[Any]],
+    positional_models: Iterable[PositionalArg[Any]],
+    tail_model: Optional[TailArg],
+) -> Iterable[Arg[Any]]:
+    return _group_arg(iter(args), 0, [], None, iter(positional_models), tail_model)
 
-def get_keyword_group_size(arg: Arg[Any]):
+
+def _get_keyword_group_size(arg: Arg[Any]):
     if isinstance(arg, KeywordArg):
         return arg.num
     else:
         return 0
 
-def group_keyword(accumulant: Tuple[int, Iterable[Arg[Any]]], arg: Arg[Any]) -> "Tuple[int, Iterable[Arg[Any]]]":
-    group_size, running_list = accumulant
-    new_keyword_group_size = get_keyword_group_size(arg)
+
+def _group_arg(
+    input_args: Iterator[Arg[Any]],
+    group_size: int,
+    grouped_args: Iterable[Union[Arg[Any], None]],
+    last_arg: Optional[Arg[Any]],
+    positional_models: Iterator[PositionalArg[Any]],
+    tail_model: Optional[TailArg],
+) -> Iterable[Arg[Any]]:
 
     kcast: Callable[[Any], KeywordArg[Any]] = lambda x: cast(KeywordArg[Any], x)
-    l = list(running_list)
-    if l:
-        last_arg = l[-1]
-    else:
-        last_arg = None
-   
+
+    updated_args = it.chain(grouped_args, [last_arg])
+
+    try:
+        arg = next(input_args)
+    except StopIteration:
+        return filter(None, updated_args)
+
     if group_size:
         assert isinstance(last_arg, KeywordArg)
-        kcast(last_arg)
-        return (
-            group_size - 1, 
-            it.chain(
-                l[:-1], 
-                [kcast(last_arg.add_values(it.chain(
-                    last_arg.values,
-                    [arg.raw_value]
-                )))]
-            )
+        new_arg = kcast(last_arg.add_values(it.chain(last_arg.values, [arg.raw_value])))
+        new_group_size = group_size - 1
+        updated_args = grouped_args
+
+    elif all(
+        [
+            isinstance(last_arg, KeywordArg),
+            _get_keyword_group_size(kcast(last_arg)) == 0,
+            isinstance(arg, PositionalArg),
+        ]
+    ):
+        # all() is not propagating the fact that last_arg is a keyword, so we assert it
+        # here.
+        assert isinstance(last_arg, KeywordArg)
+        new_arg = kcast(last_arg.add_values(it.chain(last_arg.values, [arg.raw_value])))
+        new_group_size = group_size
+        updated_args = grouped_args
+
+    elif isinstance(arg, PositionalArg):
+        new_arg = _process_positional(
+            cast(PositionalArg[Any], arg), positional_models, tail_model
         )
-    elif isinstance(last_arg, KeywordArg) and \
-        get_keyword_group_size(kcast(last_arg)) == 0 and \
-        not isinstance(arg, ShapeArg) and \
-        not isinstance(arg, KeywordArg):
-        return (
-            group_size, 
-            it.chain(
-                l[:-1], 
-                [kcast(last_arg.add_values(it.chain(
-                    last_arg.values,
-                    [arg.raw_value]
-                )))] 
-            )
-        )
+        new_group_size = _get_keyword_group_size(new_arg)
+
     else:
-        return new_keyword_group_size, it.chain(l, [cast(Arg[Any], arg)]) 
+        new_arg = arg
+        new_group_size = _get_keyword_group_size(new_arg)
+
+    return _group_arg(
+        input_args, new_group_size, updated_args, new_arg, positional_models, tail_model
+    )
 
 
-def delineate_positional(args: Iterable[PositionalArg[Any]], positional_models: Iterable[PositionalArg[Any]]) -> Tuple[List[PositionalArg[Any]], List[PositionalArg[Any]]]:
-    args = list(args)
-    models = list(positional_models)
-    if len(args) < len(models):
-        raise CommandLineError("Too few positional arguments received.\n"
-                        f"Expected {models}\n"
-                        f"but got {args}")
-    
-    positional_args = [
-        model.set_value(arg.raw_value)
-        for arg, model in zip(args, models)
-    ]
-    
-    # We return all the args not zipped with the models as
-    # extras to be added to TailArg
-    return positional_args, args[len(models):]
+def _process_positional(
+    arg: PositionalArg[Any],
+    positional_models: Iterator[PositionalArg[Any]],
+    tail_model: Optional[TailArg],
+) -> Union[PositionalArg[Any], TailArg]:
+    try:
+        model = next(positional_models)
+    except StopIteration:
+        if tail_model:
+            return tail_model.add_values([arg.raw_value])
+        else:
+            ret = TailArg().add_values([arg.raw_value])
+            ret.raise_exception = True
+            return ret
+    return model.set_value(arg.raw_value)

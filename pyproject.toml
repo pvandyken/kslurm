@@ -31,6 +31,7 @@ colorama = "^0.4.4"
 typing-extensions = "^3.10"
 rich = "^10.9.0"
 tabulate = "^0.8.9"
+semver = "^2.13.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.8b0"
@@ -39,6 +40,13 @@ tox = "^3.24.3"
 coverage = "^5.5"
 tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
 hypothesis = "^6.20.0"
+isort = "^5.9.3"
+flake8 = "^3.9.2"
+mkinit = "^0.3.3"
+poethepoet = "^0.10.0"
+pyfakefs = "^4.5.1"
+pytest-mock = "^3.6.1"
+pre-commit = "^2.15.0"
 
 [tool.poetry.scripts]
 kbatch = 'kslurm.submission.kbatch:main'
@@ -50,19 +58,46 @@ kslurm = 'kslurm.kslurm:main'
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+add_imports = ["from __future__ import absolute_import"]
+# We ignore __init__ file so that mkinit and isort don't undo each other
+extend_skip = ["__init__.py"]
+
+[tool.pyright]
+strict = ["kslurm/**"]
+venv = ".venv"
+
+[tool.black]
+extend-exclude = ["typings/.*$"]
+
+[tool.poe.tasks]
+setup = "pre-commit install"
+mkinit = "mkinit --recursive --nomods --black -i kslurm"
+check_mkinit = "mkinit --recursive --nomods --black --diff kslurm"
+test = "tox"
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]
 envlist = py37, py38, py39
 isolated_build = True
 
+[gh-actions]
+python =
+    3.7: py37
+    3.8: py38
+    3.9: py39
+
 [testenv]
-deps =
+require_locked_deps = true
+locked_deps =
     pytest
-    tabulate
+    coverage
     hypothesis
-    rich
-install_project_deps = true
+    pyfakefs
+    pytest-mock
 commands =
     pytest
 """

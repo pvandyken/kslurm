@@ -1,8 +1,25 @@
 # The following was adapted from install_poetry.py from Poetry,
 # published under the MIT License:
 
-# Copyright (c) 2018 Sébastien Eustace
+from __future__ import absolute_import
 
+import argparse
+import functools as ft
+import json
+import os
+import re
+import shutil
+import site
+import subprocess
+import sys
+from contextlib import closing
+from io import UnsupportedOperation
+from pathlib import Path
+from typing import Iterable, List, Optional, Tuple, cast
+from urllib.request import Request, urlopen
+from venv import EnvBuilder
+
+# Copyright (c) 2018 Sébastien Eustace
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -25,34 +42,12 @@
 # The entire library can be found at https://github.com/python-poetry/poetry
 
 
-from typing import Optional, Tuple, cast, List, Iterable
-from venv import EnvBuilder
-from pathlib import Path
-from venv import EnvBuilder
-import os
-import subprocess
-import site
-import shutil
-import argparse
-import sys
-import re
-import json
-import functools as ft
-from urllib.request import Request, urlopen
-from contextlib import closing
-from io import UnsupportedOperation
-
 SHELL = os.getenv("SHELL", "")
 
 NAME = "kslurm"
 HOME_DIR = "KSLURM_HOME"
 
-ENTRYPOINTS = [
-    "kbatch",
-    "krun",
-    "kjupyter",
-    "kslurm"
-]
+ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm"]
 
 FOREGROUND_COLORS = {
     "black": 30,
@@ -106,7 +101,6 @@ STYLES = {
 
 
 def is_decorated():
-    
 
     if not hasattr(sys.stdout, "fileno"):
         return False
@@ -132,6 +126,7 @@ def colorize(style: str, text: str):
         return text
 
     return "{}{}\033[0m".format(STYLES[style], text)
+
 
 PRE_MESSAGE = """# Welcome to {software}!
 This will download and install the latest version of {software},
@@ -185,6 +180,7 @@ VERSION_REGEX = re.compile(
     r"(?:\+[^\s]+)?"
 )
 
+
 def display_post_message(bin_dir: Path) -> None:
     if SHELL == "fish":
         message, configuration = get_post_message_fish(bin_dir)
@@ -192,17 +188,15 @@ def display_post_message(bin_dir: Path) -> None:
         message, configuration = get_post_message_unix(bin_dir)
 
     print(
-    message.format(
-        software=NAME,
-        software_home_bin=bin_dir,
-        software_executable_name=ENTRYPOINTS[0],
-        software_executable=bin_dir.joinpath(ENTRYPOINTS[0]),
-        configure_message=configuration.format(
-            software_home_bin=bin_dir
-        ),
-        test_command="kbatch --help",
+        message.format(
+            software=NAME,
+            software_home_bin=bin_dir,
+            software_executable_name=ENTRYPOINTS[0],
+            software_executable=bin_dir.joinpath(ENTRYPOINTS[0]),
+            configure_message=configuration.format(software_home_bin=bin_dir),
+            test_command="kbatch --help",
+        )
     )
-)
 
 
 def get_post_message_fish(bin_dir: Path) -> Tuple[str, str]:
@@ -213,10 +207,9 @@ def get_post_message_fish(bin_dir: Path) -> Tuple[str, str]:
     message = POST_MESSAGE_NOT_IN_PATH
     if fish_user_paths and str(bin_dir) in fish_user_paths:
         message = POST_MESSAGE
-    
+
     return message, POST_MESSAGE_CONFIGURE_FISH
 
-    
 
 def get_post_message_unix(bin_dir: Path) -> Tuple[str, str]:
     paths = os.getenv("PATH", "").split(":")
@@ -232,9 +225,10 @@ def display_pre_message(bin_dir: Path) -> None:
     kwargs = {
         "software": NAME,
         "software_home_bin": bin_dir,
-        "entrypoints": ", ".join(ENTRYPOINTS)
+        "entrypoints": ", ".join(ENTRYPOINTS),
     }
     print(PRE_MESSAGE.format(**kwargs))
+
 
 def string_to_bool(value: str) -> bool:
     value = value.lower()
@@ -251,23 +245,24 @@ def get(url: str):
 
 def data_dir() -> Path:
     if os.getenv(HOME_DIR):
-        return Path(os.getenv(HOME_DIR)).expanduser() # type: ignore
+        return Path(os.getenv(HOME_DIR)).expanduser()  # type: ignore
 
-    
     path = os.getenv("XDG_DATA_HOME", Path.home() / ".local/share")
     path = Path(path) / "kutils"
 
     return path
 
+
 def bin_dir(version: Optional[str] = None) -> Path:
     if os.getenv(HOME_DIR):
-        return Path(os.getenv(HOME_DIR), "bin").expanduser() # type: ignore
+        return Path(os.getenv(HOME_DIR), "bin").expanduser()  # type: ignore
 
     user_base = site.getuserbase()
 
     bin_dir = os.path.join(user_base, "bin")
 
     return Path(bin_dir)
+
 
 def check_os():
     if not (sys.platform == "linux" or sys.platform == "linux2"):
@@ -276,6 +271,7 @@ def check_os():
     else:
         return True
 
+
 def check_python():
     major, minor = sys.version_info[0:2]
     if major == 3 and minor > 6:
@@ -283,6 +279,7 @@ def check_python():
     else:
         print("Please run script with Python version 3.7 or greater")
         print(f"Current python version: {sys.version}")
+
 
 def install(version: str, specification: str, data_dir: Path, bin_dir: Path):
     """
@@ -298,11 +295,13 @@ def install(version: str, specification: str, data_dir: Path, bin_dir: Path):
 
     return 0
 
+
 def make_env(data_dir: Path) -> Path:
     print("Making virtual env")
     env_path = data_dir / "venv"
     EnvBuilder(with_pip=True, clear=True).create(str(env_path))
     return env_path
+
 
 def install_library(specification: str, env_path: Path) -> None:
     print("Installing")
@@ -324,15 +323,12 @@ def make_bin(bin_dir: Path, data_dir: Path) -> None:
         if bin_dir.joinpath(script).is_symlink():
             bin_dir.joinpath(script).unlink()
 
-        bin_dir.joinpath(script).symlink_to(
-            data_dir.joinpath(target_script)
-        )
+        bin_dir.joinpath(script).symlink_to(data_dir.joinpath(target_script))
+
 
 def uninstall(data_dir: Path, bin_dir: Path) -> int:
     if not data_dir.exists():
-        print(
-            f"{NAME} is not currently installed."
-        )
+        print(f"{NAME} is not currently installed.")
         return 1
     print(f"Removing {NAME}")
 
@@ -343,7 +339,10 @@ def uninstall(data_dir: Path, bin_dir: Path) -> int:
 
     return 0
 
-def get_version(requested_version: Optional[str], preview: bool, force: bool, data_dir: Path):
+
+def get_version(
+    requested_version: Optional[str], preview: bool, force: bool, data_dir: Path
+):
     current_version = None
     if data_dir.joinpath("VERSION").exists():
         current_version = data_dir.joinpath("VERSION").read_text().strip()
@@ -352,7 +351,7 @@ def get_version(requested_version: Optional[str], preview: bool, force: bool, da
 
     metadata = json.loads(get(METADATA_URL).decode())
 
-    def _compare_versions(x:str, y:str):
+    def _compare_versions(x: str, y: str):
         mx = VERSION_REGEX.match(x)
         my = VERSION_REGEX.match(y)
 
@@ -370,14 +369,10 @@ def get_version(requested_version: Optional[str], preview: bool, force: bool, da
             raise Exception("Could not match version information")
 
     print("")
-    releases = sorted(
-        metadata["releases"].keys(), key=ft.cmp_to_key(_compare_versions)
-    )
+    releases = sorted(metadata["releases"].keys(), key=ft.cmp_to_key(_compare_versions))
 
     if requested_version and requested_version not in releases:
-        print(
-            colorize("error", f"Version {requested_version} does not exist.")
-        )
+        print(colorize("error", f"Version {requested_version} does not exist."))
 
         return None
 
@@ -402,6 +397,7 @@ def get_version(requested_version: Optional[str], preview: bool, force: bool, da
         return None
 
     return cast(str, version)
+
 
 def main():
     if not check_os() or not check_python():
@@ -459,8 +455,6 @@ def main():
 
     args = parser.parse_args()
 
-    
-
     if args.uninstall or string_to_bool(os.getenv("KSLURM_UNINSTALL", "0")):
         return uninstall(data_dir(), bin_dir())
 
@@ -475,20 +469,18 @@ def main():
         if version:
             specification = f"kslurm=={version}"
 
-    
     if version is None:
         return 0
 
     display_pre_message(bin_dir())
     try:
-        install(version, specification, data_dir(), bin_dir()) # type: ignore
+        install(version, specification, data_dir(), bin_dir())  # type: ignore
     except subprocess.CalledProcessError as e:
-        print(
-            f"\nAn error has occurred: {e}\n{e.stderr}"
-        )
+        print(f"\nAn error has occurred: {e}\n{e.stderr}")
         return e.returncode
     display_post_message(bin_dir())
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

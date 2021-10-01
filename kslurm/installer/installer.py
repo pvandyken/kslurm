@@ -21,9 +21,14 @@ def install(args: List[str], name: str, home_dir: str, entrypoints: List[str] = 
     version = get_version(parsed.version.value, False, METADATA_URL)
     if version is None:
         return 1
-    if FlexVersion.parse(version) == get_current_version(data):
-        print(f"Already up to date! (v{version})")
-        return 0
+    try:
+        if FlexVersion.parse(version) == get_current_version(data):
+            print(f"Already up to date! (v{version})")
+            return 0
+    except ValueError:
+        # Can't compare versions, so we update
+        pass
+
     specification = f"{name}=={version}"
 
     return run_installation(version, specification, data, bin, True, entrypoints)

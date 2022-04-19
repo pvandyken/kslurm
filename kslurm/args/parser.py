@@ -126,30 +126,17 @@ def _group_arg(
     except StopIteration:
         return filter(None, updated_args)
 
-    if group_size:
-        assert isinstance(last_arg, KeywordArg)
+    if (
+        group_size
+        and isinstance(last_arg, KeywordArg)
+        and (isinstance(arg, PositionalArg) or not last_arg.lazy)
+    ):
         new_arg = kcast(last_arg.add_values(it.chain(last_arg.values, [arg.raw_value])))
         new_group_size = group_size - 1
         updated_args = grouped_args
 
-    elif all(
-        [
-            isinstance(last_arg, KeywordArg),
-            _get_keyword_group_size(kcast(last_arg)) == 0,
-            isinstance(arg, PositionalArg),
-        ]
-    ):
-        # all() is not propagating the fact that last_arg is a keyword, so we assert it
-        # here.
-        assert isinstance(last_arg, KeywordArg)
-        new_arg = kcast(last_arg.add_values(it.chain(last_arg.values, [arg.raw_value])))
-        new_group_size = group_size
-        updated_args = grouped_args
-
     elif isinstance(arg, PositionalArg):
-        new_arg = _process_positional(
-            cast(PositionalArg[Any], arg), positional_models, tail_model
-        )
+        new_arg = _process_positional(arg, positional_models, tail_model)
         new_group_size = _get_keyword_group_size(new_arg)
 
     else:

@@ -2,10 +2,42 @@ from __future__ import absolute_import
 
 import re
 from test.args.models import formatters
+from test.args.models.common import ModelTest, update_model
+from typing import Any, List
 
 import attr
 
 from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
+
+
+def get_tests(model: object) -> List[List[List[Any]]]:
+    return [
+        [
+            [
+                "template",
+                "parcour",
+                "positional",
+                "2",
+                "positional2",
+                "positional3",
+            ]
+        ],
+        [
+            update_model(
+                model,
+                [
+                    "03:00",
+                    None,
+                    "2",
+                    [True, ["parcour"]],
+                    "positional",
+                    "positional2",
+                    "positional3",
+                    [None, []],
+                ],
+            ),
+        ],
+    ]
 
 
 @attr.s(auto_attribs=True)
@@ -32,3 +64,8 @@ class PositionalAndShapeModel:
     positional3: PositionalArg[str] = PositionalArg(id="positional3", value="pos3")
 
     tail: TailArg = TailArg()
+
+
+pos_and_shape = ModelTest(
+    PositionalAndShapeModel(), *get_tests(PositionalAndShapeModel())
+)

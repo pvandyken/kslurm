@@ -6,7 +6,7 @@ from typing import Union
 from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
 
 
-def time(time: str):
+def time_format(time: str):
     if "-" in time:
         days, hhmm = time.split("-")
         hours, min = hhmm.split(":")
@@ -20,7 +20,7 @@ class Templates:
     time: ShapeArg[str] = ShapeArg(
         id="random",
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
-        format=time,
+        format=time_format,
         value="03:00",
     )
 

@@ -6,3 +6,4 @@ __pycache__
 .venv
 .hypothesis
 dist/
+.python-version

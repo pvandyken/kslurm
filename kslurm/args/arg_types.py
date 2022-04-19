@@ -225,6 +225,7 @@ class KeywordArg(FlagArg, Generic[S]):
         values: List[str] = [],
         help: str = "",
         values_name: str = "",
+        lazy: bool = False,
     ):
         super().__init__(id=id, match=match, help=help, value=value)
         self.num = num
@@ -232,6 +233,7 @@ class KeywordArg(FlagArg, Generic[S]):
         self.values = values
         self.values_name = values_name
         self.validation_err: Optional[ValidationError] = None
+        self.lazy = lazy
 
     @property
     def values(self) -> List[str]:

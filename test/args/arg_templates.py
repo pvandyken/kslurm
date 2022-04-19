@@ -35,15 +35,25 @@ class Templates:
     )
 
     length_5_keyword: KeywordArg[str] = KeywordArg[str](
-        id="length_5_keyword", match=["--length_5_keyword"], num=5, value=False
+        id="length_5_keyword",
+        match=["--length_5_keyword"],
+        num=5,
+        value=False,
     )
 
     lazy_inf_keyword: KeywordArg[str] = KeywordArg[str](
-        id="lazy_inf_keyword", match=["lazy_inf_keyword"], num=0, value=False
+        id="lazy_inf_keyword",
+        match=["lazy_inf_keyword"],
+        num=-1,
+        value=False,
+        lazy=True,
     )
 
     greedy_inf_keyword: KeywordArg[Union[str, bool]] = KeywordArg[Union[str, bool]](
-        id="greedy_inf_keyword", match=["greedy_inf_keyword"], num=-1, value=False
+        id="greedy_inf_keyword",
+        match=["greedy_inf_keyword"],
+        num=-1,
+        value=False,
     )
 
     positional: PositionalArg[str] = PositionalArg(id="positional", value="pos1")

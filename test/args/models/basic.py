@@ -133,7 +133,10 @@ class AttrModel:
     )
 
     length_5_keyword: KeywordArg[str] = KeywordArg(
-        id="length_5_keyword", match=["--length_5_keyword"], num=5, value=False
+        id="length_5_keyword",
+        match=["--length_5_keyword"],
+        num=5,
+        value=False,
     )
 
     tail: TailArg = TailArg()
@@ -163,7 +166,10 @@ typed_dict_model = TypedDictModel(
         id="junk", match=["-j", "--job-template"], num=1, value=False
     ),
     length_5_keyword=KeywordArg[str](
-        id="length_5_keyword", match=["--length_5_keyword"], num=5, value=False
+        id="length_5_keyword",
+        match=["--length_5_keyword"],
+        num=5,
+        value=False,
     ),
     tail=TailArg(),
 )

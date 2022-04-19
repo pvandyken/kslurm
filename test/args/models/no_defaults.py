@@ -66,7 +66,10 @@ class AttrModel:
     )
 
     length_5_keyword: KeywordArg[str] = KeywordArg(
-        id="length_5_keyword", match=["--length_5_keyword"], num=5, value=None
+        id="length_5_keyword",
+        match=["--length_5_keyword"],
+        num=5,
+        value=None,
     )
 
     tail: TailArg = TailArg()
@@ -91,7 +94,10 @@ typed_dict_model = TypedDictModel(
     gpu=FlagArg(match=["gpu"]),
     number=ShapeArg(match=lambda arg: bool(re.match(r"^[0-9]+$", arg))),
     length_5_keyword=KeywordArg[str](
-        id="length_5_keyword", match=["--length_5_keyword"], num=5, value=None
+        id="length_5_keyword",
+        match=["--length_5_keyword"],
+        num=5,
+        value=None,
     ),
     tail=TailArg(),
 )

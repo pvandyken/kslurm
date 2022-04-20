@@ -38,7 +38,7 @@ def kslurm(args: KslurmModel) -> None:
     if command == "update":
         install(tail.values, NAME, HOME_DIR, ENTRYPOINTS)
     if command == "config":
-        config(tail.values)
+        config([name, *tail.values])
 
 
 if __name__ == "__main__":

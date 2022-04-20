@@ -1,63 +1,6 @@
-[tool.poetry]
-name = "kslurm"
-version = "0.2.4"
-description = "Helper scripts and wrappers for running commands on SLURM compute clusters."
-license = "MIT"
-readme = "README.md"
-authors = ["Peter Van Dyken <pvandyk2@uwo.ca>"]
-repository = "https://github.com/pvandyken/kslurm"
-keywords = ["slurm", "compute cluster"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Topic :: Utilities",
-    "Typing :: Typed"
-]
-packages = [
-    { include = "kslurm" }
-]
-
-[tool.poetry.dependencies]
-python = ">=3.7,<4.0"
-attrs = "^21.2.0"
-colorama = "^0.4.4"
-typing-extensions = ">=3.10"
-rich = "^12.2.0"
-tabulate = "^0.8.9"
-semver = "^2.13.0"
-appdirs = "^1.4.4"
-
-[tool.poetry.dev-dependencies]
-black = "^22.3.0"
-pytest = "^7.1.1"
-tox = "^3.24.3"
-coverage = "^6.3"
-tox-poetry-installer = {extras = ["poetry"], version = "^0.8.1"}
-hypothesis = "^6.20.0"
-isort = "^5.9.3"
-flake8 = "^4.0.1"
-mkinit = "^0.3.3"
-poethepoet = "^0.13.0"
-pyfakefs = "^4.5.1"
-pytest-mock = "^3.6.1"
-pre-commit = "^2.15.0"
-
-[tool.poetry.scripts]
-kbatch = 'kslurm.submission.kbatch:kbatch'
-krun = 'kslurm.submission.krun:krun'
-kjupyter = 'kslurm.submission.kjupyter:kjuptyer'
-kslurm = 'kslurm.cli.main:kslurm'
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [tool.isort]
 profile = "black"
@@ -72,6 +15,9 @@ venv = ".venv"
 
 [tool.black]
 extend-exclude = ["typings/.*$"]
+
+[tool.poe.executor]
+type = "simple"
 
 [tool.poe.tasks]
 setup = "pre-commit install"
@@ -92,13 +38,7 @@ python =
     3.9: py39
 
 [testenv]
-require_locked_deps = true
-locked_deps =
-    pytest
-    coverage
-    hypothesis
-    pyfakefs
-    pytest-mock
+deps=.[test]
 commands =
     pytest
 """

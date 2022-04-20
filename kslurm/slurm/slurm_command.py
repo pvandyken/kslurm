@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import sys
 from typing import List, Union
 
 import kslurm.appconfig as appconfig
@@ -56,7 +57,7 @@ class SlurmCommand:
                     "config. A default account can be added to config by running "
                     "kslurm config account <account_name>"
                 )
-                exit(1)
+                sys.exit(1)
         else:
             self.account = str(args.account)
         self.cwd = args.directory

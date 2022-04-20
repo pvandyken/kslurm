@@ -11,7 +11,15 @@ from kslurm.submission import kbatch
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
     with mock.patch("subprocess.run") as subprocess:
 
-        kbatch("kbatch", ["-t", "command"])
+        kbatch(
+            [
+                "kbatch",
+                "-t",
+                "--account",
+                "ctb-akhanf",
+                "command",
+            ]
+        )
 
         out = capsys.readouterr()
         print(out)
@@ -29,8 +37,8 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
         starting_cwd = Path.cwd()
 
         kbatch(
-            "kbatch",
             [
+                "kbatch",
                 "1-33:11",
                 "5G",
                 "gpu",

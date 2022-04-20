@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 from typing import List, Union
 
+import kslurm.appconfig as appconfig
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
 from kslurm.args import ShapeArg
@@ -47,7 +48,17 @@ class SlurmCommand:
 
         self.gpu = bool(args.gpu.value)
         self.x11 = bool(args.x11.value)
-        self.account = args.account
+        if not args.account.values:
+            self.account = appconfig.get_config("account")
+            if not self.account:
+                print(
+                    "Account must either be specified using --account, or provided in "
+                    "config. A default account can be added to config by running "
+                    "kslurm config account <account_name>"
+                )
+                exit(1)
+        else:
+            self.account = str(args.account)
         self.cwd = args.directory
         self.test = bool(args.test.value)
         self.job_template = args.job_template

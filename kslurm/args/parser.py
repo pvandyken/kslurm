@@ -71,7 +71,7 @@ def _parse_args(args: Iterable[str], models: T, script_name: str, docstring: str
     )
 
     if show_help:
-        print_help(script_name, updated, docstring)
+        print_help(script_name, models, docstring)
         exit(0)
 
     sorted_args = ArgSorter(helpers.get_arg_list(updated))

@@ -42,3 +42,13 @@ def update_model(arg_updates: Iterable[Arg[Any]], model: T) -> T:
         return cast(T, {**model, **update})
     else:
         raise Exception(f"{type(model)} is not a supported object for arg models")
+
+
+def get_help(model: Any) -> bool:
+    if attr.has(model):
+        help = getattr(model, "help", None)
+        return getattr(help, "value", False)
+    if isinstance(model, dict):
+        help: Any = model.get("help", None)  # type: ignore
+        return getattr(help, "value", False)
+    raise Exception(f"{type(model)} is not a supported type for arg models")

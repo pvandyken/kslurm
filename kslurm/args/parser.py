@@ -15,7 +15,8 @@ from typing import (
 
 import kslurm.args.helpers as helpers
 from kslurm.args.arg_sorter import ArgSorter
-from kslurm.args.arg_types import Arg, KeywordArg, PositionalArg, TailArg
+from kslurm.args.arg_types import Arg, FlagArg, KeywordArg, PositionalArg, TailArg
+from kslurm.args.help import print_help
 from kslurm.exceptions import (
     CommandLineError,
     CommandLineErrorGroup,
@@ -27,9 +28,15 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 
-def parse_args(args: Iterable[str], models: T, escalate_errors: bool = False) -> T:
+def parse_args(
+    args: Iterable[str],
+    models: T,
+    escalate_errors: bool = False,
+    script_name: str = "",
+    docstring: str = "",
+) -> T:
     try:
-        return _parse_args(args, models)
+        return _parse_args(args, models, script_name, docstring)
     except CommandLineError as err:
         print(err.msg)
         if isinstance(err, CommandLineErrorGroup):
@@ -40,8 +47,9 @@ def parse_args(args: Iterable[str], models: T, escalate_errors: bool = False) ->
             exit()
 
 
-def _parse_args(args: Iterable[str], models: T) -> T:
+def _parse_args(args: Iterable[str], models: T, script_name: str, docstring: str) -> T:
     model_list = helpers.get_arg_list(models)
+    model_list.append(FlagArg(id="help", match=["--help", "-h"]))
 
     sorted_models = ArgSorter(model_list)
 
@@ -52,7 +60,19 @@ def _parse_args(args: Iterable[str], models: T) -> T:
         _group_args(labelled, sorted_models.static_args, sorted_models.tail)
     )
 
-    updated = helpers.update_model(grouped_args, models)
+    show_help = False
+    for arg in grouped_args:
+        if arg.id == "help":
+            show_help = arg.value
+            break
+
+    updated = helpers.update_model(
+        filter(lambda arg: arg.id != "help", grouped_args), models
+    )
+
+    if show_help:
+        print_help(script_name, updated, docstring)
+        exit(0)
 
     sorted_args = ArgSorter(helpers.get_arg_list(updated))
 

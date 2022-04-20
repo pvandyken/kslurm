@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
 import subprocess
-import sys
-from typing import List
+from typing import Union
 
 import kslurm.text as txt
-from kslurm.args import print_help
+from kslurm.args.command import command
+from kslurm.exceptions import TemplateError
 from kslurm.models import SlurmModel
 from kslurm.slurm import SlurmCommand
 
 
-def krun(script: str, args: List[str]):
+@command
+def krun(args: Union[SlurmModel, TemplateError]):
     """Start an interactive session
 
     If no command is provided, an interactive session will begin. The server name
@@ -32,10 +33,7 @@ def krun(script: str, args: List[str]):
         '$SLURM_TMPDIR'
         '$(hostname)'
     """
-    slurm = SlurmCommand(args, SlurmModel())
-    if slurm.help:
-        print_help(script, SlurmModel(), krun.__doc__)  # type: ignore
-        exit()
+    slurm = SlurmCommand(args)
     if slurm.command:
         print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
     else:
@@ -43,7 +41,3 @@ def krun(script: str, args: List[str]):
 
     if not slurm.test:
         subprocess.run(slurm.run, shell=True)
-
-
-def main():
-    krun(sys.argv[0], sys.argv[1:])

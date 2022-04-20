@@ -6,7 +6,6 @@ from kslurm.cli.main import (
     HOME_DIR,
     NAME,
     kslurm,
-    main,
 )
 
-__all__ = ["ENTRYPOINTS", "HOME_DIR", "NAME", "config", "kslurm", "main"]
+__all__ = ["ENTRYPOINTS", "HOME_DIR", "NAME", "config", "kslurm"]

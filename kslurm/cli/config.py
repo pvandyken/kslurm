@@ -1,19 +1,26 @@
 from __future__ import absolute_import
 
-from typing import List
+import attr
 
 import kslurm.appconfig as appconfig
-from kslurm import print_help
-from kslurm.args.parser import parse_args
-from kslurm.models.config import ConfigModel
+from kslurm.args.arg_types import FlagArg, PositionalArg
+from kslurm.args.command import command
 
 
-def config(args: List[str]):
-    parsed = parse_args(args, ConfigModel())
-    if parsed.help.value:
-        print_help("kslurm config", ConfigModel())
+@attr.frozen
+class ConfigModel:
+    entry: PositionalArg[str] = PositionalArg(help="Configuration value to update")
+    value: PositionalArg[str] = PositionalArg(
+        value="",
+        help="Updated value for config entry. If not provided, the current config "
+        "value is printed",
+    )
+    help: FlagArg = FlagArg(match=["-h", "--help"], help="Show this help message")
 
-    if not parsed.value.value:
-        print(appconfig.get_config(parsed.entry.value))
+
+@command
+def config(args: ConfigModel):
+    if not args.value.value:
+        print(appconfig.get_config(args.entry.value))
     else:
-        appconfig.set_config(parsed.entry.value, parsed.value.value)
+        appconfig.set_config(args.entry.value, args.value.value)

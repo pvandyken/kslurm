@@ -1,40 +1,35 @@
 from __future__ import absolute_import
 
 import os
-from typing import Generic, List, TypeVar
+from typing import List, Union
 
-import kslurm.args as arglib
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
 from kslurm.args import ShapeArg
 from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.models import SlurmModel
 
-T = TypeVar("T", bound=SlurmModel)
 
-
-class SlurmCommand(Generic[T]):
-    def __init__(self, args: List[str], model: T):
+class SlurmCommand:
+    def __init__(self, args: Union[SlurmModel, TemplateError]):
         self._name = ""
         self._output = ""
 
-        try:
-            parsed = arglib.parse_args(args, model)
-        except TemplateError as err:
-            print(err.msg)
+        if isinstance(args, TemplateError):
+            print(args.msg)
             print("Choose from the following list of templates:\n")
             templates.list_templates()
             exit()
 
-        if parsed.list_job_templates.value and not parsed.help.value:
+        if args.list_job_templates.value and not args.help.value:
             templates.list_templates()
             exit()
 
         # set_template returns templated values only if a template is passed
         # if we pass a blank string, the models are returned unchanged
-        template = parsed.job_template.values[0] if parsed.job_template.value else ""
+        template = args.job_template.values[0] if args.job_template.value else ""
         template_vals = templates.set_template(
-            template, mem=model.mem, cpu=model.cpu, time=model.time
+            template, mem=args.mem, cpu=args.cpu, time=args.time
         )
 
         # Start by setting these three with model/template
@@ -43,27 +38,27 @@ class SlurmCommand(Generic[T]):
         self.mem = template_vals.mem
 
         # Then update if values were specifically supplied on the command line
-        if parsed.time.updated:
-            self.time = parsed.time
-        if parsed.cpu.updated:
-            self.cpu = parsed.cpu
-        if parsed.mem.updated:
-            self.mem = parsed.mem
+        if args.time.updated:
+            self.time = args.time
+        if args.cpu.updated:
+            self.cpu = args.cpu
+        if args.mem.updated:
+            self.mem = args.mem
 
-        self.gpu = bool(parsed.gpu.value)
-        self.x11 = bool(parsed.x11.value)
-        self.account = parsed.account
-        self.cwd = parsed.directory
-        self.test = bool(parsed.test.value)
-        self.job_template = parsed.job_template
-        self._command = parsed.tail.values
-        self.help = bool(parsed.help.value)
+        self.gpu = bool(args.gpu.value)
+        self.x11 = bool(args.x11.value)
+        self.account = args.account
+        self.cwd = args.directory
+        self.test = bool(args.test.value)
+        self.job_template = args.job_template
+        self._command = args.tail.values
+        self.help = bool(args.help.value)
 
         os.chdir(self.cwd.value)  # type: ignore
 
         self.script = [self.command]
 
-        self.args = parsed
+        self.args = args
 
     ###
     # Job Paramaters

@@ -4,16 +4,18 @@ import re
 import signal
 import subprocess
 import sys
-from typing import List
+from typing import Union
 
 import kslurm.text as txt
-from kslurm.args import print_help
+from kslurm.args.command import command
+from kslurm.exceptions import TemplateError
 from kslurm.models import SlurmModel
 from kslurm.slurm import SlurmCommand
 from kslurm.style.console import console
 
 
-def kjupyter(script: str, args: List[str]):
+@command
+def kjupyter(args: Union[SlurmModel, TemplateError]):
     """Start a Jupyter session
 
     Begins a Jupyter session on an interactive node. By default, it requests 3hr. No
@@ -23,10 +25,7 @@ def kjupyter(script: str, args: List[str]):
     For the command to work, a virtualenv containing jupyter-lab should already be
     activated. Use `pip install jupyter-lab`
     """
-    slurm = SlurmCommand(args, SlurmModel())
-    if slurm.help:
-        print_help(script, SlurmModel(), kjupyter.__doc__)  # type: ignore
-        exit()
+    slurm = SlurmCommand(args)
 
     slurm.command = ["jupyter-lab", "--ip", "$(hostname -f)", "--no-browser"]
     print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
@@ -88,9 +87,5 @@ def kjupyter(script: str, args: List[str]):
                     print(line)
 
 
-def main():
-    kjupyter(sys.argv[0], sys.argv[1:])
-
-
 if __name__ == "__main__":
-    main()
+    kjupyter()

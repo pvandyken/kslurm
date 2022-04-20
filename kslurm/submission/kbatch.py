@@ -1,18 +1,19 @@
 from __future__ import absolute_import
 
 import subprocess
-import sys
-from typing import List
+from typing import Union
 
 from colorama import Fore
 
 import kslurm.text as txt
-from kslurm.args import print_help
+from kslurm.args.command import command
+from kslurm.exceptions import TemplateError
 from kslurm.models import SlurmModel
 from kslurm.slurm import SlurmCommand
 
 
-def kbatch(script: str, args: List[str]):
+@command
+def kbatch(args: Union[SlurmModel, TemplateError]):
     """Submit a job using sbatch
 
     Supports scripts (e.g. ./script.sh) or direct commands (e.g. cp dir/file.txt dir2)
@@ -26,10 +27,7 @@ def kbatch(script: str, args: List[str]):
         '$(hostname)'
     """
 
-    slurm = SlurmCommand(args, SlurmModel())
-    if slurm.help:
-        print_help(script, SlurmModel(), kbatch.__doc__)  # type: ignore
-        exit()
+    slurm = SlurmCommand(args)
     command = slurm.command if slurm.command else f"{Fore.RED}Must provide a command"
 
     print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
@@ -42,7 +40,6 @@ def kbatch(script: str, args: List[str]):
 
         if proc.returncode != 0:
             print(Fore.WHITE + out)
-            return proc.returncode
         if slurm.test:
             # output will be the issued command, so we print it
             print(Fore.WHITE + out)
@@ -60,5 +57,5 @@ def kbatch(script: str, args: List[str]):
             )
 
 
-def main():
-    kbatch(sys.argv[0], sys.argv[1:])
+if __name__ == "__main__":
+    kbatch()

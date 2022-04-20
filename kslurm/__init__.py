@@ -1,4 +1,4 @@
-__submodules__ = ["args", "installer", "models", "slurm", "submission", "kslurm"]
+__submodules__ = ["args", "installer", "models", "slurm", "submission"]
 
 __ignore__ = ["main"]
 
@@ -45,24 +45,15 @@ from kslurm.submission import (
     kjupyter,
     krun,
 )
-from kslurm.kslurm import (
-    ENTRYPOINTS,
-    HOME_DIR,
-    NAME,
-    kslurm,
-)
 
 __all__ = [
     "Arg",
     "ArgSorter",
     "ChoiceArg",
-    "ENTRYPOINTS",
     "FlagArg",
-    "HOME_DIR",
     "KeywordArg",
     "KslurmModel",
     "METADATA_URL",
-    "NAME",
     "PositionalArg",
     "ShapeArg",
     "SlurmCommand",
@@ -79,7 +70,6 @@ __all__ = [
     "kbatch",
     "kjupyter",
     "krun",
-    "kslurm",
     "list_templates",
     "mem",
     "parse_args",

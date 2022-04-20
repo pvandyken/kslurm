@@ -4,6 +4,7 @@ import sys
 from typing import List
 
 from kslurm.args import parse_args
+from kslurm.cli.config import config
 from kslurm.installer import install
 from kslurm.models import KslurmModel
 from kslurm.submission import kbatch, kjupyter, krun
@@ -25,6 +26,8 @@ def kslurm(script: str, args: List[str]) -> None:
         kjupyter(command, tail.values)
     if command == "update":
         install(tail.values, NAME, HOME_DIR, ENTRYPOINTS)
+    if command == "config":
+        config(tail.values)
 
 
 def main():

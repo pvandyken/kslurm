@@ -32,6 +32,7 @@ typing-extensions = "^3.10"
 rich = "^10.9.0"
 tabulate = "^0.8.9"
 semver = "^2.13.0"
+appdirs = "^1.4.4"
 
 [tool.poetry.dev-dependencies]
 black = "^21.8b0"
@@ -52,7 +53,7 @@ pre-commit = "^2.15.0"
 kbatch = 'kslurm.submission.kbatch:main'
 krun = 'kslurm.submission.krun:main'
 kjupyter = 'kslurm.submission.kjupyter:main'
-kslurm = 'kslurm.kslurm:main'
+kslurm = 'kslurm.cli.main:main'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,6 +1,5 @@
 __submodules__ = [
     "formatters",
-    "kslurm",
     "slurm",
     "update",
     "validators",
@@ -11,9 +10,6 @@ __submodules__ = [
 from kslurm.models.formatters import (
     mem,
     time,
-)
-from kslurm.models.kslurm import (
-    KslurmModel,
 )
 from kslurm.models.slurm import (
     SlurmModel,
@@ -34,7 +30,6 @@ from kslurm.models.job_templates import (
 )
 
 __all__ = [
-    "KslurmModel",
     "SlurmModel",
     "TemplateArgs",
     "Templates",

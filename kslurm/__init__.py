@@ -22,7 +22,6 @@ from kslurm.installer import (
     run_installation,
 )
 from kslurm.models import (
-    KslurmModel,
     SlurmModel,
     TemplateArgs,
     Templates,
@@ -52,7 +51,6 @@ __all__ = [
     "ChoiceArg",
     "FlagArg",
     "KeywordArg",
-    "KslurmModel",
     "METADATA_URL",
     "PositionalArg",
     "ShapeArg",

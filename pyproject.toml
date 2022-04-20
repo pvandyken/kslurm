@@ -50,10 +50,10 @@ pytest-mock = "^3.6.1"
 pre-commit = "^2.15.0"
 
 [tool.poetry.scripts]
-kbatch = 'kslurm.submission.kbatch:main'
-krun = 'kslurm.submission.krun:main'
-kjupyter = 'kslurm.submission.kjupyter:main'
-kslurm = 'kslurm.cli.main:main'
+kbatch = 'kslurm.submission.kbatch:kbatch'
+krun = 'kslurm.submission.krun:krun'
+kjupyter = 'kslurm.submission.kjupyter:kjuptyer'
+kslurm = 'kslurm.cli.main:kslurm'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

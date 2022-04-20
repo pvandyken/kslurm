@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 import inspect
 import sys
-from typing import Any, Callable, List, Protocol
+from typing import Any, Callable, List
+
+from typing_extensions import Protocol
 
 from kslurm import parse_args
 from kslurm.exceptions import CommandLineError

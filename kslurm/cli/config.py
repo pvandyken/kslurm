@@ -21,6 +21,11 @@ class ConfigModel:
 @command
 def config(args: ConfigModel):
     if not args.value.value:
-        print(appconfig.get_config(args.entry.value))
+        value = appconfig.get_config(args.entry.value)
+        if value is None:
+            print("")
+        else:
+            print(value)
+
     else:
         appconfig.set_config(args.entry.value, args.value.value)

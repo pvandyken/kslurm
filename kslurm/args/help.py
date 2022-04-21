@@ -18,6 +18,7 @@ from .arg_types import (
     KeywordArg,
     PositionalArg,
     ShapeArg,
+    SubCommand,
     TailArg,
 )
 from .helpers import get_arg_list, group_by_type
@@ -48,6 +49,7 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
     keywords = cast(List[KeywordArg[Any]], grouped.get(KeywordArg, []))
     flags = cast(List[FlagArg], grouped.get(FlagArg, []))
     choices = cast(List[ChoiceArg[Any]], grouped.get(ChoiceArg, []))
+    subcommands = cast(List[SubCommand], grouped.get(SubCommand, []))
     tail = cast(List[TailArg], grouped.get(TailArg, []))
     positional_names = [arg.name for arg in positionals]
     script_name = Path(script).name
@@ -65,6 +67,7 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
     positional_section = _section("positional args", _positional_table(positionals))
     flag_section = _section("flag args", _flag_table(flags))
     choice_section = _section("choice args", _choice_table(choices))
+    subcommand_section = _section("subcommands", _choice_table(subcommands))
     sections = list(
         filter(
             None,
@@ -72,6 +75,7 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
                 "\n",
                 command_line_example,
                 script_help,
+                subcommand_section,
                 choice_section,
                 positional_section,
                 shape_section,
@@ -165,7 +169,10 @@ def _flag_table(args: List[FlagArg]):
         return ""
 
 
-def _choice_table(args: List[ChoiceArg[Any]]):
+S = TypeVar("S", bound=ChoiceArg[Any])
+
+
+def _choice_table(args: List[S]):
     if args:
         names = [Text(arg.name, style="bold") for arg in args]
         choices = [Text(", ".join(arg.match_list), style="bold") for arg in args]

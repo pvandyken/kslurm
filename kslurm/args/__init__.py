@@ -10,6 +10,7 @@ from kslurm.args.arg_types import (
     KeywordArg,
     PositionalArg,
     ShapeArg,
+    SubCommand,
     TailArg,
 )
 from kslurm.args.help import (
@@ -31,6 +32,7 @@ __all__ = [
     "KeywordArg",
     "PositionalArg",
     "ShapeArg",
+    "SubCommand",
     "TailArg",
     "group_by_type",
     "parse_args",

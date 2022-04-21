@@ -163,8 +163,9 @@ def _group_args(
         else:
             group_size = _get_keyword_group_size(arg)
             prev_arg = arg
-            if arg.terminal:
-                terminated = True
+
+        if prev_arg and prev_arg.terminal:
+            terminated = True
 
         next_update = it.chain(updated_args, [prev_arg])
 

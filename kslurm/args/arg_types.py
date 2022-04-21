@@ -2,13 +2,14 @@ from __future__ import absolute_import, annotations
 
 import abc
 import copy
-from typing import Callable, Generic, Iterable, List, Optional, TypeVar
+from typing import Callable, Dict, Generic, Iterable, List, Optional, TypeVar
 
 from colorama import Fore, Style
 
+from kslurm.args.types import WrappedCommand
 from kslurm.exceptions import MandatoryArgError, ValidationError
 
-T = TypeVar("T", contravariant=True)
+T = TypeVar("T")
 S = TypeVar("S")
 
 
@@ -122,7 +123,7 @@ class ChoiceArg(PositionalArg[T]):
         *,
         value: Optional[str] = None,
         match: List[str],
-        id: str = "positional",
+        id: str = "",
         format: Callable[[str], T] = str,
         help: str = "",
         name: str = "",
@@ -143,6 +144,26 @@ class ChoiceArg(PositionalArg[T]):
         )
 
         self.match_list = match
+
+
+class SubCommand(ChoiceArg[WrappedCommand]):
+    def __init__(
+        self,
+        *,
+        commands: Dict[str, WrappedCommand],
+        value: Optional[str] = None,
+        id: str = "",
+    ):
+        self.commands = commands
+        super().__init__(
+            value=value,
+            id=id,
+            format=lambda s: self.commands[s],
+            match=list(commands.keys()),
+            help="Run any command followed by -h for more inforamtion",
+            name="Command",
+        )
+        self.terminal = True
 
 
 class ShapeArg(Arg[T]):

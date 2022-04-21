@@ -4,15 +4,9 @@ import inspect
 import sys
 from typing import Any, Callable, List
 
-from typing_extensions import Protocol
-
-from kslurm import parse_args
+from kslurm.args.parser import parse_args
+from kslurm.args.types import WrappedCommand
 from kslurm.exceptions import CommandLineError
-
-
-class WrappedCommand(Protocol):
-    def __call__(self, argv: List[str] = ...) -> None:
-        ...
 
 
 def command(func: Callable[[Any], None]) -> WrappedCommand:

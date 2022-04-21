@@ -8,7 +8,7 @@ from colorama import Fore, Style
 
 from kslurm.exceptions import MandatoryArgError, ValidationError
 
-T = TypeVar("T")
+T = TypeVar("T", contravariant=True)
 S = TypeVar("S")
 
 
@@ -29,6 +29,7 @@ class Arg(abc.ABC, Generic[T]):
         self._format = format
         self.value = value
         self.help = help
+        self.terminal: bool = False
 
     @property
     def value(self):

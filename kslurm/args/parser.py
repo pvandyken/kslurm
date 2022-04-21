@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import itertools as it
 from typing import (
@@ -8,6 +8,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -118,68 +119,90 @@ def _group_args(
     positional_models: Iterable[PositionalArg[Any]],
     tail_model: Optional[TailArg],
 ) -> Iterable[Arg[Any]]:
-    return _group_arg(iter(args), 0, [], None, iter(positional_models), tail_model)
+
+    group_size: int = 0
+    prev_arg: Optional[Arg[Any]] = None
+    positional_iter: Iterator[PositionalArg[Any]] = iter(positional_models)
+    terminated = False
+
+    updated_args: Iterable[Optional[Arg[Any]]] = []
+    next_update = updated_args
+
+    kcast: Callable[[Any], KeywordArg[Any]] = lambda x: cast(KeywordArg[Any], x)
+    for arg in args:
+        # Pyright is stupid and adds Keyword[Unknown] as a type annotation following
+        # isinstance(_, KeywordArg). This messes up all the following code so we make a
+        # a new variable to bear the burden of the unnecessary annotation and avoid
+        # lots of casting
+        prev_kw = prev_arg
+        if (
+            group_size
+            and isinstance(prev_kw, KeywordArg)
+            and (isinstance(arg, PositionalArg) or not prev_kw.lazy)
+        ):
+            prev_arg = kcast(
+                prev_kw.add_values(it.chain(prev_kw.values, [arg.raw_value]))
+            )
+            group_size -= 1
+            next_update = it.chain(updated_args, [prev_arg])
+            continue
+
+        updated_args = next_update
+
+        if terminated:
+            prev_arg, tail_model = _process_tail(arg, tail_model, True)
+            group_size = _get_keyword_group_size(prev_arg)
+
+        elif isinstance(arg, PositionalArg):
+            new_arg, tail_model = _process_positional(arg, positional_iter, tail_model)
+            if new_arg is None:
+                new_arg = prev_arg
+            group_size = _get_keyword_group_size(new_arg)
+            prev_arg = new_arg
+
+        else:
+            group_size = _get_keyword_group_size(arg)
+            prev_arg = arg
+            if arg.terminal:
+                terminated = True
+
+        next_update = it.chain(updated_args, [prev_arg])
+
+    updated_args = next_update
+
+    return list(filter(None, updated_args))
 
 
-def _get_keyword_group_size(arg: Arg[Any]):
+def _get_keyword_group_size(arg: Optional[Arg[Any]]):
     if isinstance(arg, KeywordArg):
         return arg.num
     else:
         return 0
 
 
-def _group_arg(
-    input_args: Iterator[Arg[Any]],
-    group_size: int,
-    grouped_args: Iterable[Union[Arg[Any], None]],
-    last_arg: Optional[Arg[Any]],
-    positional_models: Iterator[PositionalArg[Any]],
-    tail_model: Optional[TailArg],
-) -> Iterable[Arg[Any]]:
-
-    kcast: Callable[[Any], KeywordArg[Any]] = lambda x: cast(KeywordArg[Any], x)
-
-    updated_args = it.chain(grouped_args, [last_arg])
-
-    try:
-        arg = next(input_args)
-    except StopIteration:
-        return filter(None, updated_args)
-
-    if (
-        group_size
-        and isinstance(last_arg, KeywordArg)
-        and (isinstance(arg, PositionalArg) or not last_arg.lazy)
-    ):
-        new_arg = kcast(last_arg.add_values(it.chain(last_arg.values, [arg.raw_value])))
-        new_group_size = group_size - 1
-        updated_args = grouped_args
-
-    elif isinstance(arg, PositionalArg):
-        new_arg = _process_positional(arg, positional_models, tail_model)
-        new_group_size = _get_keyword_group_size(new_arg)
-
-    else:
-        new_arg = arg
-        new_group_size = _get_keyword_group_size(new_arg)
-
-    return _group_arg(
-        input_args, new_group_size, updated_args, new_arg, positional_models, tail_model
-    )
-
-
 def _process_positional(
     arg: PositionalArg[Any],
     positional_models: Iterator[PositionalArg[Any]],
     tail_model: Optional[TailArg],
-) -> Union[PositionalArg[Any], TailArg]:
+    terminate: bool = True,
+) -> Tuple[Union[PositionalArg[Any], TailArg, None], Optional[TailArg]]:
     try:
         model = next(positional_models)
     except StopIteration:
-        if tail_model:
-            return tail_model.add_values([arg.raw_value])
-        else:
-            ret = TailArg().add_values([arg.raw_value])
-            ret.raise_exception = True
-            return ret
-    return model.set_value(arg.raw_value)
+        return _process_tail(arg, tail_model, terminate)
+    return model.set_value(arg.raw_value), tail_model
+
+
+def _process_tail(
+    arg: Arg[Any], tail_model: Optional[TailArg], terminate: bool = False
+):
+    if tail_model:
+        new_tail = tail_model.add_values([arg.raw_value])
+    else:
+        ret = TailArg().add_values([arg.raw_value])
+        ret.raise_exception = True
+        new_tail = ret
+
+    if terminate:
+        return new_tail, None
+    return None, new_tail

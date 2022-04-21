@@ -11,7 +11,7 @@ from kslurm.submission import kbatch, kjupyter, krun
 
 NAME = "kslurm"
 HOME_DIR = "KSLURM_HOME"
-ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm"]
+ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm", "kpy"]
 
 
 @attr.s(auto_attribs=True)

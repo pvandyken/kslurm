@@ -47,7 +47,7 @@ SHELL = os.getenv("SHELL", "")
 NAME = "kslurm"
 HOME_DIR = "KSLURM_HOME"
 
-ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm"]
+ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm", "kpy"]
 
 FOREGROUND_COLORS = {
     "black": 30,

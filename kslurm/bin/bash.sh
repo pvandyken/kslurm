@@ -1,3 +1,6 @@
+# This represents a fairly significant load time for shells. A clever way of caching would be ideal
+export KSLURM_LOGIN_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
+
 pip () {
   (
     [[ $1 == install || $1 == wheel || $1 == download ]] && installtype=1 || installtype=

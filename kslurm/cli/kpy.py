@@ -17,7 +17,7 @@ import attr
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
-from kslurm.args.arg_types import FlagArg, PositionalArg, ShapeArg, SubCommand, TailArg
+from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, SubCommand, TailArg
 from kslurm.args.command import command
 from kslurm.kpyindex import KpyIndex
 from kslurm.shell import Shell
@@ -45,10 +45,6 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     return candidate
 
 
-def _print_block(text: str):
-    print(textwrap.dedent(text))
-
-
 @command
 def _bash():
     """Echo script for inclusion in .bashrc
@@ -63,6 +59,7 @@ def _bash():
 @attr.frozen
 class _LoadModel:
     name: PositionalArg[str] = PositionalArg(value="")
+    new_name: KeywordArg[str] = KeywordArg(match=["--as"])
 
 
 @command
@@ -93,13 +90,14 @@ def _load(args: _LoadModel):
         print("Valid venvs:\n\t" + "\n\t".join(venvs))
         return
 
-    if name in index:
+    label = args.new_name.values[0] if args.new_name.values else name
+    if label in index:
         print(
-            f"An environment called '{name}' already exists. You can load '{name}' "
-            "under a new name using --as:\n"
-            f"\tkpy load {name} --as <name>\n"
-            f"You can also activate the existing '{name}' using\n"
-            f"\tkpy activate {name}"
+            f"An environment called '{label}' already exists. You can load '{name}' "
+            "under a different name using --as:\n"
+            f"\tkpy load {label} --as <name>\n"
+            f"You can also activate the existing '{label}' using\n"
+            f"\tkpy activate {label}"
         )
         return
 
@@ -110,7 +108,11 @@ def _load(args: _LoadModel):
 
     (slurm_tmpdir / "tmp").mkdir(parents=True, exist_ok=True)
     venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmpdir / "tmp"))
-    print(f"Unpacking venv {name}")
+    print(f"Unpacking venv '{name}'", end="")
+    if label != name:
+        print(f" as '{label}'")
+    else:
+        print()
     with tarfile.open(Path(venv_cache, name).with_suffix(".tar.gz"), "r") as tar:
         tar.extractall(venv_dir)
 
@@ -148,10 +150,10 @@ def _load(args: _LoadModel):
                 f.write("\n".join(subbed))
 
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
-    cfg.update({"prompt": name, "state_hash": get_hash(pip_freeze(venv_dir))})
+    cfg.update({"prompt": label, "state_hash": get_hash(pip_freeze(venv_dir))})
     cfg.write()
 
-    index[name] = str(venv_dir)
+    index[label] = str(venv_dir)
     index.write()
     shell = Shell.get()
     shell.activate(venv_dir)

@@ -1,9 +1,9 @@
 from __future__ import absolute_import, annotations
 
+import importlib.resources as impr
 import os
 import subprocess as sp
 from pathlib import Path
-import importlib.resources as impr
 
 from shellingham import ShellDetectionFailure, detect_shell  # type: ignore
 
@@ -64,7 +64,7 @@ class Shell:
 
         return cls._shell
 
-    def activate(self, env: Path) -> int | None:
+    def activate(self, env: Path):
         activate_script = self._get_activate_script()
         activate_path = env / "bin" / activate_script
 

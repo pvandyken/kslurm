@@ -3,6 +3,7 @@ export KSLURM_LOGIN_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
 
 pip () {
   (
+    [[ $1 == install || $1 == uninstall ]] && installing=1 || installing=
     [[ $1 == install || $1 == wheel || $1 == download ]] && installtype=1 || installtype=
     cmd=$1
     if [[ $KSLURM_LOGIN_NODES =~ $(hostname) && -n $installtype ]]; then
@@ -27,5 +28,8 @@ pip () {
     fi
     shift
     command pip $cmd $@
+    if [[ -n $installing ]]; then
+      for hook in "${KSLURM_POST_INSTALL_HOOKS[@]}"; do eval "$hook"; done
+    fi
   )
 }

@@ -2,3 +2,9 @@
 . $activate_path
 unset activate_path
 deactivate () { exit 0; }
+_pip_prompt_refresh () {
+    if command -v kpy &> /dev/null; then
+      kpy _refresh
+    fi;
+}
+KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_pip_prompt_refresh"

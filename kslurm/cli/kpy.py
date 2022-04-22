@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import hashlib
 import importlib.resources as impr
 import os
 import re
@@ -9,7 +10,7 @@ import tarfile
 import tempfile
 import venv
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import attr
 from virtualenv.create import pyenv_cfg  # type: ignore
@@ -18,6 +19,18 @@ from kslurm.appconfig import get_config
 from kslurm.args.arg_types import FlagArg, PositionalArg, ShapeArg, SubCommand, TailArg
 from kslurm.args.command import command
 from kslurm.shell import Shell
+
+
+def get_hash(item: Union[str, bytes]):
+    if isinstance(item, str):
+        item = item.encode()
+    return hashlib.md5(item).hexdigest()
+
+
+def pip_freeze(venv: Path):
+    return sp.run(
+        [venv / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
+    ).stdout
 
 
 @command
@@ -106,7 +119,7 @@ def _load(args: _LoadModel):
                 f.write("\n".join(subbed))
 
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(tmp)  # type: ignore
-    cfg.update({"prompt": name})
+    cfg.update({"prompt": name, "state_hash": get_hash(pip_freeze(tmp))})
     cfg.write()
 
     pyload_venv_dir.mkdir(parents=True, exist_ok=True)
@@ -148,8 +161,16 @@ def _save(args: _SaveModel):
             return
 
     _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
+
+    venv = Path(os.environ["VIRTUAL_ENV"])
+    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv)  # type: ignore
+    cfg.update({
+        "prompt": args.name.value,
+        "state_hash": get_hash(pip_freeze(venv)),
+    })
+    cfg.write()
     with tarfile.open(tmp, mode="w:gz") as tar:
-        tar.add(os.environ["VIRTUAL_ENV"], arcname="")
+        tar.add(venv, arcname="")
 
     if delete:
         os.remove(dest)
@@ -190,6 +211,26 @@ def _create(args: _CreateModel):
     shell.activate(Path(dir))
 
 
+@command
+def _refresh():
+    try:
+        dir = Path(os.environ["VIRTUAL_ENV"])
+        cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(dir)  # type: ignore
+        state_hash = cfg["state_hash"]
+    except KeyError:
+        return
+
+    try:
+        hsh = get_hash(pip_freeze(dir))
+        if hsh != state_hash and cfg["prompt"][0] != "*":
+            cfg["prompt"] = "*" + cfg["prompt"]
+        elif hsh == state_hash and cfg["prompt"][0] == "*":
+            cfg["prompt"] = cfg["prompt"][1:]
+        cfg.write()
+    except KeyError:
+        return
+
+
 @attr.frozen
 class KpyModel:
     command: SubCommand = SubCommand(
@@ -198,6 +239,7 @@ class KpyModel:
             "save": _save,
             "bash": _bash,
             "create": _create,
+            "_refresh": _refresh,
         },
     )
 

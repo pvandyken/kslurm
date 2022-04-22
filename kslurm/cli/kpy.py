@@ -8,6 +8,7 @@ import shutil
 import subprocess as sp
 import tarfile
 import tempfile
+import textwrap
 import venv
 from pathlib import Path
 from typing import Any, Union
@@ -18,6 +19,7 @@ from virtualenv.create import pyenv_cfg  # type: ignore
 from kslurm.appconfig import get_config
 from kslurm.args.arg_types import FlagArg, PositionalArg, ShapeArg, SubCommand, TailArg
 from kslurm.args.command import command
+from kslurm.kpyindex import KpyIndex
 from kslurm.shell import Shell
 
 
@@ -27,10 +29,24 @@ def get_hash(item: Union[str, bytes]):
     return hashlib.md5(item).hexdigest()
 
 
-def pip_freeze(venv: Path):
+def pip_freeze(venv_dir: Path):
     return sp.run(
-        [venv / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
+        [venv_dir / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
     ).stdout
+
+
+def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
+    if i == 0:
+        candidate = stem
+    else:
+        candidate = f"{stem}{i}"
+    if candidate in index:
+        return _get_unique_name(index, stem, i + 1)
+    return candidate
+
+
+def _print_block(text: str):
+    print(textwrap.dedent(text))
 
 
 @command
@@ -65,42 +81,55 @@ def _load(args: _LoadModel):
             "<directory>`, typically to a project-space or permanent storage directory"
         )
         return
+
+    index = KpyIndex(slurm_tmpdir)
+    name = args.name.value
+
     venv_cache = Path(pipdir, "venv_archives")
     venvs_re = [re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in venv_cache.iterdir()]
     venvs = [r.group(1) for r in venvs_re if r]
 
-    name = args.name.value
     if not name or name not in venvs:
         print("Valid venvs:\n\t" + "\n\t".join(venvs))
         return
 
-    pyload_venv_dir = slurm_tmpdir / "__virtual_environments__"
-    if (pyload_venv_dir / name).exists():
-        shell = Shell.get()
-        shell.activate(pyload_venv_dir / name)
+    if name in index:
+        print(
+            f"An environment called '{name}' already exists. You can load '{name}' "
+            "under a new name using --as:\n"
+            f"\tkpy load {name} --as <name>\n"
+            f"You can also activate the existing '{name}' using\n"
+            f"\tkpy activate {name}"
+        )
+        return
+
+    # pyload_venv_dir = slurm_tmpdir / "__virtual_environments__"
+    # if (pyload_venv_dir / name).exists():
+    #     shell = Shell.get()
+    #     shell.activate(pyload_venv_dir / name)
 
     (slurm_tmpdir / "tmp").mkdir(parents=True, exist_ok=True)
-    tmp = Path(tempfile.mkdtemp(prefix="kslurm-", dir=slurm_tmpdir / "tmp"))
+    venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmpdir / "tmp"))
     print(f"Unpacking venv {name}")
     with tarfile.open(Path(venv_cache, name).with_suffix(".tar.gz"), "r") as tar:
-        tar.extractall(tmp)
+        tar.extractall(venv_dir)
 
     print("Updating paths")
-    with (tmp / "bin" / "activate").open("r") as f:
+    with (venv_dir / "bin" / "activate").open("r") as f:
         lines = f.read().splitlines()
         # \x22 and \x27 are " and ' char
         subbed = [
             re.sub(
                 r"(?<=^VIRTUAL_ENV=([\x22\x27])).*(?=\1$)",
-                str(pyload_venv_dir / name),
+                str(venv_dir),
                 line,
             )
             for line in lines
         ]
-    with (tmp / "bin" / "activate").open("w") as f:
+    with (venv_dir / "bin" / "activate").open("w") as f:
         f.write("\n".join(subbed))
 
-    for root, _, files in os.walk(tmp / "bin"):
+    for root, _, files in os.walk(venv_dir / "bin"):
         for file in files:
             path = Path(root, file)
             if path.is_symlink() or not os.access(path, os.X_OK):
@@ -110,7 +139,7 @@ def _load(args: _LoadModel):
                 subbed = [
                     re.sub(
                         r"(?<=^#!)/.*$",
-                        str(pyload_venv_dir / name / "bin" / "python"),
+                        str(venv_dir / "bin" / "python"),
                         line,
                     )
                     for line in lines
@@ -118,14 +147,14 @@ def _load(args: _LoadModel):
             with path.open("w") as f:
                 f.write("\n".join(subbed))
 
-    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(tmp)  # type: ignore
-    cfg.update({"prompt": name, "state_hash": get_hash(pip_freeze(tmp))})
+    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
+    cfg.update({"prompt": name, "state_hash": get_hash(pip_freeze(venv_dir))})
     cfg.write()
 
-    pyload_venv_dir.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(tmp), pyload_venv_dir / name)
+    index[name] = str(venv_dir)
+    index.write()
     shell = Shell.get()
-    shell.activate(pyload_venv_dir / name)
+    shell.activate(venv_dir)
 
 
 @attr.frozen
@@ -162,18 +191,24 @@ def _save(args: _SaveModel):
 
     _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
 
-    venv = Path(os.environ["VIRTUAL_ENV"])
-    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv)  # type: ignore
-    cfg.update({
-        "prompt": args.name.value,
-        "state_hash": get_hash(pip_freeze(venv)),
-    })
+    venv_dir = Path(os.environ["VIRTUAL_ENV"])
+    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
+    cfg.update(
+        {
+            "prompt": args.name.value,
+            "state_hash": get_hash(pip_freeze(venv_dir)),
+        }
+    )
     cfg.write()
     with tarfile.open(tmp, mode="w:gz") as tar:
-        tar.add(venv, arcname="")
+        tar.add(venv_dir, arcname="")
 
     if delete:
         os.remove(dest)
+    if "SLURM_TMPDIR" in os.environ:
+        index = KpyIndex(Path(os.environ["SLURM_TMPDIR"]))
+        index[args.name.value] = str(venv_dir)
+        index.write()
     shutil.move(tmp, dest)
 
 
@@ -187,13 +222,6 @@ class _CreateModel:
 
 @command
 def _create(args: _CreateModel):
-    if os.environ.get("SLURM_TMPDIR"):
-        dir = tempfile.mkdtemp(
-            prefix="kslurm", dir=Path(os.environ["SLURM_TMPDIR"], "tmp")
-        )
-    else:
-        dir = tempfile.mkdtemp(prefix="kslurm-")
-
     if args.version.value:
         try:
             sp.run(["command", "-v", "module"]).check_returncode()
@@ -202,13 +230,34 @@ def _create(args: _CreateModel):
             return
         sp.run(["module", "load", f"python/{args.version.value}"])
 
-    name = args.name.value if args.name.value else "venv"
-    venv.create(dir, symlinks=True, with_pip=True, prompt=name)
+    slurm_tmp = os.environ.get("SLURM_TMPDIR")
+    if slurm_tmp:
+        index = KpyIndex(Path(slurm_tmp))
+        name = args.name.value if args.name.value else _get_unique_name(index, "venv")
+        if args.name.value in index:
+            print(
+                f"An environment called '{name}' already exists. You can activate "
+                f"the existing '{name}' using\n"
+                "\tkpy activate {name}"
+            )
+            return
+
+        venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=Path(slurm_tmp, "tmp"))
+    else:
+        index = None
+        name = args.name.value if args.name.value else "venv"
+        venv_dir = tempfile.mkdtemp(prefix="kslurm-")
+
+    venv.create(venv_dir, symlinks=True, with_pip=True, prompt=name)
     sp.run(
-        [os.path.join(dir, "bin", "python"), "-m", "pip", "install", "--upgrade", "pip"]
+        [os.path.join(venv_dir, "bin", "python"), "-m", "pip", "install", "--upgrade", "pip"]
     )
+    if index is not None:
+        index[name] = str(venv_dir)
+        index.write()
+
     shell = Shell.get()
-    shell.activate(Path(dir))
+    shell.activate(Path(venv_dir))
 
 
 @command

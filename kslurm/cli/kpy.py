@@ -3,19 +3,26 @@ from __future__ import absolute_import
 import importlib.resources as impr
 import os
 import re
+import shutil
 import tarfile
+import tempfile
 from pathlib import Path
 
 import attr
 
 from kslurm.appconfig import get_config
-from kslurm.args.arg_types import PositionalArg, SubCommand, TailArg
+from kslurm.args.arg_types import FlagArg, PositionalArg, SubCommand, TailArg
 from kslurm.args.command import command
 from kslurm.shell import Shell
 
 
 @command
 def _bash():
+    """Echo script for inclusion in .bashrc
+
+    e.g.
+        kpy bash >> $HOME/.bashrc
+    """
     with impr.path("kslurm.bin", "bash.sh") as path:
         print(f"\nsource {path.resolve()}")
 
@@ -100,11 +107,52 @@ def _load(args: _LoadModel):
 
 
 @attr.frozen
+class _SaveModel:
+    name: PositionalArg[str] = PositionalArg()
+    force: FlagArg = FlagArg(match=["--force", "-f"])
+
+
+@command
+def _save(args: _SaveModel):
+    if not os.environ.get("VIRTUAL_ENV"):
+        print(
+            "No active virtual env detected. Please activate one, or ensure "
+            "$VIRTUAL_ENV is being set correctly"
+        )
+    pipdir = get_config("pipdir")
+    if not pipdir:
+        print(
+            "pipdir not set. Please set pipdir using `kslurm config pipdir "
+            "<directory>`, typically to a project-space or permanent storage directory"
+        )
+        return
+
+    venv_cache = Path(pipdir, "venv_archives")
+    dest = (venv_cache / args.name.value).with_suffix(".tar.gz")
+
+    delete = False
+    if dest.exists():
+        if args.force.value:
+            delete = True
+        else:
+            print(f"{dest} already exists. Run with -f to force overwrite")
+            return
+
+    _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
+    with tarfile.open(tmp, mode="w:gz") as tar:
+        tar.add(os.environ["VIRTUAL_ENV"], arcname="")
+
+    if delete:
+        os.remove(dest)
+    shutil.move(tmp, dest)
+
+
+@attr.frozen
 class KpyModel:
     command: SubCommand = SubCommand(
         commands={
             "load": _load,
-            "save": _bash,
+            "save": _save,
             "bash": _bash,
         },
     )

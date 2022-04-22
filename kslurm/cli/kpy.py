@@ -9,8 +9,10 @@ import tarfile
 import tempfile
 import venv
 from pathlib import Path
+from typing import Any
 
 import attr
+from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
 from kslurm.args.arg_types import FlagArg, PositionalArg, ShapeArg, SubCommand, TailArg
@@ -102,6 +104,10 @@ def _load(args: _LoadModel):
                 ]
             with path.open("w") as f:
                 f.write("\n".join(subbed))
+
+    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(tmp)  # type: ignore
+    cfg.update({"prompt": name})
+    cfg.write()
 
     pyload_venv_dir.mkdir(parents=True, exist_ok=True)
     shutil.move(str(tmp), pyload_venv_dir / name)

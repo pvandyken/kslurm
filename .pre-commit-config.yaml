@@ -26,5 +26,5 @@ repos:
         entry: flake8
         name: flake8
         language: system
-        exclude: test
+        exclude: '^(test/|typings/)'
         types_or: [cython, pyi, python]

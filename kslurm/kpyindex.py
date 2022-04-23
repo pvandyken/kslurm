@@ -5,7 +5,7 @@ from collections import UserDict
 from pathlib import Path
 
 
-class KpyIndex(UserDict):  # type: ignore
+class KpyIndex(UserDict[str, str]):
     def __init__(self, slurm_tmpdir: Path):
         self._path = slurm_tmpdir / "tmp" / "kpy-index.json"
         if not self._path.exists():
@@ -20,4 +20,3 @@ class KpyIndex(UserDict):  # type: ignore
     def write(self):
         with self._path.open("w") as f:
             json.dump(self.data, f)
-

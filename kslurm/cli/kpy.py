@@ -11,7 +11,7 @@ import tempfile
 import venv
 from collections import UserDict
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Literal, Optional, Union, overload
 
 import attr
 from virtualenv.create import pyenv_cfg  # type: ignore
@@ -56,6 +56,33 @@ class MissingPipdirError(Exception):
     def __init__(self, msg: str, *args: Any):
         super().__init__(msg, *args)
         self.msg = msg
+
+
+class MissingSlurmTmpdirError(Exception):
+    def __init__(self, msg: str, *args: Any):
+        super().__init__(msg, *args)
+        self.msg = msg
+
+
+@overload
+def _get_slurm_tmpdir(allow_missing: Literal[True] = ...) -> Optional[Path]:
+    ...
+
+
+@overload
+def _get_slurm_tmpdir(allow_missing: Literal[False] = ...) -> Path:
+    ...
+
+
+def _get_slurm_tmpdir(allow_missing: bool = True):
+    if not os.environ.get("SLURM_TMPDIR"):
+        if allow_missing:
+            raise MissingSlurmTmpdirError(
+                "This command can only be used in a compute node. Use `krun` to start "
+                "an interactive session"
+            )
+        return
+    return Path(os.environ["SLURM_TMPDIR"])
 
 
 class VenvCache(UserDict[str, Path]):
@@ -110,6 +137,11 @@ def _load(args: _LoadModel):
         )
         return
     slurm_tmpdir = Path(os.environ["SLURM_TMPDIR"])
+    try:
+        slurm_tmpdir = _get_slurm_tmpdir(False)
+    except MissingSlurmTmpdirError as err:
+        print(err.msg)
+        return
     pipdir = get_config("pipdir")
     if not pipdir:
         print(
@@ -248,8 +280,9 @@ def _save(args: _SaveModel):
 
     if delete:
         os.remove(dest)
-    if "SLURM_TMPDIR" in os.environ:
-        index = KpyIndex(Path(os.environ["SLURM_TMPDIR"]))
+    slurm_tmp = _get_slurm_tmpdir()
+    if slurm_tmp:
+        index = KpyIndex(slurm_tmp)
         index[args.name.value] = str(venv_dir)
         index.write()
     shutil.move(tmp, dest)
@@ -273,9 +306,9 @@ def _create(args: _CreateModel):
             return
         sp.run(["module", "load", f"python/{args.version.value}"])
 
-    slurm_tmp = os.environ.get("SLURM_TMPDIR")
+    slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
-        index = KpyIndex(Path(slurm_tmp))
+        index = KpyIndex(slurm_tmp)
         name = args.name.value if args.name.value else _get_unique_name(index, "venv")
         if args.name.value in index:
             print(
@@ -285,7 +318,7 @@ def _create(args: _CreateModel):
             )
             return
 
-        venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=Path(slurm_tmp, "tmp"))
+        venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp")
     else:
         index = None
         name = args.name.value if args.name.value else "venv"
@@ -319,15 +352,13 @@ class ActivateModel:
 
 @command
 def _activate(args: ActivateModel):
-    if not os.environ.get("SLURM_TMPDIR"):
-        print(
-            "This command can only be used in a compute node. Use `krun` to start an "
-            "interactive session"
-        )
+    try:
+        slurm_tmp = _get_slurm_tmpdir(False)
+    except MissingSlurmTmpdirError as err:
+        print(err.msg)
         return
-    slurm_tmpdir = Path(os.environ["SLURM_TMPDIR"])
 
-    index = KpyIndex(slurm_tmpdir)
+    index = KpyIndex(slurm_tmp)
     name = args.name.value
     if name not in index:
         print(
@@ -350,6 +381,17 @@ def _activate(args: ActivateModel):
     n = shell.activate(Path(index[name]))
     if n:
         kpy(n)
+
+
+@command
+def _list():
+    try:
+        slurm_tmp = _get_slurm_tmpdir(False)
+    except MissingSlurmTmpdirError as err:
+        print(err.msg)
+        return
+    index = KpyIndex(slurm_tmp)
+    print("\n".join(index))
 
 
 @command
@@ -381,6 +423,7 @@ class KpyModel:
             "bash": _bash,
             "create": _create,
             "activate": _activate,
+            "list": _list,
             "_refresh": _refresh,
         },
     )

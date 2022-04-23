@@ -197,7 +197,9 @@ def _load(args: _LoadModel):
     index[label] = str(venv_dir)
     index.write()
     shell = Shell.get()
-    shell.activate(venv_dir)
+    n = shell.activate(venv_dir)
+    if n:
+        kpy(n)
 
 
 @attr.frozen
@@ -305,7 +307,9 @@ def _create(args: _CreateModel):
         index.write()
 
     shell = Shell.get()
-    shell.activate(Path(venv_dir))
+    n = shell.activate(Path(venv_dir))
+    if n:
+        kpy(n)
 
 
 @attr.frozen
@@ -343,7 +347,9 @@ def _activate(args: ActivateModel):
         return
 
     shell = Shell.get()
-    shell.activate(Path(index[name]))
+    n = shell.activate(Path(index[name]))
+    if n:
+        kpy(n)
 
 
 @command

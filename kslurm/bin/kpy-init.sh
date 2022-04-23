@@ -1,7 +1,7 @@
 [[ -e $HOME/.bashrc ]] && . $HOME/.bashrc
 . $activate_path
 unset activate_path
-deactivate () { exit 0; }
+deactivate () { exit 0 &> /dev/null; }
 _pip_prompt_refresh () {
     if command -v kpy &> /dev/null; then
       kpy _refresh

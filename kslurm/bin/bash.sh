@@ -1,5 +1,7 @@
 # This represents a fairly significant load time for shells. A clever way of caching would be ideal
-export KSLURM_LOGIN_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
+if [[ -z KSLURM_LOGIN_NODES ]]; then
+  export KSLURM_LOGIN_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
+fi
 
 pip () {
   (

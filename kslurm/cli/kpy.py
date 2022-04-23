@@ -8,8 +8,8 @@ import shutil
 import subprocess as sp
 import tarfile
 import tempfile
-import textwrap
 import venv
+from collections import UserDict
 from pathlib import Path
 from typing import Any, Union
 
@@ -17,7 +17,14 @@ import attr
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
-from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, SubCommand, TailArg
+from kslurm.args.arg_types import (
+    FlagArg,
+    KeywordArg,
+    PositionalArg,
+    ShapeArg,
+    SubCommand,
+    TailArg,
+)
 from kslurm.args.command import command
 from kslurm.kpyindex import KpyIndex
 from kslurm.shell import Shell
@@ -43,6 +50,38 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     if candidate in index:
         return _get_unique_name(index, stem, i + 1)
     return candidate
+
+
+class MissingPipdirError(Exception):
+    def __init__(self, msg: str, *args: Any):
+        super().__init__(msg, *args)
+        self.msg = msg
+
+
+class VenvCache(UserDict[str, Path]):
+    def __init__(self):
+        pipdir = get_config("pipdir")
+        if pipdir is None:
+            raise MissingPipdirError(
+                "pipdir not set. Please set pipdir using `kslurm config pipdir "
+                "<directory>`, typically to a project-space or permanent storage "
+                "directory"
+            )
+        self.venv_cache = Path(pipdir, "venv_archives")
+        venvs_re = [
+            re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in self.venv_cache.iterdir()
+        ]
+        venvs = [r.group(1) for r in venvs_re if r]
+        self.data = {v: self._construct_path(v) for v in venvs}
+
+    def get_path(self, name: str):
+        try:
+            return self.data[name]
+        except KeyError:
+            return self._construct_path(name)
+
+    def _construct_path(self, name: str):
+        return (self.venv_cache / name).with_suffix(".tar.gz")
 
 
 @command
@@ -82,12 +121,14 @@ def _load(args: _LoadModel):
     index = KpyIndex(slurm_tmpdir)
     name = args.name.value
 
-    venv_cache = Path(pipdir, "venv_archives")
-    venvs_re = [re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in venv_cache.iterdir()]
-    venvs = [r.group(1) for r in venvs_re if r]
+    try:
+        venv_cache = VenvCache()
+    except MissingPipdirError as err:
+        print(err.msg)
+        return
 
-    if not name or name not in venvs:
-        print("Valid venvs:\n\t" + "\n\t".join(venvs))
+    if not name or name not in venv_cache:
+        print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
         return
 
     label = args.new_name.values[0] if args.new_name.values else name
@@ -113,7 +154,7 @@ def _load(args: _LoadModel):
         print(f" as '{label}'")
     else:
         print()
-    with tarfile.open(Path(venv_cache, name).with_suffix(".tar.gz"), "r") as tar:
+    with tarfile.open(venv_cache[name], "r") as tar:
         tar.extractall(venv_dir)
 
     print("Updating paths")
@@ -172,24 +213,22 @@ def _save(args: _SaveModel):
             "No active virtual env detected. Please activate one, or ensure "
             "$VIRTUAL_ENV is being set correctly"
         )
-    pipdir = get_config("pipdir")
-    if not pipdir:
-        print(
-            "pipdir not set. Please set pipdir using `kslurm config pipdir "
-            "<directory>`, typically to a project-space or permanent storage directory"
-        )
+    try:
+        venv_cache = VenvCache()
+    except MissingPipdirError as err:
+        print(err.msg)
         return
 
-    venv_cache = Path(pipdir, "venv_archives")
-    dest = (venv_cache / args.name.value).with_suffix(".tar.gz")
-
+    name = args.name.value
     delete = False
-    if dest.exists():
+    if name in venv_cache:
         if args.force.value:
             delete = True
         else:
-            print(f"{dest} already exists. Run with -f to force overwrite")
+            print(f"{name} already exists. Run with -f to force overwrite")
             return
+
+    dest = venv_cache.get_path(name)
 
     _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
 
@@ -252,7 +291,14 @@ def _create(args: _CreateModel):
 
     venv.create(venv_dir, symlinks=True, with_pip=True, prompt=name)
     sp.run(
-        [os.path.join(venv_dir, "bin", "python"), "-m", "pip", "install", "--upgrade", "pip"]
+        [
+            os.path.join(venv_dir, "bin", "python"),
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "pip",
+        ]
     )
     if index is not None:
         index[name] = str(venv_dir)
@@ -260,6 +306,44 @@ def _create(args: _CreateModel):
 
     shell = Shell.get()
     shell.activate(Path(venv_dir))
+
+
+@attr.frozen
+class ActivateModel:
+    name: PositionalArg[str] = PositionalArg()
+
+
+@command
+def _activate(args: ActivateModel):
+    if not os.environ.get("SLURM_TMPDIR"):
+        print(
+            "This command can only be used in a compute node. Use `krun` to start an "
+            "interactive session"
+        )
+        return
+    slurm_tmpdir = Path(os.environ["SLURM_TMPDIR"])
+
+    index = KpyIndex(slurm_tmpdir)
+    name = args.name.value
+    if name not in index:
+        print(
+            f"An environment with the name '{name}' has not yet been initialized. ",
+            end="",
+        )
+        try:
+            venv_cache = VenvCache()
+            if name in venv_cache:
+                print(
+                    f"The saved environment called '{name}' can be loaded using\n"
+                    f"\tkpy load {name}\n"
+                )
+        except MissingPipdirError:
+            pass
+        print(f"A new environment can be created using\n\tkpy create {name}")
+        return
+
+    shell = Shell.get()
+    shell.activate(Path(index[name]))
 
 
 @command
@@ -290,6 +374,7 @@ class KpyModel:
             "save": _save,
             "bash": _bash,
             "create": _create,
+            "activate": _activate,
             "_refresh": _refresh,
         },
     )

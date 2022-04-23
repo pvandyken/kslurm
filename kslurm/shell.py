@@ -5,7 +5,7 @@ import os
 import subprocess as sp
 from pathlib import Path
 
-from shellingham import ShellDetectionFailure, detect_shell  # type: ignore
+from shellingham import ShellDetectionFailure, detect_shell
 
 
 class Shell:

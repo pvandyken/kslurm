@@ -148,11 +148,16 @@ Kpy also includes some optional bash tools (see `kpy bash`), including a wrapper
 
 ```bash
 # usage
-kpy create <name>
+kpy create [<version|3.x>] [<name>]
 ```
 
 Create a new environment.
 Name is optional; if not provided, a placeholder name will be created.
+Version must be of the form `3.x` where x is any number (e.g `3.8`, `3.10`).
+If provided, the corresponding python version will be used in the virtual env.
+Note that an appropriate python executable must be somewhere on your path (e.g. for `3.8` -> `python3.8`).
+If not provided, the python version used to install kslurm will be used.
+
 If run on a login node, the env will be created in a `$TMPDIR`.
 If run on a compute node, it will be created in `$SLURM_TMPDIR`.
 

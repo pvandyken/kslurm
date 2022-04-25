@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union, overload
 
 import attr
-import virtualenv
+import virtualenv  # type: ignore
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
@@ -326,7 +326,9 @@ def _create(args: _CreateModel):
         no_index = []
 
     try:
-        virtualenv.cli_run([venv_dir, "--symlinks", "--prompt", name, *ver, *no_download])
+        virtualenv.cli_run(  # type: ignore
+            [venv_dir, "--symlinks", "--prompt", name, *ver, *no_download]
+        )
         sp.run(
             [
                 os.path.join(venv_dir, "bin", "python"),
@@ -335,7 +337,7 @@ def _create(args: _CreateModel):
                 "install",
                 "--upgrade",
                 "pip",
-                *no_index
+                *no_index,
             ]
         )
     except RuntimeError as err:

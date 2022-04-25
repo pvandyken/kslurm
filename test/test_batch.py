@@ -5,7 +5,7 @@ from unittest import mock
 
 from pytest import CaptureFixture
 
-from kslurm.submission import kbatch
+from kslurm.cli import kbatch
 
 
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):

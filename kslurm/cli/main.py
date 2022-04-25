@@ -5,7 +5,7 @@ import attr
 from kslurm.args import TailArg
 from kslurm.args.arg_types import SubCommand
 from kslurm.args.command import command
-from kslurm.cli import kbatch, kjupyter, krun
+from kslurm.cli import kbatch, kjupyter, kpy, krun
 from kslurm.cli.config import config
 from kslurm.installer import install
 
@@ -21,6 +21,7 @@ class KslurmModel:
             "kbatch": kbatch,
             "krun": krun,
             "kjupyter": kjupyter,
+            "kpy": kpy,
             "config": config,
             "update": lambda x: None,  # type: ignore
         },

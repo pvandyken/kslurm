@@ -12,16 +12,17 @@ pip () {
       cmd="$cmd --no-index"
     fi
     if [[ -n $installtype ]]; then
+      echo "updated"
       if command -v kslurm &> /dev/null; then
         pipdir=$(kslurm config pipdir)
         if [[ -z $pipdir ]]; then
           echo "pipdir has not been defined. Please set a pipdir using \`kslurm config pipdir <directory>\`. Typically, this should be a directory in a project space or permanent storage directory."
         else
           wheelhouse="${pipdir%/}/wheels"
-          if [[ ! -d $wheelhouse ]]; then
-            mkdir -p $wheelhouse
+          if [[ ! -d "$wheelhouse" ]]; then
+            mkdir -p "$wheelhouse"
           fi
-          cmd="$cmd --find-links=$wheelhouse"
+          cmd="$cmd --find-links='$wheelhouse'"
           export PIP_WHEEL_DIR=$wheelhouse
         fi
       else

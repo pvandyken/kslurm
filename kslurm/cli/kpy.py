@@ -76,7 +76,7 @@ def _get_slurm_tmpdir(allow_missing: Literal[False] = ...) -> Path:
 
 def _get_slurm_tmpdir(allow_missing: bool = True):
     if not os.environ.get("SLURM_TMPDIR"):
-        if allow_missing:
+        if not allow_missing:
             raise MissingSlurmTmpdirError(
                 "This command can only be used in a compute node. Use `krun` to start "
                 "an interactive session"

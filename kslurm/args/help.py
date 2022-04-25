@@ -51,16 +51,21 @@ def print_help(script: str, models: object, script_help: str = "") -> None:
     choices = cast(List[ChoiceArg[Any]], grouped.get(ChoiceArg, []))
     subcommands = cast(List[SubCommand], grouped.get(SubCommand, []))
     tail = cast(List[TailArg], grouped.get(TailArg, []))
-    positional_names = [arg.name for arg in positionals]
+
+    positional_names = [f"<{arg.name}>" for arg in positionals]
     script_name = Path(script).name
 
-    command_line_example = (
-        f"[b]USAGE:[/] {script_name} [hot]<keywords and flags>[/] "
-        f"{' '.join(positional_names)}"
+    command_line_example = "".join(
+        [
+            "[b]USAGE:[/] ",
+            script_name,
+            " [hot]<keywords>[/]" if any([shapes, keywords, flags, choices]) else "",
+            " " + " ".join(positional_names) if positionals else "",
+            " <command>" if subcommands else "",
+            f" [cyan]<{tail[0].name.lower()}...>[/]" if tail else "",
+            "\n\n",
+        ]
     )
-    if tail:
-        command_line_example += f" [cyan]<{tail[0].name.lower()}>[/]"
-    command_line_example += "\n\n"
 
     shape_section = _section("Shape args", _shape_table(shapes))
     keyword_section = _section("keyword args", _keyword_table(keywords))

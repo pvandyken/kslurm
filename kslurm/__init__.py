@@ -1,4 +1,4 @@
-__submodules__ = ["args", "installer", "models", "slurm", "submission"]
+__submodules__ = ["args", "installer", "models", "slurm"]
 
 __ignore__ = ["main"]
 
@@ -40,11 +40,6 @@ from kslurm.slurm import (
     div_remainder,
     slurm_time_format,
 )
-from kslurm.submission import (
-    kbatch,
-    kjupyter,
-    krun,
-)
 
 __all__ = [
     "Arg",
@@ -67,9 +62,6 @@ __all__ = [
     "group_by_type",
     "install",
     "job_template",
-    "kbatch",
-    "kjupyter",
-    "krun",
     "list_templates",
     "mem",
     "parse_args",

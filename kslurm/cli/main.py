@@ -5,9 +5,9 @@ import attr
 from kslurm.args import TailArg
 from kslurm.args.arg_types import SubCommand
 from kslurm.args.command import command
+from kslurm.cli import kbatch, kjupyter, krun
 from kslurm.cli.config import config
 from kslurm.installer import install
-from kslurm.submission import kbatch, kjupyter, krun
 
 NAME = "kslurm"
 HOME_DIR = "KSLURM_HOME"

@@ -2,6 +2,25 @@ from kslurm.cli.config import (
     ConfigModel,
     config,
 )
+from kslurm.cli.kbatch import (
+    kbatch,
+)
+from kslurm.cli.kjupyter import (
+    kjupyter,
+)
+from kslurm.cli.kpy import (
+    ActivateModel,
+    KpyModel,
+    MissingPipdirError,
+    MissingSlurmTmpdirError,
+    VenvCache,
+    get_hash,
+    kpy,
+    pip_freeze,
+)
+from kslurm.cli.krun import (
+    krun,
+)
 from kslurm.cli.main import (
     ENTRYPOINTS,
     HOME_DIR,
@@ -11,11 +30,22 @@ from kslurm.cli.main import (
 )
 
 __all__ = [
+    "ActivateModel",
     "ConfigModel",
     "ENTRYPOINTS",
     "HOME_DIR",
+    "KpyModel",
     "KslurmModel",
+    "MissingPipdirError",
+    "MissingSlurmTmpdirError",
     "NAME",
+    "VenvCache",
     "config",
+    "get_hash",
+    "kbatch",
+    "kjupyter",
+    "kpy",
+    "krun",
     "kslurm",
+    "pip_freeze",
 ]

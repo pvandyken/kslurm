@@ -9,6 +9,15 @@ Once installed, simply run
 pipx install kslurm
 ```
 
+Note that kslurm requires Python 3.9 or higher.
+If pipx was installed using a lower version (e.g. 3.8), you will need to manually specify the python executable to use.
+Activate the appropriate python version (e.g. `module load python/3.10`) so that when you run `python --version`, the correct version appears.
+Then run
+
+```bash
+pipx install kslurm --python $(which python)
+```
+
 The app can be updated by running
 ```bash
 pipx upgrade kslurm

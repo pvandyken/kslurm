@@ -7,6 +7,7 @@ from kslurm.args import parse_args
 from kslurm.installer import install
 from kslurm.models import KslurmModel
 from kslurm.submission import kbatch, kjupyter, krun
+from kslurm.submission.common import check_python_version
 
 NAME = "kslurm"
 HOME_DIR = "KSLURM_HOME"
@@ -14,6 +15,7 @@ ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm"]
 
 
 def kslurm(script: str, args: List[str]) -> None:
+    check_python_version()
     parsed = parse_args(sys.argv[1:], KslurmModel())
     command = parsed.command.value
     tail = parsed.tail

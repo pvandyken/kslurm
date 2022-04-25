@@ -11,6 +11,7 @@ from kslurm.args import print_help
 from kslurm.models import SlurmModel
 from kslurm.slurm import SlurmCommand
 from kslurm.style.console import console
+from kslurm.submission.common import check_python_version
 
 
 def kjupyter(script: str, args: List[str]):
@@ -23,6 +24,7 @@ def kjupyter(script: str, args: List[str]):
     For the command to work, a virtualenv containing jupyter-lab should already be
     activated. Use `pip install jupyter-lab`
     """
+    check_python_version()
     slurm = SlurmCommand(args, SlurmModel())
     if slurm.help:
         print_help(script, SlurmModel(), kjupyter.__doc__)  # type: ignore

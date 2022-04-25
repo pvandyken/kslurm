@@ -22,7 +22,7 @@ class KslurmModel:
             "krun": krun,
             "kjupyter": kjupyter,
             "config": config,
-            "install": lambda x: None,  # type: ignore
+            "update": lambda x: None,  # type: ignore
         },
     )
 
@@ -34,7 +34,7 @@ def main(args: KslurmModel) -> None:
     command = args.command.value
     tail = args.tail
     name = f"kslurm {args.command.raw_value}"
-    if args.command.raw_value == "install":
+    if args.command.raw_value == "update":
         install(tail.values, NAME, HOME_DIR, ENTRYPOINTS)
     command([name, *tail.values])
 

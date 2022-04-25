@@ -1,6 +1,6 @@
 # This represents a fairly significant load time for shells. A clever way of caching would be ideal
-if [[ -z KSLURM_LOGIN_NODES ]]; then
-  export KSLURM_LOGIN_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
+if [[ -z KSLURM_COMPUTE_NODES ]]; then
+  export KSLURM_COMPUTE_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
 fi
 
 pip () {
@@ -8,7 +8,7 @@ pip () {
     [[ $1 == install || $1 == uninstall ]] && installing=1 || installing=
     [[ $1 == install || $1 == wheel || $1 == download ]] && installtype=1 || installtype=
     cmd=$1
-    if [[ $KSLURM_LOGIN_NODES =~ $(hostname) && -n $installtype ]]; then
+    if [[ $KSLURM_COMPUTE_NODES =~ $(hostname) && -n $installtype ]]; then
       cmd="$cmd --no-index"
     fi
     if [[ -n $installtype ]]; then

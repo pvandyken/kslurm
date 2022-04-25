@@ -26,7 +26,7 @@ from kslurm.cli.main import (
     HOME_DIR,
     KslurmModel,
     NAME,
-    kslurm,
+    main,
 )
 
 __all__ = [
@@ -46,6 +46,6 @@ __all__ = [
     "kjupyter",
     "kpy",
     "krun",
-    "kslurm",
+    "main",
     "pip_freeze",
 ]

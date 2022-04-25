@@ -11,6 +11,7 @@ pip () {
     if [[ $KSLURM_COMPUTE_NODES =~ $(hostname) && -n $installtype ]]; then
       cmd="$cmd --no-index"
     fi
+    old_pip_wheel_dir=$PIP_WHEEL_DIR
     if [[ -n $installtype ]]; then
       if command -v kslurm &> /dev/null; then
         pipdir=$(kslurm config pipdir)
@@ -22,7 +23,7 @@ pip () {
             mkdir -p $wheelhouse
           fi
           cmd="$cmd --find-links=$wheelhouse"
-          export PIP_WHEEL_DIR=$wheelhouse
+          export PIP_WHEEL_DIR="$PIP_WHEEL_DIR $wheelhouse"
         fi
       else
         echo "kslurm program was not found on \$PATH. If installed in a virtualenv, be sure the env is activated."
@@ -33,5 +34,6 @@ pip () {
     if [[ -n $installing ]]; then
       for hook in "${KSLURM_POST_INSTALL_HOOKS[@]}"; do eval "$hook"; done
     fi
+    export PIP_WHEEL_DIR=$old_pip_wheel_dir
   )
 }

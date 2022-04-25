@@ -9,11 +9,17 @@ from kslurm.args import parse_args
 from kslurm.installer.utils import bin_dir, data_dir, get_current_version, get_version
 from kslurm.installer.version import FlexVersion
 from kslurm.models.update import UpdateModel
+from kslurm.style import console
 
 METADATA_URL = "https://pypi.org/pypi/kslurm/json"
 
 
 def install(args: List[str], name: str, home_dir: str, entrypoints: List[str] = []):
+    console.print(
+        "kslurm update is deprecated. If you haven't already, please switch to a pipx "
+        "based install (follow the instructions on the README: "
+        "https://github.com/pvandyken/kslurm)"
+    )
     parsed = parse_args(args, UpdateModel())
     data = data_dir(home_dir)
     bin = bin_dir(home_dir)

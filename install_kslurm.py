@@ -458,6 +458,11 @@ def main():
     if args.uninstall or string_to_bool(os.getenv("KSLURM_UNINSTALL", "0")):
         return uninstall(data_dir(), bin_dir())
 
+    print(
+        "This installation method is deprecated. Please prefer installations using "
+        "pipx. See the README (https://github.com/pvandyken/kslurm) for more dtails."
+    )
+
     if args.git:
         version = args.git
         specification = f"git+{args.git}"

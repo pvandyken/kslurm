@@ -12,7 +12,6 @@ pip () {
       cmd="$cmd --no-index"
     fi
     if [[ -n $installtype ]]; then
-      echo "updated"
       if command -v kslurm &> /dev/null; then
         pipdir=$(kslurm config pipdir)
         if [[ -z $pipdir ]]; then
@@ -22,7 +21,7 @@ pip () {
           if [[ ! -d "$wheelhouse" ]]; then
             mkdir -p "$wheelhouse"
           fi
-          cmd="$cmd --find-links='$wheelhouse'"
+          cmd="$cmd --find-links=$wheelhouse"
           export PIP_WHEEL_DIR=$wheelhouse
         fi
       else

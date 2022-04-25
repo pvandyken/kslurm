@@ -8,12 +8,12 @@ import shutil
 import subprocess as sp
 import tarfile
 import tempfile
-import venv
 from collections import UserDict
 from pathlib import Path
 from typing import Any, Literal, Optional, Union, overload
 
 import attr
+import virtualenv
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
@@ -299,12 +299,9 @@ class _CreateModel:
 @command
 def _create(args: _CreateModel):
     if args.version.value:
-        try:
-            sp.run(["command", "-v", "module"]).check_returncode()
-        except sp.CalledProcessError:
-            print("'module' command not present. Unable to load custom python versions")
-            return
-        sp.run(["module", "load", f"python/{args.version.value}"])
+        ver = ["-p", args.version.value]
+    else:
+        ver = []
 
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
@@ -319,22 +316,31 @@ def _create(args: _CreateModel):
             return
 
         venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp")
+        no_download = ["--no-download"]
+        no_index = ["--no-index"]
     else:
         index = None
         name = args.name.value if args.name.value else "venv"
         venv_dir = tempfile.mkdtemp(prefix="kslurm-")
+        no_download = []
+        no_index = []
 
-    venv.create(venv_dir, symlinks=True, with_pip=True, prompt=name)
-    sp.run(
-        [
-            os.path.join(venv_dir, "bin", "python"),
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "pip",
-        ]
-    )
+    try:
+        virtualenv.cli_run([venv_dir, "--symlinks", "--prompt", name, *ver, *no_download])
+        sp.run(
+            [
+                os.path.join(venv_dir, "bin", "python"),
+                "-m",
+                "pip",
+                "install",
+                "--upgrade",
+                "pip",
+                *no_index
+            ]
+        )
+    except RuntimeError as err:
+        print(err.args[0])
+        return
     if index is not None:
         index[name] = str(venv_dir)
         index.write()

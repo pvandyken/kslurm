@@ -445,3 +445,7 @@ def kpy(args: KpyModel) -> None:
     tail = args.tail
     name = f"kslurm {args.command.raw_value}"
     command([name, *tail.values])
+
+
+if __name__ == "__main__":
+    kpy(["kpy", "bash", "--help"])

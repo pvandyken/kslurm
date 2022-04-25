@@ -4,6 +4,8 @@ import inspect
 import sys
 from typing import Any, Callable, List, Union
 
+import attr
+
 from kslurm.args.parser import parse_args
 from kslurm.args.types import WrappedCommand
 from kslurm.exceptions import CommandLineError
@@ -12,10 +14,16 @@ _CommandFunc = Union[Callable[[Any], None], Callable[[], None]]
 
 
 def command(func: _CommandFunc) -> WrappedCommand:
+    @attr.frozen
+    class BlankModel:
+        pass
+
     if not callable(func):
         raise CommandLineError(f"{func} is not callable")
 
     params = inspect.signature(func)
+    exceptions: Any = tuple()
+    model = BlankModel
     if len(params.parameters) > 1:
         raise CommandLineError(
             f"{func} must have a single, named arg. Currently: "
@@ -29,7 +37,6 @@ def command(func: _CommandFunc) -> WrappedCommand:
         if isinstance(model, str):
             model = eval(model, func.__globals__)
 
-        exceptions: Any = tuple()
         types = getattr(model, "__args__", None)
         if types is not None:
             model = types[0]
@@ -40,17 +47,12 @@ def command(func: _CommandFunc) -> WrappedCommand:
                 f"Annotation of {param} in {func} must refer to a class type "
                 f"(currently {type(model)})"
             )
-    else:
-        model = None
 
     def wrapper(argv: List[str] = sys.argv):
         doc = func.__doc__
         if doc is None:
             doc = ""
 
-        if model is None:
-            func()  # type: ignore
-            return
         try:
             parsed = parse_args(argv[1:], model(), script_name=argv[0], docstring=doc)
         except exceptions as err:

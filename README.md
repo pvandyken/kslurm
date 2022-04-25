@@ -1,21 +1,48 @@
 Utility functions to make working with SLURM easier.
 
 # Installation
-Cluster utils is meant to be run in a SLURM environment, and thus will only install on linux. Open a shell and run the following command:
+The recommend way to install kslurm is via [`pipx`](https://pypa.github.io/pipx), a tool for installing python applications.
+This will make kslurm globally available without infecting your global python environment.
+Installation instructions for pipx can be found on their [website](https://pypa.github.io/pipx).
+Once installed, simply run
+```bash
+pipx install kslurm
+```
 
+The app can be updated by running
+```bash
+pipx upgrade kslurm
+```
+
+and removed using
+```bash
+pipx uninstall kslurm
+```
+
+## Legacy Installer
+kslurm includes an installation script that, previously, was the recommended install method.
+While it should technically still work, it is no longer supported and may be removed in the future.
+Its instructions are included, for reference, below.
+
+```{note}
+Users who previously installed kslurm via this script should switch to a pipx install for long term support. Simply uninstall `kslurm` using the instructions below, then install via pipx as described above
+```
+
+Installation is via the following command:
 ```
 curl -sSL https://raw.githubusercontent.com/pvandyken/kslurm/master/install_kslurm.py | python -
 ```
 
-If you wish to uninstall, run the same command with --uninstall added to the end.
+If you wish to uninstall, run the same command with `--uninstall` added to the end.
 
 The package can be updated by running `kslurm update`.
 
 # Features
-Currently offers three commands:
+Currently offers four commands:
 * kbatch: for batch submission jobs (no immediate output)
 * krun: for interactive submission
 * kjupyter: for Jupyter sessions
+* kpy: for python environment management
 
 All three use a regex-based argument parsing, meaning that instead of writing a SLURM file or supplying confusing `--arguments`, you can request resources with an intuitive syntax:
 
@@ -88,3 +115,120 @@ The full syntax is outlined below. You can always run a command with `-h` to get
 | GPU       |            gpu             |                                                                     False |                         Provide flag to request 1 GPU instance |
 | Directory |  <_any valid directory_>   |                                                                        ./ | Change the current working directory before submitting the job |
 | x11       |           --x11            |                                                                     False |                   Requests x11 forwarding for GUI applications |
+
+# kpy
+
+kpy bundles a set of commands to help manage pip virtual environments on Slurm compute clusters, specifically addressing a few issues unique to such servers:
+
+## Ephemeral venvs
+In most use cases, python venvs are installed on compute clusters, ideally on local scratch storage.
+This makes venvs inherently ephemeral.
+Because installing a venv can take an appreciable amount of time, kpy packs tools to archive entire venvs for storage in a permanent local repository (ideally located in project-specific or permanent storage). Once saved, venvs can be quickly reloaded into a new compute environment.
+
+```{warning}
+Copying venvs from one location to another is not a trivial task. The current setup has been tested on ComputeCanada servers without any issues so far, but problems may arise on another environment.
+```
+
+## No internet
+Compute clusters often don't have an internet connection, limiting our install repertoire to locally available wheels.
+With kpy, venvs can be created on a login node (using the available internet connection), then saved and loaded onto a compute node.
+Kpy also includes some optional bash tools (see `kpy bash`), including a wrapper around pip that prevents it from accessing the internet on compute nodes, and connecting it with a local private wheelhouse.
+
+## Commands
+### `create`
+
+```bash
+# usage
+kpy create <name>
+```
+
+Create a new environment.
+Name is optional; if not provided, a placeholder name will be created.
+If run on a login node, the env will be created in a `$TMPDIR`.
+If run on a compute node, it will be created in `$SLURM_TMPDIR`.
+
+### `save`
+
+```bash
+# usage
+kpy save [-f] <name>
+```
+
+Save the venv to your permanent cache.
+This requires setting `pipdir` in the kslurm config (see below).
+By default, `save` will not oversave an existing cache, but `-f` can be included to override this behaviour.
+If a new name is provided, it will be used to update the current venv name and prompt.
+
+### `load`
+
+
+```bash
+# usage
+kpy load [<name>] [--as <newname>]
+```
+
+Load a saved venv from the cache.
+This command only works on a compute node (i.e. `$SLURM_TMPDIR` must be defined).
+If a venv called `<name>` already exists, the command will fail, as each name can only be used once.
+`--as <newname>` works around this by changing the name of the loaded venv (the name of the saved venv will remain the same)
+Calling `load` without any `<name>` will print a list of current cached venvs.
+
+### `activate`
+
+```bash
+# usage
+kpy activate [<name>]
+```
+
+Activate venv initialized using `create` or `load`.
+Name will be the same as the name appearing in the venv prompt (i.e. the name provided on initial loading or creation, through `--as`, or the last saved name).
+This command only works on a compute node.
+Venvs created on a login node cannot be directly activated using kpy.
+
+### `list`
+
+```bash
+# usage
+kpy list
+```
+
+List currently initialized venvs (i.e. venvs you can `activate`).
+This command only works on a compute node.
+
+
+### `bash`
+
+```bash
+# usage
+kpy bash
+```
+
+Echos a line of bash script that can be added to your `.bashrc` file:
+
+```bash
+kpy bash >> $HOME/.bashrc
+```
+
+This adds a few features to your command line environment:
+
+- **pip wrapper**: Adds a wrapper around pip that detects if you are on a login node when running `install`, `wheel`, or `download`. If not on a login node, the `--no-index` flag will be appended to the command, preventing the use of an internet connection.
+- **wheelhouse management**: If `pipdir` is configured in the kslurm config, a wheelhouse will be created in your pip repository. Any wheels downloaded using `pip wheel` will be placed in that wheelhouse, and all wheels in the wheelhouse will be discoverable by `pip install`, both on login and compute nodes.
+
+## Configuration
+
+kslurm currently supports a few basic configuration values, and more will come with time. All configuration can be set using the command
+
+```bash
+kslurm config <key> <value>
+```
+
+You can print the value of a configuration using
+
+```bash
+kslurm config <key>
+```
+
+### Current values
+
+* `account`: Default account to use for kslurm commands (e.g. `kbatch`, `krun`, etc)
+* `pipdir`: Directory to store cached venvs and wheels. Should be a project or permanent storage dir.

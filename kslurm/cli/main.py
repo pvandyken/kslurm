@@ -30,7 +30,7 @@ class KslurmModel:
 
 
 @command
-def kslurm(args: KslurmModel) -> None:
+def main(args: KslurmModel) -> None:
     command = args.command.value
     tail = args.tail
     name = f"kslurm {args.command.raw_value}"
@@ -40,4 +40,4 @@ def kslurm(args: KslurmModel) -> None:
 
 
 if __name__ == "__main__":
-    kslurm(["kslurm", "kbatch", "-h"])
+    main(["kslurm", "kbatch", "-h"])

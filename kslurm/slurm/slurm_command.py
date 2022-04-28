@@ -7,13 +7,18 @@ from typing import List, Union
 import kslurm.appconfig as appconfig
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
-from kslurm.args import ShapeArg
+from kslurm.args.command import ParsedArgs
 from kslurm.exceptions import TemplateError, ValidationError
-from kslurm.models import SlurmModel
+from kslurm.models.slurm import SlurmModel
 
 
 class SlurmCommand:
-    def __init__(self, args: Union[SlurmModel, TemplateError]):
+    def __init__(
+        self,
+        args: Union[SlurmModel, TemplateError],
+        tail: list[str],
+        arglist: ParsedArgs,
+    ):
         self._name = ""
         self._output = ""
 
@@ -23,13 +28,13 @@ class SlurmCommand:
             templates.list_templates()
             exit()
 
-        if args.list_job_templates.value and not args.help.value:
+        if args.list_job_templates:
             templates.list_templates()
             exit()
 
         # set_template returns templated values only if a template is passed
         # if we pass a blank string, the models are returned unchanged
-        template = args.job_template.values[0] if args.job_template.value else ""
+        template = args.job_template[0] if args.job_template else ""
         template_vals = templates.set_template(
             template, mem=args.mem, cpu=args.cpu, time=args.time
         )
@@ -40,16 +45,16 @@ class SlurmCommand:
         self.mem = template_vals.mem
 
         # Then update if values were specifically supplied on the command line
-        if args.time.updated:
+        if arglist["time"].updated:
             self.time = args.time
-        if args.cpu.updated:
+        if arglist["cpu"].updated:
             self.cpu = args.cpu
-        if args.mem.updated:
+        if arglist["mem"].updated:
             self.mem = args.mem
 
-        self.gpu = bool(args.gpu.value)
-        self.x11 = bool(args.x11.value)
-        if not args.account.values:
+        self.gpu = bool(args.gpu)
+        self.x11 = bool(args.x11)
+        if not args.account:
             self.account = appconfig.get_config("account")
             if not self.account:
                 print(
@@ -59,14 +64,13 @@ class SlurmCommand:
                 )
                 sys.exit(1)
         else:
-            self.account = str(args.account)
+            self.account = args.account[0]
         self.cwd = args.directory
-        self.test = bool(args.test.value)
+        self.test = args.test
         self.job_template = args.job_template
-        self._command = args.tail.values
-        self.help = bool(args.help.value)
+        self._command = tail
 
-        os.chdir(self.cwd.value)  # type: ignore
+        os.chdir(self.cwd)
 
         self.script = [self.command]
 
@@ -77,10 +81,10 @@ class SlurmCommand:
     ###
     @property
     def time(self):
-        return helpers.slurm_time_format(self._time.value)  # type: ignore
+        return helpers.slurm_time_format(self._time)
 
     @time.setter
-    def time(self, time: ShapeArg[int]):
+    def time(self, time: int):
         self._time = time
 
     @property

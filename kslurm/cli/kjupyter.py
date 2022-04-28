@@ -7,15 +7,19 @@ import sys
 from typing import Union
 
 import kslurm.text as txt
-from kslurm.args.command import command
+from kslurm.args.command import ParsedArgs, command
 from kslurm.exceptions import TemplateError
-from kslurm.models import SlurmModel
-from kslurm.slurm import SlurmCommand
+from kslurm.models.slurm import SlurmModel
+from kslurm.slurm.slurm_command import SlurmCommand
 from kslurm.style.console import console
 
 
-@command
-def kjupyter(args: Union[SlurmModel, TemplateError]):
+@command(terminate_on_unknown=True)
+def kjupyter(
+    args: Union[SlurmModel, TemplateError],
+    command_args: list[str],
+    arglist: ParsedArgs,
+):
     """Start a Jupyter session
 
     Begins a Jupyter session on an interactive node. By default, it requests 3hr. No
@@ -25,7 +29,7 @@ def kjupyter(args: Union[SlurmModel, TemplateError]):
     For the command to work, a virtualenv containing jupyter-lab should already be
     activated. Use `pip install jupyter-lab`
     """
-    slurm = SlurmCommand(args)
+    slurm = SlurmCommand(args, command_args, arglist)
 
     slurm.command = ["jupyter-lab", "--ip", "$(hostname -f)", "--no-browser"]
     print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))

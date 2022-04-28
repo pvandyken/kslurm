@@ -5,7 +5,7 @@ from unittest import mock
 
 from pytest import CaptureFixture
 
-from kslurm.cli import kbatch
+from kslurm.cli.kbatch import kbatch
 
 
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
@@ -46,7 +46,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
                 "some-account",
                 "-j",
                 "Regular",
-                "./test",
+                "./kslurm",
                 "command",
             ],
         )
@@ -65,4 +65,4 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             stdout=-1,
             stderr=-2,
         )
-        assert Path.cwd() == starting_cwd / "test"
+        assert Path.cwd() == starting_cwd / "kslurm"

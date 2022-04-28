@@ -17,26 +17,19 @@ import virtualenv  # type: ignore
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
-from kslurm.args.arg_types import (
-    FlagArg,
-    KeywordArg,
-    PositionalArg,
-    ShapeArg,
-    SubCommand,
-    TailArg,
-)
+from kslurm.args import Subcommand, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import command
 from kslurm.kpyindex import KpyIndex
 from kslurm.shell import Shell
 
 
-def get_hash(item: Union[str, bytes]):
+def _get_hash(item: Union[str, bytes]):
     if isinstance(item, str):
         item = item.encode()
     return hashlib.md5(item).hexdigest()
 
 
-def pip_freeze(venv_dir: Path):
+def _pip_freeze(venv_dir: Path):
     return sp.run(
         [venv_dir / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
     ).stdout
@@ -125,18 +118,22 @@ def _bash():
 
 @attr.frozen
 class _LoadModel:
-    name: PositionalArg[str] = PositionalArg(value="")
-    new_name: KeywordArg[str] = KeywordArg(match=["--as"])
+    name: str = positional(default="", help="Test help")
+    new_name: list[str] = keyword(match=["--as"])
 
 
 @command
 def _load(args: _LoadModel):
+    """Load a saved python venv
+
+    Run without name to list available venvs for loading
+    """
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        name = args.name.value
+        name = args.name
 
-        label = args.new_name.values[0] if args.new_name.values else name
+        label = args.new_name[0] if args.new_name else name
         if label in index:
             print(
                 f"An environment called '{label}' already exists. You can load "
@@ -149,7 +146,7 @@ def _load(args: _LoadModel):
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
     else:
         index = None
-        name = args.name.value
+        name = args.name
         label = name
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-"))
 
@@ -161,7 +158,7 @@ def _load(args: _LoadModel):
         )
         return
 
-    name = args.name.value
+    name = args.name
 
     try:
         venv_cache = VenvCache()
@@ -172,11 +169,6 @@ def _load(args: _LoadModel):
     if not name or name not in venv_cache:
         print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
         return
-
-    # pyload_venv_dir = slurm_tmpdir / "__virtual_environments__"
-    # if (pyload_venv_dir / name).exists():
-    #     shell = Shell.get()
-    #     shell.activate(pyload_venv_dir / name)
 
     print(f"Unpacking venv '{name}'", end="")
     if label != name:
@@ -220,7 +212,7 @@ def _load(args: _LoadModel):
                 f.write("\n".join(subbed))
 
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
-    cfg.update({"prompt": label, "state_hash": get_hash(pip_freeze(venv_dir))})
+    cfg.update({"prompt": label, "state_hash": _get_hash(_pip_freeze(venv_dir))})
     cfg.write()
 
     if index is not None:
@@ -234,12 +226,13 @@ def _load(args: _LoadModel):
 
 @attr.frozen
 class _SaveModel:
-    name: PositionalArg[str] = PositionalArg()
-    force: FlagArg = FlagArg(match=["--force", "-f"])
+    name: str = positional()
+    force: bool = flag(match=["--force", "-f"])
 
 
 @command
 def _save(args: _SaveModel):
+    """Save current venv"""
     if not os.environ.get("VIRTUAL_ENV"):
         print(
             "No active virtual env detected. Please activate one, or ensure "
@@ -251,10 +244,10 @@ def _save(args: _SaveModel):
         print(err.msg)
         return
 
-    name = args.name.value
+    name = args.name
     delete = False
     if name in venv_cache:
-        if args.force.value:
+        if args.force:
             delete = True
         else:
             print(f"{name} already exists. Run with -f to force overwrite")
@@ -268,8 +261,8 @@ def _save(args: _SaveModel):
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
     cfg.update(
         {
-            "prompt": args.name.value,
-            "state_hash": get_hash(pip_freeze(venv_dir)),
+            "prompt": args.name,
+            "state_hash": _get_hash(_pip_freeze(venv_dir)),
         }
     )
     cfg.write()
@@ -281,31 +274,40 @@ def _save(args: _SaveModel):
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        index[args.name.value] = str(venv_dir)
+        index[args.name] = str(venv_dir)
         index.write()
     shutil.move(tmp, dest)
 
 
 @attr.frozen
 class _CreateModel:
-    name: PositionalArg[str] = PositionalArg("")
-    version: ShapeArg[str] = ShapeArg(
-        value="", match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s))
+    name: str = positional("", help="Name of the new venv")
+    version: str = shape(
+        default="",
+        match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s)),
+        syntax="(2|3).x",
+        examples=["2.7", "3.8"],
+        help="Python version to use in new venv. An appropriate executable must be on "
+        "the $PATH (e.g. 3.7 -> python3.7",
     )
 
 
 @command
 def _create(args: _CreateModel):
-    if args.version.value:
-        ver = ["-p", args.version.value]
+    """Create a new venv
+
+    If no name provided, a placeholder name will be generated
+    """
+    if args.version:
+        ver = ["-p", args.version]
     else:
         ver = []
 
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        name = args.name.value if args.name.value else _get_unique_name(index, "venv")
-        if args.name.value in index:
+        name = args.name if args.name else _get_unique_name(index, "venv")
+        if args.name in index:
             print(
                 f"An environment called '{name}' already exists. You can activate "
                 f"the existing '{name}' using\n"
@@ -318,7 +320,7 @@ def _create(args: _CreateModel):
         no_index = ["--no-index"]
     else:
         index = None
-        name = args.name.value if args.name.value else "venv"
+        name = args.name if args.name else "venv"
         venv_dir = tempfile.mkdtemp(prefix="kslurm-")
         no_download = []
         no_index = []
@@ -352,12 +354,16 @@ def _create(args: _CreateModel):
 
 
 @attr.frozen
-class ActivateModel:
-    name: PositionalArg[str] = PositionalArg()
+class _ActivateModel:
+    name: str = positional()
 
 
 @command
-def _activate(args: ActivateModel):
+def _activate(args: _ActivateModel):
+    """Activate a venv already created or loaded
+
+    Only works on compute nodes. Use kpy create or kpy load --as on a login node
+    """
     try:
         slurm_tmp = _get_slurm_tmpdir(False)
     except MissingSlurmTmpdirError as err:
@@ -365,7 +371,7 @@ def _activate(args: ActivateModel):
         return
 
     index = KpyIndex(slurm_tmp)
-    name = args.name.value
+    name = args.name
     if name not in index:
         print(
             f"An environment with the name '{name}' has not yet been initialized. ",
@@ -391,6 +397,10 @@ def _activate(args: ActivateModel):
 
 @command
 def _list():
+    """List all venvs either created or loaded.
+
+    To list saved venvs, run `kpy load` without any arguments
+    """
     try:
         slurm_tmp = _get_slurm_tmpdir(False)
     except MissingSlurmTmpdirError as err:
@@ -410,7 +420,7 @@ def _refresh():
         return
 
     try:
-        hsh = get_hash(pip_freeze(dir))
+        hsh = _get_hash(_pip_freeze(dir))
         if hsh != state_hash and cfg["prompt"][0] != "*":
             cfg["prompt"] = "*" + cfg["prompt"]
         elif hsh == state_hash and cfg["prompt"][0] == "*":
@@ -421,8 +431,8 @@ def _refresh():
 
 
 @attr.frozen
-class KpyModel:
-    command: SubCommand = SubCommand(
+class _KpyModel:
+    command: Subcommand = subcommand(
         commands={
             "load": _load,
             "save": _save,
@@ -434,16 +444,14 @@ class KpyModel:
         },
     )
 
-    tail: TailArg = TailArg("Args")
-
 
 @command
-def kpy(args: KpyModel) -> None:
-    command = args.command.value
-    tail = args.tail
-    name = f"kslurm {args.command.raw_value}"
-    command([name, *tail.values])
+def kpy(cmd_name: str, args: _KpyModel, tail: list[str]) -> None:
+    """Set of commands for interacting with python virtual envs"""
+    name, func = args.command
+    entry = f"{cmd_name} {name}"
+    func([entry, *tail])
 
 
 if __name__ == "__main__":
-    kpy(["kpy", "bash", "--help"])
+    kpy(["kpy", "--help"])

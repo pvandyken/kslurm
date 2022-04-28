@@ -11,6 +11,8 @@ extend_skip = ["__init__.py"]
 
 [tool.pyright]
 strict = ["kslurm/**"]
+include = ["kslurm"]
+exclude = ["kslurm/test/", "**/__pycache__", "**/node_modules", ".git"]
 venv = ".venv"
 
 [tool.black]

@@ -8,7 +8,7 @@ from typing import Any, List
 import attr
 from typing_extensions import TypedDict
 
-from kslurm.args.arg_types import FlagArg, KeywordArg, ShapeArg, TailArg
+from kslurm.args.arg_types import flag, keyword, shape
 from kslurm.exceptions import MandatoryArgError
 
 
@@ -51,55 +51,43 @@ def get_tests(model: object) -> List[List[List[Any]]]:
     ]
 
 
-@attr.s(auto_attribs=True)
+@attr.frozen
 class AttrModel:
-    time: ShapeArg[str] = ShapeArg(
-        id="random",
+    time: str = shape(
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
         format=formatters.time,
     )
 
-    gpu: FlagArg = FlagArg(match=["gpu"])
+    gpu: bool = flag(match=["gpu"])
 
-    number: ShapeArg[int] = ShapeArg(
-        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), format=int
-    )
+    number: int = shape(match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), format=int)
 
-    length_5_keyword: KeywordArg[str] = KeywordArg(
-        id="length_5_keyword",
+    length_5_keyword: list[str] = keyword(
         match=["--length_5_keyword"],
         num=5,
-        value=None,
     )
-
-    tail: TailArg = TailArg()
 
 
 class TypedDictModel(TypedDict):
-    time: ShapeArg[str]
-    gpu: FlagArg
-    number: ShapeArg[str]
-    length_5_keyword: KeywordArg[str]
-    tail: TailArg
+    time: str
+    gpu: bool
+    number: str
+    length_5_keyword: str
 
 
 attrmodel = AttrModel()
 
 typed_dict_model = TypedDictModel(
-    time=ShapeArg(
-        id="random",
+    time=shape(
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
         format=formatters.time,
     ),
-    gpu=FlagArg(match=["gpu"]),
-    number=ShapeArg(match=lambda arg: bool(re.match(r"^[0-9]+$", arg))),
-    length_5_keyword=KeywordArg[str](
-        id="length_5_keyword",
+    gpu=flag(match=["gpu"]),
+    number=shape(match=lambda arg: bool(re.match(r"^[0-9]+$", arg))),
+    length_5_keyword=keyword(
         match=["--length_5_keyword"],
         num=5,
-        value=None,
     ),
-    tail=TailArg(),
 )
 
 no_default_attr = ModelTest(attrmodel, *get_tests(attrmodel))

@@ -7,7 +7,7 @@ from typing import Any, List
 
 import attr
 
-from kslurm.args.arg_types import FlagArg, KeywordArg, PositionalArg, ShapeArg, TailArg
+from kslurm.args.arg_types import flag, keyword, positional, shape
 
 
 def get_tests(model: object) -> List[List[List[Any]]]:
@@ -42,28 +42,23 @@ def get_tests(model: object) -> List[List[List[Any]]]:
 
 @attr.s(auto_attribs=True)
 class PositionalAndShapeModel:
-    time: ShapeArg[str] = ShapeArg(
-        id="random",
+    time: str = shape(
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
         format=formatters.time,
-        value="03:00",
+        default="03:00",
     )
 
-    flag: FlagArg = FlagArg(match=["flag"])
+    flag1: bool = flag(match=["flag"])
 
-    cpu: ShapeArg[str] = ShapeArg(
-        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), value="1"
-    )
+    cpu: int = shape(match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), default="1")
 
-    template: KeywordArg[str] = KeywordArg(match=["-j", "template"], num=1, value=False)
+    template: list[str] = keyword(match=["-j", "template"], num=1)
 
-    positional: PositionalArg[str] = PositionalArg(id="positional", value="pos1")
+    positional1: str = positional(default="pos1")
 
-    positional2: PositionalArg[str] = PositionalArg(id="positional2", value="pos2")
+    positional2: str = positional(default="pos2")
 
-    positional3: PositionalArg[str] = PositionalArg(id="positional3", value="pos3")
-
-    tail: TailArg = TailArg()
+    positional3: str = positional(default="pos3")
 
 
 pos_and_shape = ModelTest(

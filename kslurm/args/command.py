@@ -57,6 +57,9 @@ def command(func: _CommandFunc) -> WrappedCommand:
             parsed = parse_args(argv[1:], model(), script_name=argv[0], docstring=doc)
         except exceptions as err:
             parsed = err
-        func(parsed)  # type: ignore
+        try:
+            func(parsed)  # type: ignore
+        except TypeError:
+            func()  # type: ignore
 
     return wrapper

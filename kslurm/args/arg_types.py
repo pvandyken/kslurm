@@ -1,318 +1,289 @@
 from __future__ import absolute_import, annotations
 
-import abc
-import copy
-from typing import Callable, Dict, Generic, Iterable, List, Optional, TypeVar
+from typing import Callable, Dict, List, Optional, TypeVar, Union
 
-from colorama import Fore, Style
+import attr
+import docstring_parser as doc
+from rich.text import Text
 
+from kslurm.args.arg import AbstractHelpTemplate, Arg, DuplicatePolicy, HelpRow
 from kslurm.args.types import WrappedCommand
-from kslurm.exceptions import MandatoryArgError, ValidationError
+from kslurm.exceptions import ValidationError
 
 T = TypeVar("T")
 S = TypeVar("S")
 
 
-class Arg(abc.ABC, Generic[T]):
-    raw_value: str
+@attr.frozen
+class ShapeArg(AbstractHelpTemplate):
+    title = "Shape Args"
+    header = ["", "Syntax", "", "Examples", "Default", ""]
+    right_align_cols = 2
 
-    def __init__(
-        self,
-        *,
-        id: str,
-        match: Callable[[str], bool],
-        value: Optional[str],
-        format: Callable[[str], T],
-        help: str,
-    ):
-        self.id = id
-        self.match = match
-        self._format = format
-        self.value = value
-        self.help = help
-        self.terminal: bool = False
+    syntax: str
+    examples: list[str]
 
-    @property
-    def value(self):
-        if self._value is None:
-            raise MandatoryArgError(f"{self.name} has not been provided a value.")
-        return self._value
+    def _syntax_format(self, syntax: str):
+        lines = [f"[cyan bold]{line.strip()}[/]" for line in syntax.split(" | ")]
+        return "\n".join(lines)
 
-    @value.setter
-    def value(self, value: Optional[str]):
-        if value is None:
-            self._value = value
-            self.raw_value = ""
-        else:
-            self._value = self._format(value)
-            self.raw_value = value
+    def usage(self, name: str, help: str, default: Optional[str]) -> str:
+        return rf"[hot]\[{name}][/]"
 
-    def __eq__(self, o: object) -> bool:
-        if isinstance(o, self.__class__):
-            return o._value == self._value
-        else:
-            return False
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.id} = {self._value}>"
-
-    def __str__(self) -> str:
-        return str(self.value)
-
-    def __hash__(self) -> int:
-        return hash(hash(self.id) + hash(self.value))
-
-    def setid(self, id: str):
-        c = copy.copy(self)
-        c.id = id
-        return c
-
-    @property
-    def name(self) -> str:
-        return self.id
-
-    @abc.abstractmethod
-    def set_value(self, value: str) -> Arg[T]:
-        pass
+    def row(self, name: str, help: str, default: Optional[str]):
+        return [
+            Text(name, style="bold"),
+            self._syntax_format(self.syntax),
+            ("➔" if self.examples else ""),
+            Text("\n".join(self.examples)),
+            Text(str(default), style="default_col") if default is not None else "",
+            Text(help),
+        ]
 
 
-class PositionalArg(Arg[T]):
-    def __init__(
-        self,
-        value: Optional[str] = None,
-        id: str = "positional",
-        format: Callable[[str], T] = str,
-        validator: Callable[[str], str] = lambda x: x,
-        help: str = "",
-        name: str = "",
-    ):
-        super().__init__(
-            id=id, match=lambda x: True, value=value, format=format, help=help
-        )
-        self.validator = validator
-        self._name = name
-        self.updated = False
-        self.validation_err: Optional[ValidationError] = None
+@attr.frozen
+class PositionalArg(AbstractHelpTemplate):
+    title = "Positional Args"
+    header = []
 
-    def set_value(self, value: str):
-        c = copy.copy(self)
-        try:
-            c.value = self.validator(value)
-            c.updated = True
-            return c
-        except ValidationError as err:
-            c.validation_err = ValidationError(
-                f"""
-    {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-        Invalid value for "{Style.BRIGHT + self.name + Style.RESET_ALL}":
-            {err.msg}
-            """
-            )
-            return c
+    def usage(self, name: str, help: str, default: Optional[str]) -> str:
+        if default is None:
+            return f"[cyan]{name}[/]"
+        return rf"[cyan]\[{name}][/]"
 
-    @property
-    def name(self):
-        if self._name:
-            return self._name
-        return self.id
+    def row(self, name: str, help: str, default: Optional[str]):
+        return [
+            Text(name, style="bold"),
+            Text(default if default is not None else "REQUIRED", style="default_col"),
+            Text(help),
+        ]
 
 
-class ChoiceArg(PositionalArg[T]):
-    def __init__(
-        self,
-        *,
-        value: Optional[str] = None,
-        match: List[str],
-        id: str = "",
-        format: Callable[[str], T] = str,
-        help: str = "",
-        name: str = "",
-    ):
-        def check_match(val: str):
-            if val in match:
-                return val
-            choices = "\n".join([f"\t\t• {m}" for m in match])
-            raise ValidationError(f"Please select between:\n" f"{choices}")
+@attr.frozen
+class SubcommandTemplate(AbstractHelpTemplate):
+    title = "Commands"
+    header = []
 
-        super().__init__(
-            value=value,
-            id=id,
-            format=format,
-            validator=check_match,
+    commands: dict[str, WrappedCommand]
+
+    def usage(self, name: str, help: str, default: Optional[str]) -> str:
+        return f"[cyan]{name}[/]"
+
+    def row(
+        self, name: str, help: str, default: Optional[str]
+    ) -> Union[list[HelpRow], HelpRow]:
+        return [
+            ["", help],
+            [],
+            *(
+                [
+                    Text(name, style="bold"),
+                    Text(doc.parse(func.__doc__ or "").short_description or ""),
+                ]
+                for name, func in self.commands.items()
+            ),
+        ]
+
+
+# @attr.frozen
+# class KeywordArg(AbstractHelpEntry):
+#     title = "Keyword Args"
+#     header = ["", "Default", ""]
+
+#     name: list[str]
+#     value_name: Optional[str]
+#     default: str
+#     help: str
+
+#     @property
+#     def usage(self):
+#         return ""
+
+#     def row(self) -> list[Union[Text, str]]:
+#         return [
+#             Text(", ".join(self.name)) + (
+#                 Text(f" <{(self.value_name)}>", style="grey")
+#                 if self.value_name else ''
+#             ),
+#             Text(self.default, style="default_col"),
+#             Text(textwrap.fill(self.help, 70)),
+#         ]
+
+
+# @attr.frozen
+# class ChoiceArg(AbstractHelpEntry):
+#     title = "Choice Args"
+#     header = ["", "Choices", "Default", ""]
+
+#     name: str
+#     choices: list[str]
+#     default: str
+#     help: str
+
+#     @property
+#     def usage(self):
+#         return ""
+
+#     def row(self) -> list[Union[Text, str]]:
+#         return [
+#             Text(self.name, style="bold"),
+#             Text(",".join(self.choices), style="bold"),
+#             Text(self.default, style="default_col"),
+#             Text(textwrap.fill(self.help, 70)),
+#         ]
+
+
+def positional(
+    default: Optional[str] = None,
+    *,
+    help: str = "",
+    name: str = "",
+    format: Callable[[str], T] = str,
+) -> Arg[T, None]:
+    return Arg[T, None](
+        priority=0,
+        match=lambda _: True,
+        duplicates=DuplicatePolicy.SKIP,
+        format=format,
+        help=help,
+        help_template=PositionalArg(),
+        name=name,
+    ).with_value(default)
+
+
+def choice(
+    match: List[str],
+    *,
+    default: Optional[str] = None,
+    help: str = "",
+    name: str = "",
+    format: Callable[[str], T] = str,
+) -> Arg[T, None]:
+    def check_match(val: str) -> T:
+        if val in match:
+            return format(val)
+        choices = "\n".join([f"\t\t• {m}" for m in match])
+        raise ValidationError(f"Please select between:\n" f"{choices}")
+
+    return Arg[T, None](
+        match=lambda _: True,
+        priority=0,
+        duplicates=DuplicatePolicy.SKIP,
+        format=check_match,
+        help=help,
+        name=name,
+    ).with_value(default)
+
+
+Subcommand = tuple[str, WrappedCommand]
+
+
+def subcommand(
+    commands: Dict[str, WrappedCommand],
+    default: Optional[str] = None,
+) -> Arg[Subcommand, None]:
+    def check_match(val: str):
+        if val in commands.keys():
+            return (val, commands[val])
+        choices = "\n".join([f"\t\t• {m}" for m in commands.keys()])
+        raise ValidationError(f"Please select between:\n" f"{choices}")
+
+    return Arg[Subcommand, None](
+        match=lambda _: True,
+        priority=0,
+        duplicates=DuplicatePolicy.SKIP,
+        format=check_match,
+        help="Run any command followed by -h for more information",
+        help_template=SubcommandTemplate(commands),
+        name="subcommand",
+        terminal=True,
+    ).with_value(default)
+
+
+def shape(
+    match: Callable[[str], bool],
+    *,
+    default: Optional[str] = None,
+    format: Callable[[str], T] = str,
+    help: str = "",
+    name: str = "",
+    syntax: str = "",
+    examples: List[str] = [],
+) -> Arg[T, None]:
+    return Arg[T, None](
+        match=match,
+        priority=10,
+        duplicates=DuplicatePolicy.SKIP,
+        format=format,
+        help=help,
+        help_template=ShapeArg(
+            syntax=syntax,
+            examples=examples,
+        ),
+        name=name,
+    ).with_value(default)
+
+
+def flag(
+    match: List[str],
+    default: Optional[bool] = False,
+    help: str = "",
+) -> Arg[bool, None]:
+    def check_match(val: str):
+        if val in match:
+            return True
+        return False
+
+    if default:
+        raw_value = match[0]
+    elif default is None:
+        raw_value = None
+    else:
+        raw_value = ""
+
+    return Arg[bool, None](
+        match=check_match,
+        priority=20,
+        duplicates=DuplicatePolicy.REPLACE,
+        format=bool,
+        help=help,
+        name=", ".join(match),
+    ).with_value(raw_value)
+
+
+def keyword(  # type: ignore
+    match: List[str],
+    *,
+    default: Optional[List[str]] = [],
+    validate: Callable[[str], T] = str,
+    num: int = 1,
+    help: str = "",
+    lazy: bool = ...,
+) -> Arg[bool, T]:
+    def check_match(val: str):
+        if val in match:
+            return True
+        return False
+
+    if default:
+        raw_value = match[0]
+    elif default is None:
+        raw_value = None
+    else:
+        raw_value = ""
+
+    return (
+        Arg[bool, T](
+            match=check_match,
+            priority=20,
+            duplicates=DuplicatePolicy.REPLACE,
+            format=bool,
             help=help,
-            name=name,
+            num=num,
+            validate=validate,
+            greediness=5 if lazy else 30,
+            name=", ".join(match) + " <value>",
         )
-
-        self.match_list = match
-
-
-class SubCommand(ChoiceArg[WrappedCommand]):
-    def __init__(
-        self,
-        *,
-        commands: Dict[str, WrappedCommand],
-        value: Optional[str] = None,
-        id: str = "",
-    ):
-        self.commands = commands
-        super().__init__(
-            value=value,
-            id=id,
-            format=lambda s: self.commands[s],
-            match=list(commands.keys()),
-            help="Run any command followed by -h for more inforamtion",
-            name="Command",
-        )
-        self.terminal = True
-
-
-class ShapeArg(Arg[T]):
-    def __init__(
-        self,
-        *,
-        id: str = "",
-        match: Callable[[str], bool],
-        value: Optional[str] = None,
-        format: Callable[[str], T] = str,
-        help: str = "",
-        name: str = "",
-        syntax: str = "",
-        examples: List[str] = [],
-    ):
-        super().__init__(id=id, match=match, value=value, format=format, help=help)
-        self.updated = False
-        self._name = name
-        self.syntax = syntax
-        self.examples = examples
-
-    def set_value(self, value: str):
-        c = copy.copy(self)
-        c.value = value
-        c.raw_value = value
-        c.updated = True
-        return c
-
-    @property
-    def name(self):
-        if self._name:
-            return self._name
-        return self.id
-
-
-class FlagArg(Arg[bool]):
-    def __init__(
-        self,
-        *,
-        id: str = "",
-        match: List[str],
-        value: Optional[bool] = False,
-        help: str = "",
-    ):
-        def check_match(val: str):
-            if val in match:
-                return True
-            return False
-
-        if value:
-            raw_value = match[0]
-        elif value is None:
-            raw_value = None
-        else:
-            raw_value = ""
-
-        super().__init__(
-            id=id, match=check_match, format=bool, value=raw_value, help=help
-        )
-        self.match_list = match
-
-    def set_value(self, value: str):
-        c = copy.copy(self)
-        c.value = value
-        return c
-
-    @property
-    def name(self):
-        return ", ".join(self.match_list)
-
-
-class KeywordArg(FlagArg, Generic[S]):
-    def __init__(
-        self,
-        *,
-        id: str = "",
-        match: List[str],
-        value: Optional[bool] = False,
-        num: int = 1,
-        validate: Callable[[str], str] = lambda x: x,
-        values: List[str] = [],
-        help: str = "",
-        values_name: str = "",
-        lazy: bool = False,
-    ):
-        super().__init__(id=id, match=match, help=help, value=value)
-        self.num = num
-        self.validate = validate
-        self.values = values
-        self.values_name = values_name
-        self.validation_err: Optional[ValidationError] = None
-        self.lazy = lazy
-
-    @property
-    def values(self) -> List[str]:
-        return self._values
-
-    @values.setter
-    def values(self, values: List[str]):
-        self._values = values
-
-    def set_value(self, value: str):
-        c = copy.copy(self)
-        c.value = value
-        # We need to obliterate any values in order for argparse to work
-        # Otherwise any default args will be included in the final list.
-        # A more elegant solution would delete default args organically
-        # if user-supplied args are added.
-        c.values = []
-        return c
-
-    def add_values(self, values: Iterable[str]):
-        c = copy.copy(self)
-        try:
-            c.values = list(map(self.validate, values))
-            return c
-        except ValidationError as err:
-            c.validation_err = ValidationError(
-                f"""
-    {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-        Invalid value for "{Style.BRIGHT + self.id + Style.RESET_ALL}":
-            {err.msg}
-            """,
-            )
-            return c
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.id} = {self.values}>"
-
-    def __str__(self) -> str:
-        return " ".join(self.values)
-
-    def __eq__(self, o: object) -> bool:
-        if isinstance(o, self.__class__):
-            return o._value == self._value and o.values == self.values
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        value_hash = hash(sum([hash(val) for val in self.values]))
-        return hash(super().__hash__() + value_hash)
-
-
-class TailArg(KeywordArg[str]):
-    def __init__(self, name: str = "Tail"):
-        super().__init__(id="tail", num=-1, match=[])
-        self._name = name
-        self.raise_exception = False
-
-    @property
-    def name(self):
-        return self._name
+        .with_value(raw_value)
+        .with_values(default or [])
+    )

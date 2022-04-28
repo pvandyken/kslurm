@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import List
 from venv import EnvBuilder
 
-from kslurm.args import parse_args
+import kslurm.args.helpers as helpers
+from kslurm.args.parser import parse_args
 from kslurm.installer.utils import bin_dir, data_dir, get_current_version, get_version
 from kslurm.installer.version import FlexVersion
 from kslurm.models.update import UpdateModel
@@ -20,11 +21,13 @@ def install(args: List[str], name: str, home_dir: str, entrypoints: List[str] = 
         "based install (follow the instructions on the README: "
         "https://github.com/pvandyken/kslurm)"
     )
-    parsed = parse_args(args, UpdateModel())
+    parsed: UpdateModel = helpers.finalize_model(
+        parse_args(args, helpers.get_arg_list(UpdateModel))[0], UpdateModel
+    )
     data = data_dir(home_dir)
     bin = bin_dir(home_dir)
     print("Checking for Updates")
-    version = get_version(parsed.version.value, False, METADATA_URL)
+    version = get_version(parsed.version, False, METADATA_URL)
     if version is None:
         return 1
     try:

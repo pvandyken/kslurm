@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 
 import re
-import test.args.models.formatters as formatters
-from test.args.models.common import ModelTest, update_model
 from typing import Any, List
 
 import attr
 from typing_extensions import TypedDict
 
-from kslurm.args.arg_types import FlagArg, KeywordArg, ShapeArg, TailArg
+import kslurm.test.args.models.formatters as formatters
+from kslurm.args.arg_types import flag, keyword, shape
+from kslurm.test.args.models.common import ModelTest, update_model
 
 
 def get_tests(model: object) -> List[List[List[Any]]]:
@@ -113,65 +113,54 @@ def get_tests(model: object) -> List[List[List[Any]]]:
     ]
 
 
-@attr.s(auto_attribs=True)
+@attr.define
 class AttrModel:
-    time: ShapeArg[str] = ShapeArg(
-        id="random",
+    time: str = shape(
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
         format=formatters.time,
-        value="03:00",
+        default="03:00",
     )
 
-    gpu: FlagArg = FlagArg(match=["gpu"])
+    gpu: bool = flag(match=["gpu"])
 
-    number: ShapeArg[int] = ShapeArg(
-        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), format=int, value="1"
+    number: int = shape(
+        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), format=int, default="1"
     )
 
-    job_template: KeywordArg[str] = KeywordArg(
-        id="junk", match=["-j", "--job-template"], num=1, value=False
-    )
+    job_template: list[int] = keyword(match=["-j", "--job-template"], num=1)
 
-    length_5_keyword: KeywordArg[str] = KeywordArg(
-        id="length_5_keyword",
+    length_5_keyword: list[str] = keyword(
         match=["--length_5_keyword"],
         num=5,
-        value=False,
     )
 
-    tail: TailArg = TailArg()
+
+# f = parse_args(["1:30", "gpu", "--job-template", "4", "5"], AttrModel)
 
 
 class TypedDictModel(TypedDict):
-    time: ShapeArg[str]
-    gpu: FlagArg
-    number: ShapeArg[str]
-    job_template: KeywordArg[str]
-    length_5_keyword: KeywordArg[str]
-    tail: TailArg
+    time: str
+    gpu: bool
+    number: str
+    job_template: str
+    length_5_keyword: str
 
 
 attrmodel = AttrModel()
 
 typed_dict_model = TypedDictModel(
-    time=ShapeArg(
-        id="random",
+    time=shape(
         match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
         format=formatters.time,
-        value="03:00",
+        default="03:00",
     ),
-    gpu=FlagArg(match=["gpu"]),
-    number=ShapeArg(match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), value="1"),
-    job_template=KeywordArg[str](
-        id="junk", match=["-j", "--job-template"], num=1, value=False
-    ),
-    length_5_keyword=KeywordArg[str](
-        id="length_5_keyword",
+    gpu=flag(match=["gpu"]),
+    number=shape(match=lambda arg: bool(re.match(r"^[0-9]+$", arg)), default="1"),
+    job_template=keyword(match=["-j", "--job-template"], num=1),
+    length_5_keyword=keyword(
         match=["--length_5_keyword"],
         num=5,
-        value=False,
     ),
-    tail=TailArg(),
 )
 
 basic_attr = ModelTest(attrmodel, *get_tests(attrmodel))

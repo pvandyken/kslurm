@@ -6,5 +6,5 @@ from typing_extensions import Protocol
 
 
 class WrappedCommand(Protocol):
-    def __call__(self, argv: List[str] = ...) -> None:
+    def __call__(self, argv: List[str] = ...) -> int:
         ...

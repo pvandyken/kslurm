@@ -4,7 +4,7 @@ import re
 
 import attr
 
-from kslurm.args import ShapeArg, TailArg
+from kslurm.args import shape
 
 # v(major_version).(minor_version).(patch_version).(sub_patch_version)
 VERSION_REGEX = (
@@ -20,13 +20,11 @@ VERSION_REGEX = (
 
 @attr.s(auto_attribs=True)
 class UpdateModel:
-    version: ShapeArg[str] = ShapeArg[str](
+    version: str = shape(
         match=lambda arg: bool(re.match(VERSION_REGEX, arg)),
-        value="",
+        default="",
         name="Version",
         syntax="d[.d][.d][.d][_tag]",
         examples=["0.1.0"],
         help="Optional: version to install",
     )
-
-    tail: TailArg = TailArg()

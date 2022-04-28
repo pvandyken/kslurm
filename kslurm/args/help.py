@@ -1,32 +1,27 @@
 from __future__ import absolute_import
 
-import textwrap
+import itertools as it
+import operator as op
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, TypeVar, Union, cast
+from typing import Any, DefaultDict, Optional, Union
 
 from rich.console import Group
 from rich.padding import Padding
-from rich.table import Table  # type: ignore (Claims Table is not exported??)
+from rich.table import Table
 from rich.text import Text
 
+from kslurm.args.arg import AbstractHelpTemplate, Arg
 from kslurm.style.console import console
 
-from .arg_types import (
-    Arg,
-    ChoiceArg,
-    FlagArg,
-    KeywordArg,
-    PositionalArg,
-    ShapeArg,
-    SubCommand,
-    TailArg,
-)
-from .helpers import get_arg_list, group_by_type
 
+class BasicTemplate(AbstractHelpTemplate):
+    title = "options"
+    header = []
+    cls_usage = "<options>"
+    priority = 50
 
-def _syntax_format(syntax: str):
-    lines = [f"[cyan bold]{line.strip()}[/]" for line in syntax.split(" | ")]
-    return "\n".join(lines)
+    def row(self, name: str, help: str, default: Optional[str]):
+        return [name, help, default if default is not None else ""]
 
 
 def _header(header: str):
@@ -41,150 +36,46 @@ def _section(header: str, body: Union[Table, str]):
     )
 
 
-def print_help(script: str, models: object, script_help: str = "") -> None:
-    arg_list = get_arg_list(models)
-    grouped = group_by_type(arg_list)
-    positionals = cast(List[PositionalArg[Any]], grouped.get(PositionalArg, []))
-    shapes = cast(List[ShapeArg[Any]], grouped.get(ShapeArg, []))
-    keywords = cast(List[KeywordArg[Any]], grouped.get(KeywordArg, []))
-    flags = cast(List[FlagArg], grouped.get(FlagArg, []))
-    choices = cast(List[ChoiceArg[Any]], grouped.get(ChoiceArg, []))
-    subcommands = cast(List[SubCommand], grouped.get(SubCommand, []))
-    tail = cast(List[TailArg], grouped.get(TailArg, []))
-
-    positional_names = [f"<{arg.name}>" for arg in positionals]
+def print_help(
+    script: str,
+    models: list[Arg[Any, Any]],
+    script_help: str = "",
+    usage_suffix: str = "",
+) -> None:
     script_name = Path(script).name
 
-    command_line_example = "".join(
-        [
-            "[b]USAGE:[/] ",
-            script_name,
-            " [hot]<keywords>[/]" if any([shapes, keywords, flags, choices]) else "",
-            " " + " ".join(positional_names) if positionals else "",
-            " <command>" if subcommands else "",
-            f" [cyan]<{tail[0].name.lower()}...>[/]" if tail else "",
-            "\n\n",
-        ]
-    )
+    templates: set[type[AbstractHelpTemplate]] = set()
+    usages: dict[type[AbstractHelpTemplate], list[str]] = DefaultDict(list)
+    for model in models:
+        if model.help_template is None:
+            template = BasicTemplate()
+        else:
+            template = model.help_template
+        args = model.label, model.help, str(model.safe_value or "")
+        template.add_row(*args)
+        try:
+            usages[type(template)].append(template.usage(*args))
+        except NotImplementedError:
+            pass
+        templates.add(type(template))
 
-    shape_section = _section("Shape args", _shape_table(shapes))
-    keyword_section = _section("keyword args", _keyword_table(keywords))
-    positional_section = _section("positional args", _positional_table(positionals))
-    flag_section = _section("flag args", _flag_table(flags))
-    choice_section = _section("choice args", _choice_table(choices))
-    subcommand_section = _section("subcommands", _choice_table(subcommands))
-    sections = list(
-        filter(
-            None,
-            [
-                "\n",
-                command_line_example,
-                script_help,
-                subcommand_section,
-                choice_section,
-                positional_section,
-                shape_section,
-                keyword_section,
-                flag_section,
-            ],
-        )
-    )
-    console.print(*sections)
+    sorted_templates: dict[type[AbstractHelpTemplate], list[str]] = {}
 
+    for template in sorted(usages, key=op.attrgetter("priority"), reverse=True):
+        if not usages[template]:
+            usages[template].append(template.cls_usage)
+        sorted_templates[template] = usages[template]
 
-T = TypeVar("T", bound=Arg[Any])
+    command_line_example = [
+        "[b]USAGE:[/] ",
+        script_name,
+        " " + " ".join(it.chain.from_iterable(sorted_templates.values()))
+        if usages
+        else "",
+        Text(f" <{usage_suffix}>", style="cyan") if usage_suffix else "",
+        "\n",
+    ]
 
+    sections = [_section(template.title, template.table()) for template in templates]
 
-def _get_helps(args: List[T]):
-    return [Text(textwrap.fill(arg.help, 70)) for arg in args]
-
-
-def _get_defaults(args: List[Any]):
-    return [Text(str(arg), style="default_col") for arg in args]
-
-
-def _help_table(
-    rows: Iterable[Iterable[Union[Text, str]]],
-    header: Optional[List[str]] = None,
-    right_aligned_cols: int = 1,
-):
-    t = Table.grid(
-        padding=(1, 2),
-    )
-    for _ in range(right_aligned_cols):
-        t.add_column(justify="right")
-    if header:
-        t.add_row(*header, style="bold")
-    for r in rows:
-        t.add_row(*list(r))
-    return t
-
-
-def _shape_table(args: List[ShapeArg[Any]]):
-    if args:
-        names = [Text(arg.name, style="bold") for arg in args]
-        syntaxes = [_syntax_format(arg.syntax) for arg in args]
-        examples = [Text("\n".join(arg.examples), style="grey") for arg in args]
-        eg = ["➔" if example else "" for example in examples]
-        defaults = _get_defaults([arg.raw_value for arg in args])
-        helps = _get_helps(args)
-
-        header = ["", "Syntax", "", "Examples", "Default", ""]
-        body = zip(names, syntaxes, eg, examples, defaults, helps)
-
-        return _help_table(body, header, right_aligned_cols=2)
-    else:
-        return ""
-
-
-def _positional_table(args: List[PositionalArg[Any]]):
-    if args:
-        names = [Text(arg.name, style="bold") for arg in args]
-        defaults = _get_defaults([arg.raw_value for arg in args])
-        helps = _get_helps(args)
-        body = zip(names, defaults, helps)
-        header = ["", "Default", ""]
-        return _help_table(body, header)
-    else:
-        return ""
-
-
-def _keyword_table(args: List[KeywordArg[Any]]):
-    if args:
-        names = [Text(", ".join(arg.match_list), style="bold") for arg in args]
-        value_names = [f"<[i]{arg.values_name}[/]>" for arg in args]
-        defaults = _get_defaults([arg.values for arg in args])
-        helps = _get_helps(args)
-
-        body = zip(names, value_names, defaults, helps)
-        header = ["", "", "Default", ""]
-        return _help_table(body, header)
-    else:
-        return ""
-
-
-def _flag_table(args: List[FlagArg]):
-    if args:
-        names = [Text(", ".join(arg.match_list), style="bold") for arg in args]
-        helps = _get_helps(args)
-
-        body = zip(names, helps)
-        return _help_table(body)
-    else:
-        return ""
-
-
-S = TypeVar("S", bound=ChoiceArg[Any])
-
-
-def _choice_table(args: List[S]):
-    if args:
-        names = [Text(arg.name, style="bold") for arg in args]
-        choices = [Text(", ".join(arg.match_list), style="bold") for arg in args]
-        helps = _get_helps(args)
-        defaults = _get_defaults([arg.raw_value for arg in args])
-
-        body = zip(names, choices, defaults, helps)
-        return _help_table(body)
-    else:
-        return ""
+    console.print(*command_line_example, script_help, *sections, sep="")

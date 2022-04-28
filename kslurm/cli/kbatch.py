@@ -6,14 +6,18 @@ from typing import Union
 from colorama import Fore
 
 import kslurm.text as txt
-from kslurm.args.command import command
+from kslurm.args.command import ParsedArgs, command
 from kslurm.exceptions import TemplateError
-from kslurm.models import SlurmModel
-from kslurm.slurm import SlurmCommand
+from kslurm.models.slurm import SlurmModel
+from kslurm.slurm.slurm_command import SlurmCommand
 
 
-@command
-def kbatch(args: Union[SlurmModel, TemplateError]):
+@command(terminate_on_unknown=True)
+def kbatch(
+    args: Union[SlurmModel, TemplateError],
+    command_args: list[str],
+    arglist: ParsedArgs,
+):
     """Submit a job using sbatch
 
     Supports scripts (e.g. ./script.sh) or direct commands (e.g. cp dir/file.txt dir2)
@@ -27,7 +31,7 @@ def kbatch(args: Union[SlurmModel, TemplateError]):
         '$(hostname)'
     """
 
-    slurm = SlurmCommand(args)
+    slurm = SlurmCommand(args, command_args, arglist)
     command = slurm.command if slurm.command else f"{Fore.RED}Must provide a command"
 
     print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
@@ -58,4 +62,4 @@ def kbatch(args: Union[SlurmModel, TemplateError]):
 
 
 if __name__ == "__main__":
-    kbatch()
+    kbatch(["kbatch", "--help"])

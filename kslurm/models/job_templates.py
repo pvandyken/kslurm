@@ -10,7 +10,7 @@ import attr
 from tabulate import tabulate
 from typing_extensions import TypedDict
 
-from kslurm.args import ShapeArg
+import kslurm.models.formatters as formatters
 
 
 class Templates(TypedDict):
@@ -21,12 +21,12 @@ class Templates(TypedDict):
 
 @attr.s(auto_attribs=True)
 class TemplateArgs:
-    mem: ShapeArg[int]
-    cpu: ShapeArg[int]
-    time: ShapeArg[int]
+    mem: int
+    cpu: int
+    time: int
 
 
-@ft.lru_cache(None)
+@ft.cache
 def templates() -> Dict[str, Templates]:
     with impr.open_text("kslurm.data", "slurm_job_templates.json") as stream:
         data = json.load(stream)
@@ -34,17 +34,15 @@ def templates() -> Dict[str, Templates]:
     return data
 
 
-def set_template(
-    template: str, mem: ShapeArg[int], cpu: ShapeArg[int], time: ShapeArg[int]
-):
+def set_template(template: str, mem: int, cpu: int, time: int):
     if template:
         if template not in templates():
             raise Exception(f"{template} is not a valid template")
 
         return TemplateArgs(
-            mem=mem.set_value(templates()[template]["mem"]),
-            cpu=cpu.set_value(templates()[template]["cpus"]),
-            time=time.set_value(templates()[template]["time"]),
+            mem=int(templates()[template]["mem"]),
+            cpu=int(templates()[template]["cpus"]),
+            time=formatters.time(templates()[template]["time"]),
         )
     else:
         return TemplateArgs(mem=mem, cpu=cpu, time=time)

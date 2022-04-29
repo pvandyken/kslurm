@@ -131,18 +131,28 @@ class _LoadModel:
 
 @command
 def _load(args: _LoadModel):
-    if not os.environ.get("SLURM_TMPDIR"):
-        print(
-            "This command can only be used in a compute node. Use `krun` to start an "
-            "interactive session"
-        )
-        return
-    slurm_tmpdir = Path(os.environ["SLURM_TMPDIR"])
-    try:
-        slurm_tmpdir = _get_slurm_tmpdir(False)
-    except MissingSlurmTmpdirError as err:
-        print(err.msg)
-        return
+    slurm_tmp = _get_slurm_tmpdir()
+    if slurm_tmp:
+        index = KpyIndex(slurm_tmp)
+        name = args.name.value
+
+        label = args.new_name.values[0] if args.new_name.values else name
+        if label in index:
+            print(
+                f"An environment called '{label}' already exists. You can load "
+                f"'{name}' under a different name using --as:\n"
+                f"\tkpy load {label} --as <name>\n"
+                f"You can also activate the existing '{label}' using\n"
+                f"\tkpy activate {label}"
+            )
+            return
+        venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
+    else:
+        index = None
+        name = args.name.value
+        label = name
+        venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-"))
+
     pipdir = get_config("pipdir")
     if not pipdir:
         print(
@@ -151,7 +161,6 @@ def _load(args: _LoadModel):
         )
         return
 
-    index = KpyIndex(slurm_tmpdir)
     name = args.name.value
 
     try:
@@ -164,24 +173,11 @@ def _load(args: _LoadModel):
         print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
         return
 
-    label = args.new_name.values[0] if args.new_name.values else name
-    if label in index:
-        print(
-            f"An environment called '{label}' already exists. You can load '{name}' "
-            "under a different name using --as:\n"
-            f"\tkpy load {label} --as <name>\n"
-            f"You can also activate the existing '{label}' using\n"
-            f"\tkpy activate {label}"
-        )
-        return
-
     # pyload_venv_dir = slurm_tmpdir / "__virtual_environments__"
     # if (pyload_venv_dir / name).exists():
     #     shell = Shell.get()
     #     shell.activate(pyload_venv_dir / name)
 
-    (slurm_tmpdir / "tmp").mkdir(parents=True, exist_ok=True)
-    venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmpdir / "tmp"))
     print(f"Unpacking venv '{name}'", end="")
     if label != name:
         print(f" as '{label}'")
@@ -227,11 +223,12 @@ def _load(args: _LoadModel):
     cfg.update({"prompt": label, "state_hash": get_hash(pip_freeze(venv_dir))})
     cfg.write()
 
-    index[label] = str(venv_dir)
-    index.write()
+    if index is not None:
+        index[label] = str(venv_dir)
+        index.write()
+
     shell = Shell.get()
-    n = shell.activate(venv_dir)
-    if n:
+    if n := shell.activate(venv_dir):
         kpy(n)
 
 

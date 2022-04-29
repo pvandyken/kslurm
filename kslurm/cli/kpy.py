@@ -95,6 +95,7 @@ class VenvCache(UserDict[str, Path]):
                 "directory"
             )
         self.venv_cache = Path(pipdir, "venv_archives")
+        self.venv_cache.mkdir(exist_ok=True)
         venvs_re = [
             re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in self.venv_cache.iterdir()
         ]

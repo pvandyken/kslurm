@@ -10,7 +10,7 @@ jobs:
       - name: Checkout master branch
         uses: actions/checkout@v2
         with:
-          ref: refs/heads/main
+          ref: refs/heads/master
 
       - name: Update changelog
         uses: release-drafter/release-drafter@v5

@@ -54,7 +54,7 @@ jobs:
       - name: Update version in files
         uses: jacobtomlinson/gha-find-replace@master
         with:
-          include: 'pyproject.toml'
+          include: 'setup.cfg'
           find: 'version = "(?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))"'
           replace: 'version = "${{ env.NEW_RELEASE }}-pre.${{ env.NEW_BUMP }}"'
 
@@ -69,5 +69,5 @@ jobs:
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}

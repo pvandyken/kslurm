@@ -48,7 +48,7 @@ jobs:
       - name: Update version in files
         uses: jacobtomlinson/gha-find-replace@master
         with:
-          include: 'pyproject.toml'
+          include: 'setup.cfg'
           find: 'version = "(?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))"'
           replace: 'version = "${{ env.NEW_RELEASE }}"'
 

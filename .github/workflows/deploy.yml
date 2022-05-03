@@ -49,8 +49,8 @@ jobs:
         uses: jacobtomlinson/gha-find-replace@master
         with:
           include: 'setup.cfg'
-          find: 'version = "(?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))"'
-          replace: 'version = "${{ env.NEW_RELEASE }}"'
+          find: 'version = (?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))'
+          replace: 'version = ${{ env.NEW_RELEASE }}'
 
       - name: Commit updates
         env:

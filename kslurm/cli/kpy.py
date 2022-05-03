@@ -219,6 +219,19 @@ def _load(args: _LoadModel):
             with path.open("w") as f:
                 f.write("\n".join(subbed))
 
+    for path in venv_dir.glob("lib/*/*"):
+        if path.is_file() and path.suffix == ".pth":
+            with path.open("r") as f:
+                contents = f.read()
+                subbed = re.sub(
+                    r"(\/[\w\-. ]+)+\/kslurm\-[\w\-. ]*\/src",
+                    str(venv_dir / "src"),
+                    contents,
+                    count=0,
+                )
+            with path.open("w") as f:
+                f.write(subbed)
+
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
     cfg.update({"prompt": label, "state_hash": get_hash(pip_freeze(venv_dir))})
     cfg.write()

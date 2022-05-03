@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 import functools as ft
+import importlib.resources as impr
 import itertools as it
 import json
-from pathlib import Path
 from typing import Dict, cast
 
 import attr
@@ -28,14 +28,8 @@ class TemplateArgs:
 
 @ft.lru_cache(None)
 def templates() -> Dict[str, Templates]:
-    file = Path(f"{__file__}/../../data/slurm_job_templates.json").resolve()
-
-    if not file.exists():
-        raise FileNotFoundError(
-            "Could not locate slurm_job_templates.json " f"at {file.resolve()}"
-        )
-    with file.open() as data_stream:
-        data = json.load(data_stream)
+    with impr.open_text("kslurm.data", "slurm_job_templates.json") as stream:
+        data = json.load(stream)
     cast(Dict[str, Templates], data)
     return data
 

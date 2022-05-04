@@ -2,7 +2,16 @@
 
 . $activate_path
 unset activate_path
-deactivate () { exit 0 &> /dev/null; }
+
+if [[ -n $kpy_set_subshell ]]; then
+  export KSLURM_KPY_SUBSHELL=1
+fi
+unset kpy_set_subshell
+
+if [[ -n $KSLURM_KPY_SUBSHELL ]]; then
+  deactivate () { exit 0 &> /dev/null; }
+fi
+
 _pip_prompt_refresh () {
     if command -v kpy &> /dev/null; then
       kpy _refresh
@@ -11,10 +20,25 @@ _pip_prompt_refresh () {
 
 kpy () {
     if [[ $1 == load || $1 == activate || $1 == create ]]; then
-      echo kpy $@ >| $kslurm_next_cmd
-      exit 224 &> /dev/null
+      IFS='|'
+      local cmd ret tmp
+      tmp=${TMPDIR:-/tmp}
+      cmd=$(mktemp "${tmp%/}/kslurm-$(basename $0).XXXXXXXXXX")
+      command kpy $@ --script $cmd
+      ret=$?
+      if [[ $ret == 2 ]]; then
+        eval $(cat $cmd)
+        ret=0
+      fi
+      rm $cmd
+      unset IFS
+
+      return $ret
+    else
+      command kpy $@
     fi
-    command kpy $@
 }
 
-KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_pip_prompt_refresh"
+if [[ ! " ${KSLURM_POST_INSTALL_HOOKS[*]} " =~ " _pip_prompt_refresh " ]]; then
+  KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_pip_prompt_refresh"
+fi

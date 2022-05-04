@@ -100,6 +100,9 @@ class VenvCache(UserDict[str, Path]):
     def _construct_path(self, name: str):
         return (self.venv_cache / name).with_suffix(".tar.gz")
 
+    def __str__(self):
+        return "• " + "\n• ".join(self.data.keys()) if self.data else ""
+
 
 @command
 def _bash():
@@ -153,7 +156,7 @@ def _load(
     venv_cache = VenvCache()
 
     if not name or name not in venv_cache:
-        print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
+        print("Valid venvs:\n" + str(venv_cache))
         return
 
     print(f"Unpacking venv '{name}'", end="")
@@ -351,15 +354,17 @@ def _create(
 
 
 @command(typer=True)
-def _activate(name: str = positional(), script: list[str] = keyword(["--script"])):
+def _activate(name: str = positional(""), script: list[str] = keyword(["--script"])):
     """Activate a venv already created or loaded
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node
     """
     slurm_tmp = _get_slurm_tmpdir(False)
-
     index = KpyIndex(slurm_tmp)
-    name = name
+    if not name:
+        print(str(index))
+        return
+
     if name not in index:
         print(
             f"An environment with the name '{name}' has not yet been initialized. ",
@@ -375,6 +380,7 @@ def _activate(name: str = positional(), script: list[str] = keyword(["--script"]
         except MissingPipdirError:
             pass
         print(f"A new environment can be created using\n\tkpy create {name}")
+        print(f"Currently initialized environments:\n{index}")
         return 1
 
     shell = Shell.get()
@@ -387,13 +393,14 @@ def _activate(name: str = positional(), script: list[str] = keyword(["--script"]
 
 @command
 def _list():
-    """List all venvs either created or loaded.
+    """List all saved venvs.
 
-    To list saved venvs, run `kpy load` without any arguments
+    To list initialized venvs (either created or loaded), run `kpy activate` without any
+    arguments
     """
-    slurm_tmp = _get_slurm_tmpdir(False)
-    index = KpyIndex(slurm_tmp)
-    print("\n".join(index))
+    venv_cache = VenvCache()
+    print(str(venv_cache))
+    return
 
 
 @command
@@ -416,6 +423,25 @@ def _refresh():
         return
 
 
+@command(typer=True)
+def _rm(name: str = positional("")):
+    try:
+        venv_cache = VenvCache()
+    except MissingPipdirError as err:
+        print(err.msg)
+        return 1
+
+    if not name:
+        print("Valid venvs:\n" + str(venv_cache))
+
+    if name not in venv_cache:
+        print(f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}")
+        return 1
+
+    os.remove(venv_cache[name])
+    return
+
+
 @attr.frozen
 class _KpyModel:
     command: Subcommand = subcommand(
@@ -426,6 +452,7 @@ class _KpyModel:
             "create": _create,
             "activate": _activate,
             "list": _list,
+            "rm": _rm,
             "_refresh": _refresh,
         },
     )

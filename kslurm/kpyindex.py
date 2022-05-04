@@ -20,3 +20,6 @@ class KpyIndex(UserDict[str, str]):
     def write(self):
         with self._path.open("w") as f:
             json.dump(self.data, f)
+
+    def __str__(self):
+        return "• " + "\n• ".join(self.data.keys()) if self.data else ""

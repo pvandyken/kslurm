@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess as sp
+import sys
 import tarfile
 import tempfile
 from collections import UserDict
@@ -13,7 +14,6 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union, overload
 
 import attr
-import virtualenv  # type: ignore
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
@@ -120,6 +120,7 @@ def _bash():
 class _LoadModel:
     name: str = positional(default="", help="Test help")
     new_name: list[str] = keyword(match=["--as"])
+    script: list[str] = keyword(match=["--script"])
 
 
 @command
@@ -142,7 +143,7 @@ def _load(args: _LoadModel):
                 f"You can also activate the existing '{label}' using\n"
                 f"\tkpy activate {label}"
             )
-            return
+            return 1
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
     else:
         index = None
@@ -156,7 +157,7 @@ def _load(args: _LoadModel):
             "pipdir not set. Please set pipdir using `kslurm config pipdir "
             "<directory>`, typically to a project-space or permanent storage directory"
         )
-        return
+        return 1
 
     name = args.name
 
@@ -164,10 +165,12 @@ def _load(args: _LoadModel):
         venv_cache = VenvCache()
     except MissingPipdirError as err:
         print(err.msg)
-        return
+        return 1
 
     if not name or name not in venv_cache:
         print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
+        if args.script:
+            return
         return
 
     print(f"Unpacking venv '{name}'", end="")
@@ -220,8 +223,11 @@ def _load(args: _LoadModel):
         index.write()
 
     shell = Shell.get()
-    if n := shell.activate(venv_dir):
-        kpy(n)
+    if args.script:
+        with Path(args.script[0]).open("w") as f:
+            f.write(shell.source(venv_dir))
+        return 2
+    shell.activate(venv_dir)
 
 
 @attr.frozen
@@ -290,6 +296,7 @@ class _CreateModel:
         help="Python version to use in new venv. An appropriate executable must be on "
         "the $PATH (e.g. 3.7 -> python3.7",
     )
+    script: list[str] = keyword(match=["--script"])
 
 
 @command
@@ -313,7 +320,7 @@ def _create(args: _CreateModel):
                 f"the existing '{name}' using\n"
                 "\tkpy activate {name}"
             )
-            return
+            return 1
 
         venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp")
         no_download = ["--no-download"]
@@ -326,8 +333,18 @@ def _create(args: _CreateModel):
         no_index = []
 
     try:
-        virtualenv.cli_run(  # type: ignore
-            [venv_dir, "--symlinks", "--prompt", name, *ver, *no_download]
+        sp.run(
+            [
+                sys.executable,
+                "-m",
+                "virtualenv",
+                venv_dir,
+                "--symlinks",
+                "--prompt",
+                name,
+                *ver,
+                *no_download,
+            ],
         )
         sp.run(
             [
@@ -338,24 +355,27 @@ def _create(args: _CreateModel):
                 "--upgrade",
                 "pip",
                 *no_index,
-            ]
+            ],
         )
     except RuntimeError as err:
         print(err.args[0])
-        return
+        return 1
     if index is not None:
         index[name] = str(venv_dir)
         index.write()
 
     shell = Shell.get()
-    n = shell.activate(Path(venv_dir))
-    if n:
-        kpy(n)
+    if args.script:
+        with Path(args.script[0]).open("w") as f:
+            f.write(shell.source(Path(venv_dir)))
+        return 2
+    shell.activate(Path(venv_dir))
 
 
 @attr.frozen
 class _ActivateModel:
     name: str = positional()
+    script: list[str] = keyword(match=["--script"])
 
 
 @command
@@ -368,7 +388,7 @@ def _activate(args: _ActivateModel):
         slurm_tmp = _get_slurm_tmpdir(False)
     except MissingSlurmTmpdirError as err:
         print(err.msg)
-        return
+        return 1
 
     index = KpyIndex(slurm_tmp)
     name = args.name
@@ -387,12 +407,14 @@ def _activate(args: _ActivateModel):
         except MissingPipdirError:
             pass
         print(f"A new environment can be created using\n\tkpy create {name}")
-        return
+        return 1
 
     shell = Shell.get()
-    n = shell.activate(Path(index[name]))
-    if n:
-        kpy(n)
+    if args.script:
+        with Path(args.script[0]).open("w") as f:
+            f.write(shell.source(Path(index[name])))
+        return 2
+    shell.activate(Path(index[name]))
 
 
 @command
@@ -405,7 +427,7 @@ def _list():
         slurm_tmp = _get_slurm_tmpdir(False)
     except MissingSlurmTmpdirError as err:
         print(err.msg)
-        return
+        return 1
     index = KpyIndex(slurm_tmp)
     print("\n".join(index))
 
@@ -446,11 +468,11 @@ class _KpyModel:
 
 
 @command
-def kpy(cmd_name: str, args: _KpyModel, tail: list[str]) -> None:
+def kpy(cmd_name: str, args: _KpyModel, tail: list[str]):
     """Set of commands for interacting with python virtual envs"""
     name, func = args.command
     entry = f"{cmd_name} {name}"
-    func([entry, *tail])
+    return func([entry, *tail])
 
 
 if __name__ == "__main__":

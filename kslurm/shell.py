@@ -3,7 +3,6 @@ from __future__ import absolute_import, annotations
 import importlib.resources as impr
 import os
 import subprocess as sp
-import tempfile
 from pathlib import Path
 
 from shellingham import ShellDetectionFailure, detect_shell
@@ -72,18 +71,19 @@ class Shell:
         if self._name == "bash":
             with impr.path("kslurm.bin", "kpy-init.sh") as path:
                 os.environ["activate_path"] = str(activate_path)
-                os.environ["kslurm_next_cmd"] = tempfile.mkstemp(prefix="kslurm")[1]
-                session = sp.run([self._path, "--init-file", path.resolve()])
-            cmd = None
-            if session.returncode == 224:
-                with open(os.environ["kslurm_next_cmd"]) as f:
-                    cmd = f.read().split()
-                if cmd[0] != "kpy":
-                    cmd = None
-            os.remove(os.environ["kslurm_next_cmd"])
-            del os.environ["kslurm_next_cmd"]
+                os.environ["kpy_set_subshell"] = "1"
+                sp.run([self._path, "--init-file", path.resolve()])
             del os.environ["activate_path"]
-            return cmd
+
+    def source(self, env: Path):
+        activate_script = self._get_activate_script()
+        activate_path = env / "bin" / activate_script
+
+        if self._name == "bash":
+            with impr.path("kslurm.bin", "kpy-init.sh") as path:
+                os.environ["activate_path"] = str(activate_path)
+                return f"activate_path={activate_path}; . {path.resolve()}"
+        return ""
 
     def _get_activate_script(self) -> str:
         if self._name == "fish":

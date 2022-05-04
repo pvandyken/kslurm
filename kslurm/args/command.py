@@ -14,7 +14,7 @@ from kslurm.args.parser import ScriptHelp, parse_args
 from kslurm.args.types import WrappedCommand
 from kslurm.exceptions import CommandLineError
 
-_CommandFunc = Callable[..., None]
+_CommandFunc = Callable[..., Optional[int]]
 ModelType = Union[dict[str, Arg[Any, Any]], type]
 
 

@@ -18,26 +18,9 @@ _pip_prompt_refresh () {
     fi;
 }
 
-kpy () {
-    if [[ $1 == load || $1 == activate || $1 == create ]]; then
-      IFS='|'
-      local cmd ret tmp
-      tmp=${TMPDIR:-/tmp}
-      cmd=$(mktemp "${tmp%/}/kslurm-$(basename $0).XXXXXXXXXX")
-      command kpy $@ --script $cmd
-      ret=$?
-      if [[ $ret == 2 ]]; then
-        eval $(cat $cmd)
-        ret=0
-      fi
-      rm $cmd
-      unset IFS
-
-      return $ret
-    else
-      command kpy $@
-    fi
-}
+if [[ $(type -t kpy) != 'function' ]]; then
+  source $(kpy _kpy_wrapper)
+fi
 
 if [[ ! " ${KSLURM_POST_INSTALL_HOOKS[*]} " =~ " _pip_prompt_refresh " ]]; then
   KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_pip_prompt_refresh"

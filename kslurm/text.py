@@ -43,8 +43,8 @@ JUPYTER_WELCOME = """
             connections"
         When prompted, enter the Server URL
 
-    [heading]Tunnel script (replace <address> with your own address):[/]
-        ssh -L {port}:{domain}:{port} <username@sub.domain.ext>
+    [heading]Tunnel script (replace <hostname> with your own hostname):[/]
+        ssh -L {port}:{domain}:{port} {username}@{hostname}
     [heading]Browser URL:[/]
         http://localhost:{port}{path}
     [heading]Server URL:[/]

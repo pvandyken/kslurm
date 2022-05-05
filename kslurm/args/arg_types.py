@@ -251,7 +251,7 @@ def flag(
     ).with_value(raw_value)
 
 
-def keyword(  # type: ignore
+def keyword(
     match: List[str],
     *,
     default: Optional[List[str]] = [],

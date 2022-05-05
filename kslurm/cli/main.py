@@ -42,12 +42,12 @@ class KslurmModel:
 
 
 @command
-def main(args: KslurmModel, tail: list[str]) -> None:
+def main(args: KslurmModel, tail: list[str]) -> int:
     name, func = args.command
     entry = f"kslurm {name}"
     if name == "update":
         install(tail, NAME, HOME_DIR, ENTRYPOINTS)
-    func([entry, *tail])
+    return func([entry, *tail])
 
 
 if __name__ == "__main__":

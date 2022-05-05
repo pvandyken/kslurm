@@ -55,14 +55,20 @@ class SlurmCommand:
         self.gpu = bool(args.gpu)
         self.x11 = bool(args.x11)
         if not args.account:
-            self.account = appconfig.get_config("account")
-            if not self.account:
+            if self.gpu:
+                account = appconfig.get_config("account.gpu")
+            else:
+                account = appconfig.get_config("account.cpu")
+            if account is None:
+                account = appconfig.get_config("account")
+            if not account:
                 print(
                     "Account must either be specified using --account, or provided in "
                     "config. A default account can be added to config by running "
                     "kslurm config account <account_name>"
                 )
                 sys.exit(1)
+            self.account = account
         else:
             self.account = args.account[0]
         self.cwd = args.directory

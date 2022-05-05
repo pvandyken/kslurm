@@ -15,7 +15,7 @@ def _load_config():
     if not _STATE["config"]:
         if not CONFIG_PATH.exists():
             CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-            with CONFIG_PATH.open('w') as f:
+            with CONFIG_PATH.open("w") as f:
                 json.dump({}, f)
         try:
             with CONFIG_PATH.open("r") as f:
@@ -30,8 +30,24 @@ def get_config(entity: str) -> Optional[str]:
     return _STATE["config"].get(entity, None)
 
 
+def get_config_children(entity: str):
+    _load_config()
+    for key, value in _STATE["config"].items():
+        if key.startswith(entity + "."):
+            yield key, value
+
+
 def set_config(entity: str, value: str):
     _load_config()
     _STATE["config"][entity] = value
+    with CONFIG_PATH.open("w") as f:
+        json.dump(_STATE["config"], f)
+    print(_STATE["config"])
+
+
+def unset_config(entity: str):
+    _load_config()
+    if entity in _STATE["config"]:
+        del _STATE["config"][entity]
     with CONFIG_PATH.open("w") as f:
         json.dump(_STATE["config"], f)

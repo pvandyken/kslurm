@@ -68,7 +68,7 @@ profile = "black"
 multi_line_output = 3
 add_imports = ["from __future__ import absolute_import"]
 # We ignore __init__ file so that mkinit and isort don't undo each other
-extend_skip = ["__init__.py"]
+extend_skip = ["__init__.py", "neuroglia_helpers"]
 
 [tool.pyright]
 strict = ["kslurm/**"]
@@ -77,7 +77,8 @@ exclude = ["kslurm/test/", "**/__pycache__", "**/node_modules", ".git"]
 venv = ".venv"
 
 [tool.black]
-extend-exclude = ["typings/.*$"]
+extend-exclude = ["typings/.*$", "neuroglia_helpers/.*$"]
+extend-include = ["kslurm/.*$"]
 
 [tool.poe.tasks]
 setup = "pre-commit install"

@@ -7,3 +7,4 @@ extend-exclude =
     dist/
     .venv/
     .hypothesis/
+    neuroglia_helpers/

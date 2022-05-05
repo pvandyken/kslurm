@@ -9,18 +9,17 @@ import subprocess as sp
 import sys
 import tarfile
 import tempfile
-from collections import UserDict
 from pathlib import Path
-from typing import Any, Literal, Optional, Union, overload
+from typing import Any, Literal, Optional, Union, cast, overload
 
 import attr
 from virtualenv.create import pyenv_cfg  # type: ignore
 
-from kslurm.appconfig import get_config
 from kslurm.args import Subcommand, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
-from kslurm.kpyindex import KpyIndex
+from kslurm.args.types import WrappedCommand
 from kslurm.shell import Shell
+from kslurm.venv import KpyIndex, MissingPipdirError, VenvCache
 
 
 def _get_hash(item: Union[str, bytes]):
@@ -43,10 +42,6 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     if candidate in index:
         return _get_unique_name(index, stem, i + 1)
     return candidate
-
-
-class MissingPipdirError(CommandError):
-    pass
 
 
 class MissingSlurmTmpdirError(CommandError):
@@ -72,36 +67,6 @@ def _get_slurm_tmpdir(allow_missing: bool = True):
             )
         return
     return Path(os.environ["SLURM_TMPDIR"])
-
-
-class VenvCache(UserDict[str, Path]):
-    def __init__(self):
-        pipdir = get_config("pipdir")
-        if pipdir is None:
-            raise MissingPipdirError(
-                "pipdir not set. Please set pipdir using `kslurm config pipdir "
-                "<directory>`, typically to a project-space or permanent storage "
-                "directory"
-            )
-        self.venv_cache = Path(pipdir, "venv_archives")
-        self.venv_cache.mkdir(exist_ok=True)
-        venvs_re = [
-            re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in self.venv_cache.iterdir()
-        ]
-        venvs = [r.group(1) for r in venvs_re if r]
-        self.data = {v: self._construct_path(v) for v in venvs}
-
-    def get_path(self, name: str):
-        try:
-            return self.data[name]
-        except KeyError:
-            return self._construct_path(name)
-
-    def _construct_path(self, name: str):
-        return (self.venv_cache / name).with_suffix(".tar.gz")
-
-    def __str__(self):
-        return "• " + "\n• ".join(self.data.keys()) if self.data else ""
 
 
 @command
@@ -144,14 +109,6 @@ def _load(
         index = None
         label = name
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-"))
-
-    pipdir = get_config("pipdir")
-    if not pipdir:
-        print(
-            "pipdir not set. Please set pipdir using `kslurm config pipdir "
-            "<directory>`, typically to a project-space or permanent storage directory"
-        )
-        return 1
 
     venv_cache = VenvCache()
 
@@ -423,6 +380,11 @@ def _refresh():
         return
 
 
+def _kpy_wrapper(argv: list[str] = sys.argv):
+    with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
+        print(path)
+
+
 @command(typer=True)
 def _rm(name: str = positional("")):
     try:
@@ -454,6 +416,7 @@ class _KpyModel:
             "list": _list,
             "rm": _rm,
             "_refresh": _refresh,
+            "_kpy_wrapper": cast(WrappedCommand, _kpy_wrapper),
         },
     )
 

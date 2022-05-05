@@ -18,7 +18,7 @@ from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import get_config
 from kslurm.args import Subcommand, flag, keyword, positional, shape, subcommand
-from kslurm.args.command import command
+from kslurm.args.command import CommandError, command
 from kslurm.kpyindex import KpyIndex
 from kslurm.shell import Shell
 
@@ -45,16 +45,12 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     return candidate
 
 
-class MissingPipdirError(Exception):
-    def __init__(self, msg: str, *args: Any):
-        super().__init__(msg, *args)
-        self.msg = msg
+class MissingPipdirError(CommandError):
+    pass
 
 
-class MissingSlurmTmpdirError(Exception):
-    def __init__(self, msg: str, *args: Any):
-        super().__init__(msg, *args)
-        self.msg = msg
+class MissingSlurmTmpdirError(CommandError):
+    pass
 
 
 @overload
@@ -154,11 +150,7 @@ def _load(
         )
         return 1
 
-    try:
-        venv_cache = VenvCache()
-    except MissingPipdirError as err:
-        print(err.msg)
-        return 1
+    venv_cache = VenvCache()
 
     if not name or name not in venv_cache:
         print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
@@ -229,11 +221,7 @@ def _save(name: str = positional(), force: bool = flag(match=["--force", "-f"]))
             "No active virtual env detected. Please activate one, or ensure "
             "$VIRTUAL_ENV is being set correctly"
         )
-    try:
-        venv_cache = VenvCache()
-    except MissingPipdirError as err:
-        print(err.msg)
-        return
+    venv_cache = VenvCache()
 
     delete = False
     if name in venv_cache:
@@ -359,11 +347,7 @@ def _activate(name: str = positional(), script: list[str] = keyword(["--script"]
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node
     """
-    try:
-        slurm_tmp = _get_slurm_tmpdir(False)
-    except MissingSlurmTmpdirError as err:
-        print(err.msg)
-        return 1
+    slurm_tmp = _get_slurm_tmpdir(False)
 
     index = KpyIndex(slurm_tmp)
     name = name
@@ -398,11 +382,7 @@ def _list():
 
     To list saved venvs, run `kpy load` without any arguments
     """
-    try:
-        slurm_tmp = _get_slurm_tmpdir(False)
-    except MissingSlurmTmpdirError as err:
-        print(err.msg)
-        return 1
+    slurm_tmp = _get_slurm_tmpdir(False)
     index = KpyIndex(slurm_tmp)
     print("\n".join(index))
 

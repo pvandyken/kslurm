@@ -94,7 +94,6 @@ isolated_build = True
 [gh-actions]
 python =
     3.9: py39
-    3.10: py310
 
 [testenv]
 require_locked_deps = true

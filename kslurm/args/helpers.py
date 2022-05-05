@@ -28,10 +28,12 @@ def get_arg_list(models: ModelType):
         fields = attr.fields(models)
         result: list[Arg[Any, Any]] = []
         for field in fields:
-            if field.default is attr.NOTHING:
+            if field.default is attr.NOTHING or not field.default:
                 raise Exception()
+            if field.type is attr.NOTHING:
+                raise TypeError(f"{field.name} must be annotated")
             if field.default.num and not getattr(field.type, "__origin__") == list:
-                raise TypeError(f"{field} must be annotated as a list")
+                raise TypeError(f"{field.name} must be annotated as a list")
             extra_args = {
                 **(
                     {"format": field.type}

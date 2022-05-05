@@ -116,15 +116,12 @@ def _bash():
         print(f"\nsource {path.resolve()}")
 
 
-@attr.frozen
-class _LoadModel:
-    name: str = positional(default="", help="Test help")
-    new_name: list[str] = keyword(match=["--as"])
-    script: list[str] = keyword(match=["--script"])
-
-
-@command
-def _load(args: _LoadModel):
+@command(typer=True)
+def _load(
+    name: str = positional(default="", help="Test help"),
+    new_name: list[str] = keyword(match=["--as"]),
+    script: list[str] = keyword(match=["--script"]),
+):
     """Load a saved python venv
 
     Run without name to list available venvs for loading
@@ -132,9 +129,8 @@ def _load(args: _LoadModel):
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        name = args.name
 
-        label = args.new_name[0] if args.new_name else name
+        label = new_name[0] if new_name else name
         if label in index:
             print(
                 f"An environment called '{label}' already exists. You can load "
@@ -147,7 +143,6 @@ def _load(args: _LoadModel):
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
     else:
         index = None
-        name = args.name
         label = name
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-"))
 
@@ -159,8 +154,6 @@ def _load(args: _LoadModel):
         )
         return 1
 
-    name = args.name
-
     try:
         venv_cache = VenvCache()
     except MissingPipdirError as err:
@@ -169,8 +162,6 @@ def _load(args: _LoadModel):
 
     if not name or name not in venv_cache:
         print("Valid venvs:\n\t" + "\n\t".join(venv_cache))
-        if args.script:
-            return
         return
 
     print(f"Unpacking venv '{name}'", end="")
@@ -223,21 +214,15 @@ def _load(args: _LoadModel):
         index.write()
 
     shell = Shell.get()
-    if args.script:
-        with Path(args.script[0]).open("w") as f:
+    if script:
+        with Path(script[0]).open("w") as f:
             f.write(shell.source(venv_dir))
         return 2
     shell.activate(venv_dir)
 
 
-@attr.frozen
-class _SaveModel:
-    name: str = positional()
-    force: bool = flag(match=["--force", "-f"])
-
-
-@command
-def _save(args: _SaveModel):
+@command(typer=True)
+def _save(name: str = positional(), force: bool = flag(match=["--force", "-f"])):
     """Save current venv"""
     if not os.environ.get("VIRTUAL_ENV"):
         print(
@@ -250,10 +235,9 @@ def _save(args: _SaveModel):
         print(err.msg)
         return
 
-    name = args.name
     delete = False
     if name in venv_cache:
-        if args.force:
+        if force:
             delete = True
         else:
             print(f"{name} already exists. Run with -f to force overwrite")
@@ -267,7 +251,7 @@ def _save(args: _SaveModel):
     cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
     cfg.update(
         {
-            "prompt": args.name,
+            "prompt": name,
             "state_hash": _get_hash(_pip_freeze(venv_dir)),
         }
     )
@@ -280,14 +264,14 @@ def _save(args: _SaveModel):
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        index[args.name] = str(venv_dir)
+        index[name] = str(venv_dir)
         index.write()
     shutil.move(tmp, dest)
 
 
-@attr.frozen
-class _CreateModel:
-    name: str = positional("", help="Name of the new venv")
+@command(typer=True)
+def _create(
+    name: str = positional("", help="Name of the new venv"),
     version: str = shape(
         default="",
         match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s)),
@@ -295,26 +279,23 @@ class _CreateModel:
         examples=["2.7", "3.8"],
         help="Python version to use in new venv. An appropriate executable must be on "
         "the $PATH (e.g. 3.7 -> python3.7",
-    )
-    script: list[str] = keyword(match=["--script"])
-
-
-@command
-def _create(args: _CreateModel):
+    ),
+    script: list[str] = keyword(match=["--script"]),
+):
     """Create a new venv
 
     If no name provided, a placeholder name will be generated
     """
-    if args.version:
-        ver = ["-p", args.version]
+    if version:
+        ver = ["-p", version]
     else:
         ver = []
 
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
-        name = args.name if args.name else _get_unique_name(index, "venv")
-        if args.name in index:
+        name = name if name else _get_unique_name(index, "venv")
+        if name in index:
             print(
                 f"An environment called '{name}' already exists. You can activate "
                 f"the existing '{name}' using\n"
@@ -327,7 +308,7 @@ def _create(args: _CreateModel):
         no_index = ["--no-index"]
     else:
         index = None
-        name = args.name if args.name else "venv"
+        name = name if name else "venv"
         venv_dir = tempfile.mkdtemp(prefix="kslurm-")
         no_download = []
         no_index = []
@@ -365,21 +346,15 @@ def _create(args: _CreateModel):
         index.write()
 
     shell = Shell.get()
-    if args.script:
-        with Path(args.script[0]).open("w") as f:
+    if script:
+        with Path(script[0]).open("w") as f:
             f.write(shell.source(Path(venv_dir)))
         return 2
     shell.activate(Path(venv_dir))
 
 
-@attr.frozen
-class _ActivateModel:
-    name: str = positional()
-    script: list[str] = keyword(match=["--script"])
-
-
 @command(typer=True)
-def _activate(name: str, script: list[str] = keyword(["--script"])):
+def _activate(name: str = positional(), script: list[str] = keyword(["--script"])):
     """Activate a venv already created or loaded
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node

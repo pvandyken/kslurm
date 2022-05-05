@@ -105,12 +105,6 @@ def command(
         params = inspect.signature(func)
         exceptions: Any = tuple()
         model = BlankModel
-        if len(params.parameters) > 3:
-            raise CommandLineError(
-                f"{func} may have up to three named args. Currently: "
-                f"{inspect.signature(func)}"
-            )
-        # if len(params.parameters):
 
         command_args = CommandArgs()
         if typer:
@@ -121,7 +115,9 @@ def command(
                         default=param.default
                         if param.default is not params.empty
                         else attr.NOTHING,
-                        type=param.annotation,
+                        type=param.annotation
+                        if param.annotation is not params.empty
+                        else attr.NOTHING,
                     )
                     for param in params.parameters.values()
                 },
@@ -142,6 +138,10 @@ def command(
                     command_args.name = param.name
                     continue
 
+                if model is not BlankModel:
+                    raise CommandLineError(
+                        f"Mutliple models detected: {model} and {param.annotation}"
+                    )
                 model = param.annotation
                 if isinstance(model, str):
                     model = eval(model, func.__globals__)
@@ -153,7 +153,7 @@ def command(
 
                 if not attr.has(model):
                     raise CommandLineError(
-                        f"Annotation of {param} in {func} must be a dict or an attr "
+                        f"Annotation of {param} in {func} must be an attr "
                         f"annotated class (currently {model})"
                     )
                 command_args.model = param.name

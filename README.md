@@ -18,6 +18,28 @@ Then run
 pipx install kslurm --python $(which python)
 ```
 
+For full kslurm features, including integration with `pip`, you need to source the init script, preferably in your `~.bash_profile` (the init script contains commands that may not be available on non-login nodes). You can do this by running:
+
+```bash
+kpy bash >> $HOME/.bash_profile
+```
+
+Finally, you need to complete some basic configuration. First, set your SLURM account. Run
+
+```bash
+kslurm config account -i
+```
+
+This will begin an interactive session letting you choose from the accounts available to you. Each account will be listed with it's LevelFS. The higher the LevelFS, the more underused the account is, so prefer accounts with higher values.
+
+Next, set your pipdir. This will be used to store python wheels and virtual envs. It should be in a permanent storage or project directory. For instance, on ComputeCanada servers, it should go in `$HOME/projects/<account_name>/<user_name>/.kslurm`. Use the following command:
+
+```bash
+kslurm config pipdir <dir>
+```
+
+## Upgrading and uninstalling
+
 The app can be updated by running
 ```bash
 pipx upgrade kslurm

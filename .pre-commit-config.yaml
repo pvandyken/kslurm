@@ -8,14 +8,16 @@ repos:
     -   id: debug-statements
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
-  - repo: local
+  - repo: https://github.com/psf/black
+    rev: 21.8b0
     hooks:
     - id: black
-      entry: black
-      name: black
-      language: system
       exclude: typings
-      types_or: [cython, pyi, python]
+  - repo: https://github.com/PyCQA/flake8.git
+    rev: 3.9.2
+    hooks:
+      - id: flake8
+        exclude: test
   - repo: https://github.com/pycqa/isort
     rev: 5.9.3
     hooks:

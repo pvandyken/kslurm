@@ -21,6 +21,12 @@ ModelType = Union[dict[str, Arg[Any, Any]], type]
 ParsedArgs = dict[str, Arg[Any, Any]]
 
 
+class CommandError(Exception):
+    def __init__(self, msg: str, *args: Any):
+        super().__init__(*args)
+        self.msg = msg
+
+
 class CommandArgs:
     _model: Optional[str] = None
     _tail: Optional[str] = None
@@ -219,7 +225,11 @@ def command(
                         else {}
                     ),
                 }
-            return func(**args) or 0
+            try:
+                return func(**args) or 0
+            except CommandError as err:
+                print(err.msg)
+                return 1
 
         return wrapper
 

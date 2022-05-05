@@ -28,14 +28,16 @@ and removed using
 pipx uninstall kslurm
 ```
 
+## Neuroglia-helpers Integration
+
+See the [dedicated page](docs/neuroglia-helpers.md).
+
 ## Legacy Installer
 kslurm includes an installation script that, previously, was the recommended install method.
 While it should technically still work, it is no longer supported and may be removed in the future.
 Its instructions are included, for reference, below.
 
-```{note}
 Users who previously installed kslurm via this script should switch to a pipx install for long term support. Simply uninstall `kslurm` using the instructions below, then install via pipx as described above
-```
 
 Installation is via the following command:
 ```
@@ -134,9 +136,7 @@ In most use cases, python venvs are installed on compute clusters, ideally on lo
 This makes venvs inherently ephemeral.
 Because installing a venv can take an appreciable amount of time, kpy packs tools to archive entire venvs for storage in a permanent local repository (ideally located in project-specific or permanent storage). Once saved, venvs can be quickly reloaded into a new compute environment.
 
-```{warning}
-Copying venvs from one location to another is not a trivial task. The current setup has been tested on ComputeCanada servers without any issues so far, but problems may arise on another environment.
-```
+Note that copying venvs from one location to another is not a trivial task. The current setup has been tested on ComputeCanada servers without any issues so far, but problems may arise on another environment.
 
 ## No internet
 Compute clusters often don't have an internet connection, limiting our install repertoire to locally available wheels.

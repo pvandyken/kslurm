@@ -21,7 +21,8 @@ classifiers = [
     "Typing :: Typed"
 ]
 packages = [
-    { include = "kslurm" }
+    { include = "kslurm" },
+    { include = "neuroglia_helpers" }
 ]
 
 [tool.poetry.dependencies]

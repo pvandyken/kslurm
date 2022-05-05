@@ -277,7 +277,16 @@ def _create(
     if version:
         ver = ["-p", version]
     else:
-        ver = []
+        try:
+            data = sp.run(
+                "eval $($LMOD_CMD bash list python)", shell=True, capture_output=True
+            )
+            if match := re.search(r"(?<=python\/)\d\.\d{1,2}", data.stdout.decode()):
+                ver = ["-p", match[0]]
+            else:
+                ver = []
+        except RuntimeError:
+            ver = []
 
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:

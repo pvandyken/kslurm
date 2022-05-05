@@ -378,8 +378,8 @@ class _ActivateModel:
     script: list[str] = keyword(match=["--script"])
 
 
-@command
-def _activate(args: _ActivateModel):
+@command(typer=True)
+def _activate(name: str, script: list[str] = keyword(["--script"])):
     """Activate a venv already created or loaded
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node
@@ -391,7 +391,7 @@ def _activate(args: _ActivateModel):
         return 1
 
     index = KpyIndex(slurm_tmp)
-    name = args.name
+    name = name
     if name not in index:
         print(
             f"An environment with the name '{name}' has not yet been initialized. ",
@@ -410,8 +410,8 @@ def _activate(args: _ActivateModel):
         return 1
 
     shell = Shell.get()
-    if args.script:
-        with Path(args.script[0]).open("w") as f:
+    if script:
+        with Path(script[0]).open("w") as f:
             f.write(shell.source(Path(index[name])))
         return 2
     shell.activate(Path(index[name]))

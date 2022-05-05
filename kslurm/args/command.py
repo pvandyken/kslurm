@@ -70,20 +70,29 @@ class CommandArgs:
 
 @overload
 def command(
-    maybe_func: None = ..., *, terminate_on_unknown: bool = ...
+    maybe_func: None = ...,
+    *,
+    terminate_on_unknown: bool = ...,
+    typer: bool = ...,
 ) -> Callable[[_CommandFunc], WrappedCommand]:
     ...
 
 
 @overload
 def command(
-    maybe_func: _CommandFunc = ..., *, terminate_on_unknown: Literal[True] = ...
+    maybe_func: _CommandFunc = ...,
+    *,
+    terminate_on_unknown: Literal[True] = ...,
+    typer: Literal[False] = ...,
 ) -> WrappedCommand:
     ...
 
 
 def command(
-    maybe_func: Optional[_CommandFunc] = None, *, terminate_on_unknown: bool = False
+    maybe_func: Optional[_CommandFunc] = None,
+    *,
+    terminate_on_unknown: bool = False,
+    typer: bool = False,
 ) -> Union[WrappedCommand, Callable[[_CommandFunc], WrappedCommand]]:
     @attr.frozen
     class BlankModel:
@@ -104,36 +113,50 @@ def command(
         # if len(params.parameters):
 
         command_args = CommandArgs()
-        for param in params.parameters.values():
-            if param.annotation == param.empty:
-                raise CommandLineError(
-                    f"parameter '{param}' in {func} must be annotated"
-                )
-            if param.annotation == list[str]:
-                command_args.tail = param.name
-                continue
-            if param.annotation == ParsedArgs:
-                command_args.modellist = param.name
-                continue
-            if param.annotation == str:
-                command_args.name = param.name
-                continue
+        if typer:
+            model = attr.make_class(
+                "__Typer_Model__",
+                {
+                    param.name: attr.attrib(
+                        default=param.default
+                        if param.default is not params.empty
+                        else attr.NOTHING,
+                        type=param.annotation,
+                    )
+                    for param in params.parameters.values()
+                },
+            )
+        else:
+            for param in params.parameters.values():
+                if param.annotation == param.empty:
+                    raise CommandLineError(
+                        f"parameter '{param}' in {func} must be annotated"
+                    )
+                if param.annotation == list[str]:
+                    command_args.tail = param.name
+                    continue
+                if param.annotation == ParsedArgs:
+                    command_args.modellist = param.name
+                    continue
+                if param.annotation == str:
+                    command_args.name = param.name
+                    continue
 
-            model = param.annotation
-            if isinstance(model, str):
-                model = eval(model, func.__globals__)
+                model = param.annotation
+                if isinstance(model, str):
+                    model = eval(model, func.__globals__)
 
-            types = getattr(model, "__args__", None)
-            if types is not None:
-                model = types[0]
-                exceptions = types[1:]
+                types = getattr(model, "__args__", None)
+                if types is not None:
+                    model = types[0]
+                    exceptions = types[1:]
 
-            if not isinstance(model, dict) and not attr.has(model):
-                raise CommandLineError(
-                    f"Annotation of {param} in {func} must be a dict or an attr "
-                    f"annotated class (currently {model})"
-                )
-            command_args.model = param.name
+                if not attr.has(model):
+                    raise CommandLineError(
+                        f"Annotation of {param} in {func} must be a dict or an attr "
+                        f"annotated class (currently {model})"
+                    )
+                command_args.model = param.name
 
         @ft.wraps(func)
         def wrapper(argv: list[str] = sys.argv):
@@ -158,28 +181,35 @@ def command(
                 )
                 parsed_list = list(filter(lambda arg: arg.id != "help", parsed_list))
                 parsed = finalize_model(parsed_list, model)
-                args = {
-                    **(
-                        {command_args.model: parsed}
-                        if command_args.model is not None
-                        else {}
-                    ),
-                    **(
-                        {command_args.tail: tail}
-                        if command_args.tail is not None
-                        else {}
-                    ),
-                    **(
-                        {command_args.modellist: {arg.id: arg for arg in parsed_list}}
-                        if command_args.modellist is not None
-                        else {}
-                    ),
-                    **(
-                        {command_args.name: argv[0]}
-                        if command_args.name is not None
-                        else {}
-                    ),
-                }
+                if typer:
+                    args = attr.asdict(parsed, recurse=False)
+                else:
+                    args = {
+                        **(
+                            {command_args.model: parsed}
+                            if command_args.model is not None
+                            else {}
+                        ),
+                        **(
+                            {command_args.tail: tail}
+                            if command_args.tail is not None
+                            else {}
+                        ),
+                        **(
+                            {
+                                command_args.modellist: {
+                                    arg.id: arg for arg in parsed_list
+                                }
+                            }
+                            if command_args.modellist is not None
+                            else {}
+                        ),
+                        **(
+                            {command_args.name: argv[0]}
+                            if command_args.name is not None
+                            else {}
+                        ),
+                    }
             except exceptions as err:
                 parsed = err
                 args = {

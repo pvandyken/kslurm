@@ -37,6 +37,7 @@ appdirs = "^1.4.4"
 shellingham = "^1.4.0"
 virtualenv = ">=20.0.24,<21"
 docstring-parser = "^0.14.1"
+inquirerpy = "^0.3.3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

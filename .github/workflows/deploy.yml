@@ -28,6 +28,7 @@ jobs:
       - uses: actions/checkout@master
         with:
           ref: refs/heads/main
+          submodules: true
 
       - name: Draft change log
         uses: release-drafter/release-drafter@v5
@@ -48,9 +49,9 @@ jobs:
       - name: Update version in files
         uses: jacobtomlinson/gha-find-replace@master
         with:
-          include: 'setup.cfg'
-          find: 'version = (?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))'
-          replace: 'version = ${{ env.NEW_RELEASE }}'
+          include: 'pyproject.toml'
+          find: 'version = "(?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))"'
+          replace: 'version = "${{ env.NEW_RELEASE }}"'
 
       - name: Commit updates
         env:
@@ -92,18 +93,14 @@ jobs:
       #----------------------------------------------
       #  -----  install & configure poetry  -----
       #----------------------------------------------
-      - name: Create virtualenv
-        run: python -m venv .venv
-      - name: Install twine
-        run: |
-          .venv/bin/python -m pip install build twine
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
       - name: Build and publish
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          .venv/bin/python -m build
-          .venv/bin/twine upload dist/*
-
           poetry publish --build

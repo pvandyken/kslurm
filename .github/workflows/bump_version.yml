@@ -11,6 +11,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: refs/heads/master
+          submodules: true
 
       - name: Update changelog
         uses: release-drafter/release-drafter@v5
@@ -20,7 +21,7 @@ jobs:
 
       - name: Get previous release version
         run: |
-          echo "PREV_VER=$(cat setup.cfg | grep -o -E '(version\s=\s)([0-9]+\.[0-9]+\.[0-9]+.*)' | cut -d ' ' -f 3 | tr -d '"')" >> $GITHUB_ENV
+          echo "PREV_VER=$(cat pyproject.toml | grep -o -E '(version\s=\s)([[:punct:]])([0-9]+\.[0-9]+\.[0-9]+.+)([[:punct:]])' | cut -d ' ' -f 3 | tr -d '"')" >> $GITHUB_ENV
 
       - name: Get previous bump version
         env:
@@ -51,9 +52,9 @@ jobs:
       - name: Update version in files
         uses: jacobtomlinson/gha-find-replace@master
         with:
-          include: 'setup.cfg'
-          find: 'version = (?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))'
-          replace: 'version = ${{ env.NEW_RELEASE }}-pre.${{ env.NEW_BUMP }}'
+          include: 'pyproject.toml'
+          find: 'version = "(?:([0-9]+\.[0-9]+\.[0-9]+.+)|([0-9]+\.[0-9]+\.[0-9]+))"'
+          replace: 'version = "${{ env.NEW_RELEASE }}-pre.${{ env.NEW_BUMP }}"'
 
       - name: Commit updates
         env:

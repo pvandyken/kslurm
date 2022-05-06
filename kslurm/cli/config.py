@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import re
 import subprocess as sp
-from typing import DefaultDict
+from typing import Any, DefaultDict
 
 from InquirerPy import inquirer as inq  # type: ignore
-from InquirerPy.base.control import Choice  # type: ignore
+from InquirerPy.base import Choice  # type: ignore
 
 import kslurm.appconfig as appconfig
 from kslurm.args import flag, positional
@@ -19,7 +19,7 @@ class InteractiveConfigError(CommandError):
 def _get_account_type(
     accounts: dict[str, set[str]], levelfs: dict[str, str], label: str
 ) -> str:
-    choices = [
+    choices: list[Any] = [
         Choice(account, f"{account} (LevelFS: {levelfs[account + '_' + label]})")
         for account, types in accounts.items()
         if label in types

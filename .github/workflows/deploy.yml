@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with:
-          ref: refs/heads/main
+          ref: refs/heads/master
 
       - name: Set up Python
         uses: actions/setup-python@v2

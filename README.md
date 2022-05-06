@@ -204,7 +204,6 @@ kpy load [<name>] [--as <newname>]
 ```
 
 Load a saved venv from the cache.
-This command only works on a compute node (i.e. `$SLURM_TMPDIR` must be defined).
 If a venv called `<name>` already exists, the command will fail, as each name can only be used once.
 `--as <newname>` works around this by changing the name of the loaded venv (the name of the saved venv will remain the same)
 Calling `load` without any `<name>` will print a list of current cached venvs.
@@ -220,6 +219,7 @@ Activate venv initialized using `create` or `load`.
 Name will be the same as the name appearing in the venv prompt (i.e. the name provided on initial loading or creation, through `--as`, or the last saved name).
 This command only works on a compute node.
 Venvs created on a login node cannot be directly activated using kpy.
+Call without a name to list the venvs you can activate.
 
 ### `list`
 
@@ -228,8 +228,16 @@ Venvs created on a login node cannot be directly activated using kpy.
 kpy list
 ```
 
-List currently initialized venvs (i.e. venvs you can `activate`).
-This command only works on a compute node.
+List all saved venvs (i.e. venvs you can `load`)
+
+### `rm`
+
+```bash
+# usage
+kpy rm <name>
+```
+
+Delete a saved venv.
 
 
 ### `bash`

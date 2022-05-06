@@ -123,13 +123,13 @@ Of course, complicated jobs can still be submitted using a script. Note that kba
 
 This command requests an interactive job running a jupyter server. As with krun, you should not request a job more than the recommended maximum time for your cluster (3hr for ComputeCanada). If you need more time than that, just request a new job when the old one expires.
 
-You should not provide any extra command to kjupyter. Just supply whatever resources you wish to request.
+In addition to the desired resources, you should use the `--venv` flag to request a saved virtual environment (see `kpy save`). Jupyter will be started in whatever environment you request. `jupyter-lab` should already be installed in the venv.
 ```
-kjupyter 32G 2
+kjupyter 32G 2 --venv <your_venv_name>
 ```
 This will start a jupyter session with 32 GB of memory and 2 cores.
 
-Note that the command will fail if there is no `jupyter-lab` executable on the `PATH`. Use `pip install jupyterlab` if it's not installed. Typically, you should do this within a Python environment using a tool of your choice (e.g. virtualenv).
+If no venv is specified, `kjupyter` will assume that the `jupyter-lab` command is already available on the `$PATH`. This is useful to run a global instance of jupyter, or jupyter installed in an active venv. Note that this prevents installing jupyter on local scratch, so performance will take a hit.
 
 # Unsupported SLURM args
 

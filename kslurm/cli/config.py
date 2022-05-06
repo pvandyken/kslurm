@@ -107,7 +107,8 @@ def config(
         return
     if not value:
         curr_value = config.get(entry)
-        print(curr_value or "")
+        if curr_value is not None:
+            print(curr_value)
         for key, value in config.get_children(entry):
             print(f"{key}: {value}")
 

@@ -44,6 +44,7 @@ def kjupyter(
     jupyter-lab.
     """
     slurm = SlurmCommand(args, command_args, arglist)
+    slurm.name = "jupyter"
     assert isinstance(args, JupyterModel)
 
     if args.venv:

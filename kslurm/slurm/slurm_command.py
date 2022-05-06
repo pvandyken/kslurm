@@ -123,6 +123,8 @@ class SlurmCommand:
             s += " --gres=gpu:1"
         if self.x11:
             s += " --x11"
+        if self.name:
+            s += f" --job-name='{self.name}'"
         return s
 
     @property
@@ -156,10 +158,7 @@ class SlurmCommand:
         if self.test:
             s = "cat"
         else:
-            s = (
-                f"sbatch {self.slurm_args} --job-name={self.name} "
-                f"--parsable {self.output}"
-            )
+            s = f"sbatch {self.slurm_args} " f"--parsable {self.output}"
         if self.command:
             return f"echo '{self.script}' | {s}"
         else:

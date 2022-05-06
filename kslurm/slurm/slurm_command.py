@@ -96,10 +96,7 @@ class SlurmCommand:
 
     @property
     def name(self):
-        if not self._name:
-            return self._command[0]
-        else:
-            return self._name
+        return self._name
 
     @name.setter
     def name(self, name: str):

@@ -65,11 +65,12 @@ def kjupyter(
                 [
                     "source",
                     str(path),
-                    "&&",
-                    "kpy",
-                    "load",
+                    "; ",
+                    "kpy load",
                     args.venv[0],
-                    "&&",
+                    "; ",
+                    "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not "
+                    "found, attempting install' && pip install jupyterlab);",
                 ]
                 if args.venv
                 else []
@@ -126,9 +127,13 @@ def kjupyter(
                     port = url.group(2)
                     path = url.group(3)
                     try:
-                        hostname = sp.run(
-                            ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
-                        ).stdout.decode().strip()
+                        hostname = (
+                            sp.run(
+                                ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
+                            )
+                            .stdout.decode()
+                            .strip()
+                        )
                     except RuntimeError:
                         hostname = "<hostname>"
                     console.print(
@@ -137,9 +142,9 @@ def kjupyter(
                             domain=domain,
                             path=path,
                             url=url.group(0),
-                            username=sp.run(
-                                ["whoami"], capture_output=True
-                            ).stdout.decode().strip(),
+                            username=sp.run(["whoami"], capture_output=True)
+                            .stdout.decode()
+                            .strip(),
                             hostname=hostname,
                         )
                     )

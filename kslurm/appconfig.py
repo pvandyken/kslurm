@@ -1,53 +1,34 @@
 from __future__ import absolute_import
 
 import json
+from collections import UserDict
 from pathlib import Path
-from typing import Dict, Optional
 
 import appdirs
-
-_STATE: Dict[str, Dict[str, str]] = {"config": {}}
 
 CONFIG_PATH = Path(appdirs.user_config_dir("kslurm"), "config.json")
 
 
-def _load_config():
-    if not _STATE["config"]:
-        if not CONFIG_PATH.exists():
-            CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-            with CONFIG_PATH.open("w") as f:
+class Config(UserDict[str, str]):
+    def __init__(self):
+        self._path = CONFIG_PATH
+        if not self._path.exists():
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            with self._path.open("w") as f:
                 json.dump({}, f)
-        try:
-            with CONFIG_PATH.open("r") as f:
-                _STATE["config"] = json.load(f)
-        except json.JSONDecodeError:
-            print(f"Error decoding config file '{CONFIG_PATH}'")
-            exit()
+                self.data = {}
+        else:
+            with self._path.open("r") as f:
+                self.data = json.load(f)
 
+    def write(self):
+        with self._path.open("w") as f:
+            json.dump(self.data, f)
 
-def get_config(entity: str) -> Optional[str]:
-    _load_config()
-    return _STATE["config"].get(entity, None)
+    def get_children(self, entity: str):
+        for key, value in self.data.items():
+            if key.startswith(entity + "."):
+                yield key, value
 
-
-def get_config_children(entity: str):
-    _load_config()
-    for key, value in _STATE["config"].items():
-        if key.startswith(entity + "."):
-            yield key, value
-
-
-def set_config(entity: str, value: str):
-    _load_config()
-    _STATE["config"][entity] = value
-    with CONFIG_PATH.open("w") as f:
-        json.dump(_STATE["config"], f)
-    print(_STATE["config"])
-
-
-def unset_config(entity: str):
-    _load_config()
-    if entity in _STATE["config"]:
-        del _STATE["config"][entity]
-    with CONFIG_PATH.open("w") as f:
-        json.dump(_STATE["config"], f)
+    def __str__(self):
+        return "• " + "\n• ".join(self.data.keys()) if self.data else ""

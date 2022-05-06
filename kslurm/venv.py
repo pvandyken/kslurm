@@ -5,7 +5,7 @@ import re
 from collections import UserDict
 from pathlib import Path
 
-from kslurm.appconfig import get_config
+from kslurm.appconfig import Config
 from kslurm.args.command import CommandError
 
 
@@ -35,7 +35,7 @@ class KpyIndex(UserDict[str, str]):
 
 class VenvCache(UserDict[str, Path]):
     def __init__(self):
-        pipdir = get_config("pipdir")
+        pipdir = Config().get("pipdir")
         if pipdir is None:
             raise MissingPipdirError(
                 "pipdir not set. Please set pipdir using `kslurm config pipdir "

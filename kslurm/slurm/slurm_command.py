@@ -54,13 +54,14 @@ class SlurmCommand:
 
         self.gpu = bool(args.gpu)
         self.x11 = bool(args.x11)
+        config = appconfig.Config()
         if not args.account:
             if self.gpu:
-                account = appconfig.get_config("account.gpu")
+                account = config.get("account.gpu")
             else:
-                account = appconfig.get_config("account.cpu")
+                account = config.get("account.cpu")
             if account is None:
-                account = appconfig.get_config("account")
+                account = config.get("account")
             if not account:
                 print(
                     "Account must either be specified using --account, or provided in "

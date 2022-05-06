@@ -93,20 +93,24 @@ def config(
     interactive: bool = flag(["--interactive", "-i"]),
 ):
     """Read and write from the kslurm config"""
+    config = appconfig.Config()
     if interactive:
         if entry not in INTERACTIVE_SETTINGS:
             raise InteractiveConfigError(f"{entry} can not be updated interactively")
         for key, new_value in INTERACTIVE_SETTINGS[entry]().items():
             if new_value is not None:
-                appconfig.set_config(key, new_value)
+                config[key] = new_value
                 continue
-            appconfig.unset_config(key)
+            if key in config:
+                del config[key]
+        config.write()
         return
     if not value:
-        curr_value = appconfig.get_config(entry)
+        curr_value = config.get(entry)
         print(curr_value or "")
-        for key, value in appconfig.get_config_children(entry):
+        for key, value in config.get_children(entry):
             print(f"{key}: {value}")
 
     else:
-        appconfig.set_config(entry, value)
+        config[entry] = value
+        config.write()

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import shlex
 import sys
 from typing import List, Union
 
@@ -161,5 +162,13 @@ class SlurmCommand:
             s = f"sbatch {self.slurm_args} " f"--parsable {self.output}"
         if self.command:
             return f"echo '{self.script}' | {s}"
+        else:
+            raise ValidationError("No command given")
+
+    @property
+    def batch_test(self):
+        s = f"sbatch {self.slurm_args} --test-only"
+        if self.command:
+            return f"echo {shlex.quote(self.script)} | {s}"
         else:
             raise ValidationError("No command given")

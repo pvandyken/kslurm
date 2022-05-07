@@ -164,3 +164,11 @@ class SlurmCommand:
             return f"echo {shlex.quote(self.script)} | {s}"
         else:
             raise ValidationError("No command given")
+
+    @property
+    def batch_test(self):
+        s = f"sbatch {self.slurm_args} --test-only"
+        if self.command:
+            return f"echo {shlex.quote(self.script)} | {s}"
+        else:
+            raise ValidationError("No command given")

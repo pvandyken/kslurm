@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import os
+import shlex
 import sys
 from typing import List, Union
 
@@ -149,7 +150,7 @@ class SlurmCommand:
     @property
     def run(self):
         if self.command:
-            return f"echo '{self.command}' | srun {self.slurm_args} bash"
+            return f"srun {self.slurm_args} bash -c {shlex.quote(self.command)}"
         else:
             return f"salloc {self.slurm_args}"
 
@@ -158,8 +159,8 @@ class SlurmCommand:
         if self.test:
             s = "cat"
         else:
-            s = f"sbatch {self.slurm_args} " f"--parsable {self.output}"
+            s = f"sbatch {self.slurm_args} --parsable {self.output}"
         if self.command:
-            return f"echo '{self.script}' | {s}"
+            return f"echo {shlex.quote(self.script)} | {s}"
         else:
             raise ValidationError("No command given")

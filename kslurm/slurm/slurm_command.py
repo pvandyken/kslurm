@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import shlex
 import sys
+from pathlib import Path
 from typing import List, Union
 
 import kslurm.appconfig as appconfig
@@ -150,6 +151,8 @@ class SlurmCommand:
     @property
     def run(self):
         if self.command:
+            if os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOBID"):
+                return f"srun {self.slurm_args} {self.command}"
             return f"srun {self.slurm_args} bash -c {shlex.quote(self.command)}"
         else:
             return f"salloc {self.slurm_args}"
@@ -161,6 +164,8 @@ class SlurmCommand:
         else:
             s = f"sbatch {self.slurm_args} --parsable {self.output}"
         if self.command:
+            if Path(self._command[0]).is_file():
+                return f"{s} {self.command}"
             return f"echo {shlex.quote(self.script)} | {s}"
         else:
             raise ValidationError("No command given")

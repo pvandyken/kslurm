@@ -258,7 +258,14 @@ class SingularityDirError(CommandError):
 
 class SingularityDir(type(Path())):
     def __new__(cls):
-        pipdir = Path(Config()["pipdir"])
+        pipdir = Config().get("pipdir")
+        if pipdir is None:
+            raise SingularityDirError(
+                "pipdir not set. Please set pipdir using `kslurm config pipdir "
+                "<directory>`, typically to a project-space or permanent storage "
+                "directory"
+            )
+        pipdir = Path(pipdir)
         pipdir.mkdir(exist_ok=True)
         singularity_dir = pipdir / "containers"
         singularity_dir.mkdir(exist_ok=True)

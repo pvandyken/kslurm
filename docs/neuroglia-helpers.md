@@ -1,3 +1,5 @@
+# Neuroglia Helpers
+
 [Neuroglia-helpers](https://github.com/khanlab/neuroglia-helpers) is the current definitive home for khanlab scripts. It's features are slowly being ported into kslurm, but the entire library remains accessible via `kslurm` to maintain feature access and for backwards-compatibility.
 
 The neuroglia-helpers version bundled with kslurm is only tested to work on Compute Canada servers. However, it *may* work on any arbitary compute cluster if account names start with `def_`, if scratch directories are mounted as `/scratch/<user>`, and if a project directory is available via `$HOME/projects/<account>`.

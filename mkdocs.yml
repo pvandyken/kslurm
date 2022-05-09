@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: kslurm
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+extra_css:
+  - stylesheets/colors.css
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+nav:
+  - index.md
+  - install.md
+  - jobs.md
+  - python.md
+  - configuration.md
+  - neuroglia-helpers.md

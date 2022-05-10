@@ -162,7 +162,8 @@ class SlurmCommand:
             command = self.venv + self.command
             return f"srun {self.slurm_args} bash -c {shlex.quote(command)}"
         command = (
-            "srun --pty bash -c " + shlex.quote(f'bash --init-file <(echo "{self.venv}";)')
+            "srun --pty bash -c "
+            + shlex.quote(f'bash --init-file <(echo "{self.venv}";)')
             if self.venv
             else ""
         )

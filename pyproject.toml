@@ -80,11 +80,12 @@ venv = ".venv"
 useLibraryCodeForTypes = true
 
 [tool.black]
-extend-exclude = ["typings/.*$", "neuroglia_helpers/.*$"]
+extend-exclude = '^/(typings|neuroglia_helpers)/.*$'
 extend-include = ["kslurm/.*$"]
 
 [tool.poe.tasks]
 setup = "pre-commit install"
+quality = { shell = "isort kslurm && black kslurm && flake8 kslurm" }
 mkinit = "mkinit --recursive --nomods --black -i kslurm"
 check_mkinit = "mkinit --recursive --nomods --black --diff kslurm"
 test = "tox"

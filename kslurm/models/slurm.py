@@ -83,3 +83,5 @@ class SlurmModel:
         num=1,
         help="Compute account to submit the job under.",
     )
+
+    venv: list[str] = keyword(["--venv"], help="kpy venv to load")

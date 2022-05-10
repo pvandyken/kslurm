@@ -8,10 +8,7 @@ import subprocess as sp
 import sys
 from typing import Union
 
-import attr
-
 import kslurm.text as txt
-from kslurm.args import keyword
 from kslurm.args.command import ParsedArgs, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
@@ -20,14 +17,9 @@ from kslurm.style.console import console
 from kslurm.venv import VenvCache
 
 
-@attr.frozen
-class JupyterModel(SlurmModel):
-    venv: list[str] = keyword(["--venv"])
-
-
 @command(terminate_on_unknown=True)
 def kjupyter(
-    args: Union[JupyterModel, TemplateError],
+    args: Union[SlurmModel, TemplateError],
     command_args: list[str],
     arglist: ParsedArgs,
 ):
@@ -45,7 +37,9 @@ def kjupyter(
     """
     slurm = SlurmCommand(args, command_args, arglist)
     slurm.name = "jupyter"
-    assert isinstance(args, JupyterModel)
+    assert isinstance(args, SlurmModel)
+
+    slurm.set_venv("")
 
     if args.venv:
         venv_cache = VenvCache()

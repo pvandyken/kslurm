@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import importlib.resources as impr
 import os
 import shlex
 import sys
@@ -81,9 +82,8 @@ class SlurmCommand:
 
         os.chdir(self.cwd)
 
-        self.script = [self.command]
-
         self.args = args
+        self._venv = args.venv[0] if args.venv else None
 
     ###
     # Job Paramaters
@@ -112,6 +112,9 @@ class SlurmCommand:
     def output(self, output: str):
         self._output = f'--output="{output}"'
 
+    def set_venv(self, name: str):
+        self._venv = name
+
     ###
     # Command line strings
     ###
@@ -139,11 +142,14 @@ class SlurmCommand:
 
     @property
     def script(self):
-        return self._script
+        return "\n".join(["#!/bin/bash", self.venv, self.command])
 
-    @script.setter
-    def script(self, command: List[str]):
-        self._script = "\n".join(["#!/bin/bash"] + command)
+    @property
+    def venv(self):
+        if self._venv:
+            with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
+                return f"source {path}; kpy load {self._venv}; "
+        return ""
 
     ###
     # Job submission commands
@@ -153,9 +159,14 @@ class SlurmCommand:
         if self.command:
             if os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOBID"):
                 return f"srun {self.slurm_args} {self.command}"
-            return f"srun {self.slurm_args} bash -c {shlex.quote(self.command)}"
-        else:
-            return f"salloc {self.slurm_args}"
+            command = self.venv + self.command
+            return f"srun {self.slurm_args} bash -c {shlex.quote(command)}"
+        command = (
+            "srun --pty bash -c " + shlex.quote(f'bash --init-file <(echo "{self.venv}";)')
+            if self.venv
+            else ""
+        )
+        return f"salloc {self.slurm_args} {command}"
 
     @property
     def batch(self):
@@ -164,7 +175,7 @@ class SlurmCommand:
         else:
             s = f"sbatch {self.slurm_args} --parsable {self.output}"
         if self.command:
-            if Path(self._command[0]).is_file():
+            if "/" in self._command[0] and Path(self._command[0]).is_file():
                 return f"{s} {self.command}"
             return f"echo {shlex.quote(self.script)} | {s}"
         else:

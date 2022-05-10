@@ -1,10 +1,10 @@
 name: Bump version
 on:
-  pull_request_target:
-    types: [closed]
+  push:
+    branches:
+      - master
 jobs:
   build:
-    if: ${{ github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout master branch

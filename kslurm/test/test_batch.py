@@ -28,7 +28,7 @@ def test_batch_submits_testmode(capsys: CaptureFixture[str]):
             in str(out)
         )
         subprocess.assert_called_with(
-            "echo '#!/bin/bash\ncommand' | cat", shell=True, stdout=-1, stderr=-2
+            "echo '#!/bin/bash\n\ncommand' | cat", shell=True, stdout=-1, stderr=-2
         )
 
 
@@ -58,7 +58,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
             "--mem=5000 --gres=gpu:1" in str(out)
         )
         subprocess.assert_called_with(
-            "echo '#!/bin/bash\ncommand' | sbatch --account=some-account "
+            "echo '#!/bin/bash\n\ncommand' | sbatch --account=some-account "
             "--time=2-09:11:00 --cpus-per-task=8 --mem=5000 --gres=gpu:1 "
             "--parsable ",
             shell=True,

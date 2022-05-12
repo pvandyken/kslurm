@@ -1,16 +1,30 @@
 from __future__ import absolute_import
 
+import hashlib
 import json
 import re
+import subprocess as sp
 from collections import UserDict
 from pathlib import Path
+from typing import Any, Union
+
+from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import Config
 from kslurm.args.command import CommandError
+from kslurm.exceptions import ValidationError
 
 
 class MissingPipdirError(CommandError):
     pass
+
+
+def venv_name_validate(name: str):
+    invalid_chars = "!@#$%^&*()[]{}\\/|?"
+    for char in invalid_chars:
+        if char in name:
+            raise ValidationError(f"Invalid characters found in {name}")
+    return name
 
 
 class KpyIndex(UserDict[str, str]):
@@ -61,3 +75,86 @@ class VenvCache(UserDict[str, Path]):
 
     def __str__(self):
         return "• " + "\n• ".join(self.data.keys()) if self.data else ""
+
+
+def _pip_freeze(venv_dir: Path):
+    return sp.run(
+        [venv_dir / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
+    ).stdout
+
+
+def _get_hash(item: Union[str, bytes]):
+    if isinstance(item, str):
+        item = item.encode()
+    return hashlib.md5(item).hexdigest()
+
+
+def _file_sub(path: Path, *replacements: tuple[str, str]):
+    with path.open("r") as f:
+        contents = f.read()
+    sub = contents
+    for replace in replacements:
+        sub = re.sub(*replace, sub)
+    with path.open("w") as f:
+        f.write(sub)
+
+
+class PromptRefreshError(Exception):
+    pass
+
+
+class VenvPrompt:
+    def __init__(self, venv_dir: Path):
+        self.cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
+        self.venv_dir = venv_dir
+        try:
+            self.name = self.cfg["prompt"]
+        except KeyError:
+            self.name = "venv"
+
+    def update_prompt(self, name: str):
+        self.name = name
+        self.cfg["prompt"] = name
+
+    def update_hash(self):
+        self.cfg["state_hash"] = _get_hash(_pip_freeze(self.venv_dir))
+
+    def refresh(self):
+        try:
+            state_hash = self.cfg["state_hash"]
+        except KeyError:
+            raise PromptRefreshError()
+
+        try:
+            hsh = _get_hash(_pip_freeze(self.venv_dir))
+            if hsh != state_hash and self.name[0] != "*":
+                self.update_prompt("*" + self.name)
+            elif hsh == state_hash and self.name[0] == "*":
+                self.update_prompt(self.name[1:])
+            self.save()
+        except KeyError:
+            raise PromptRefreshError()
+
+    def save(self):
+        self.cfg.write()
+        bin_dir = self.venv_dir / "bin"
+        _file_sub(
+            bin_dir / "activate",
+            (
+                r'\[\s"x[^"$]*"\s!=\sx\s\]',
+                f'[ "x{self.name}" != x ]',
+            ),
+            (r'\sPS1="[^"$]*\$\{PS1\-\}"', f'PS1="({self.name}) ${{PS1-}}"'),
+        )
+
+        # _file_sub(
+        #     r"\(\x27[^\x27]*\x27\s!=\s\x22\x22\)",
+        #     f"('{self.name}' != \"\")",
+        #     bin_dir / "activate.csh",
+        # )
+
+        # _file_sub(
+        #     r"\(\x27[^\x27]*\x27\s!=\s\x22\x22\)",
+        #     f"('{self.name}' != \"\")",
+        #     bin_dir / "activate.csh",
+        # )

@@ -12,16 +12,12 @@ if [[ -n $KSLURM_KPY_SUBSHELL ]]; then
   deactivate () { exit 0 &> /dev/null; }
 fi
 
-_pip_prompt_refresh () {
-    if command -v kpy &> /dev/null; then
-      kpy _refresh
-    fi;
-}
 
 if [[ $(type -t kpy) != 'function' ]]; then
   source $(kpy _kpy_wrapper)
 fi
 
-if [[ ! " ${KSLURM_POST_INSTALL_HOOKS[*]} " =~ " _pip_prompt_refresh " ]]; then
-  KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_pip_prompt_refresh"
+
+if [[ ! " ${KSLURM_POST_INSTALL_HOOKS[*]} " =~ " _kpy_update_prompt " ]]; then
+  KSLURM_POST_INSTALL_HOOKS["${#KSLURM_POST_INSTALL_HOOKS[@]}"]="_kpy_update_prompt"
 fi

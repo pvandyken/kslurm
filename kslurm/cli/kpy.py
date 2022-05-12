@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import hashlib
 import importlib.resources as impr
 import os
 import re
@@ -10,28 +9,22 @@ import sys
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Any, Literal, Optional, Union, cast, overload
+from typing import Literal, Optional, cast, overload
 
 import attr
-from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.args import Subcommand, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
 from kslurm.args.types import WrappedCommand
 from kslurm.shell import Shell
-from kslurm.venv import KpyIndex, MissingPipdirError, VenvCache
-
-
-def _get_hash(item: Union[str, bytes]):
-    if isinstance(item, str):
-        item = item.encode()
-    return hashlib.md5(item).hexdigest()
-
-
-def _pip_freeze(venv_dir: Path):
-    return sp.run(
-        [venv_dir / "bin" / "python", "-m", "pip", "freeze"], capture_output=True
-    ).stdout
+from kslurm.venv import (
+    KpyIndex,
+    MissingPipdirError,
+    PromptRefreshError,
+    VenvCache,
+    VenvPrompt,
+    venv_name_validate,
+)
 
 
 def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
@@ -83,7 +76,7 @@ def _bash():
 @command(typer=True)
 def _load(
     name: str = positional(default="", help="Test help"),
-    new_name: list[str] = keyword(match=["--as"]),
+    new_name: list[str] = keyword(match=["--as"], validate=venv_name_validate),
     script: list[str] = keyword(match=["--script"]),
 ):
     """Load a saved python venv
@@ -157,9 +150,10 @@ def _load(
             with path.open("w") as f:
                 f.write("\n".join(subbed))
 
-    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
-    cfg.update({"prompt": label, "state_hash": _get_hash(_pip_freeze(venv_dir))})
-    cfg.write()
+    prompt = VenvPrompt(venv_dir)
+    prompt.update_prompt(label)
+    prompt.update_hash()
+    prompt.save()
 
     if index is not None:
         index[label] = str(venv_dir)
@@ -174,7 +168,10 @@ def _load(
 
 
 @command(typer=True)
-def _save(name: str = positional(), force: bool = flag(match=["--force", "-f"])):
+def _save(
+    name: str = positional(format=venv_name_validate),
+    force: bool = flag(match=["--force", "-f"]),
+):
     """Save current venv"""
     if not os.environ.get("VIRTUAL_ENV"):
         print(
@@ -196,14 +193,10 @@ def _save(name: str = positional(), force: bool = flag(match=["--force", "-f"]))
     _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
 
     venv_dir = Path(os.environ["VIRTUAL_ENV"])
-    cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(venv_dir)  # type: ignore
-    cfg.update(
-        {
-            "prompt": name,
-            "state_hash": _get_hash(_pip_freeze(venv_dir)),
-        }
-    )
-    cfg.write()
+    prompt = VenvPrompt(venv_dir)
+    prompt.update_prompt(name)
+    prompt.update_hash()
+    prompt.save()
     with tarfile.open(tmp, mode="w:gz") as tar:
         tar.add(venv_dir, arcname="")
 
@@ -219,7 +212,7 @@ def _save(name: str = positional(), force: bool = flag(match=["--force", "-f"]))
 
 @command(typer=True)
 def _create(
-    name: str = positional("", help="Name of the new venv"),
+    name: str = positional("", help="Name of the new venv", format=venv_name_validate),
     version: str = shape(
         default="",
         match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s)),
@@ -278,8 +271,6 @@ def _create(
                 "virtualenv",
                 venv_dir,
                 "--symlinks",
-                "--prompt",
-                name,
                 *ver,
                 *no_download,
             ],
@@ -301,6 +292,9 @@ def _create(
     if index is not None:
         index[name] = str(venv_dir)
         index.write()
+    prompt = VenvPrompt(Path(venv_dir))
+    prompt.update_prompt(name)
+    prompt.save()
 
     shell = Shell.get()
     if script:
@@ -364,19 +358,13 @@ def _list():
 def _refresh():
     try:
         dir = Path(os.environ["VIRTUAL_ENV"])
-        cfg: Any = pyenv_cfg.PyEnvCfg.from_folder(dir)  # type: ignore
-        state_hash = cfg["state_hash"]
     except KeyError:
         return
-
+    prompt = VenvPrompt(dir)
     try:
-        hsh = _get_hash(_pip_freeze(dir))
-        if hsh != state_hash and cfg["prompt"][0] != "*":
-            cfg["prompt"] = "*" + cfg["prompt"]
-        elif hsh == state_hash and cfg["prompt"][0] == "*":
-            cfg["prompt"] = cfg["prompt"][1:]
-        cfg.write()
-    except KeyError:
+        prompt.refresh()
+        print(prompt.name)
+    except PromptRefreshError:
         return
 
 

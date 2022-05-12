@@ -111,7 +111,11 @@ class Arg(Generic[T, S]):
     @property
     def value(self) -> T:
         if self._value is None:
-            raise MandatoryArgError(f"{self.label} has not been provided a value.")
+            raise MandatoryArgError(
+                f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
+    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value.
+            """
+            )
         return self._value
 
     @property
@@ -137,10 +141,8 @@ class Arg(Generic[T, S]):
                 self,
                 updated=updated,
                 validation_err=ValidationError(
-                    f"""
-    {Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-        Invalid value for "{Style.BRIGHT + self.label + Style.RESET_ALL}":
-            {err.msg}
+                    f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
+    Invalid value for "{Style.BRIGHT + self.label + Style.RESET_ALL}": {err.msg}
             """
                 ),
             )

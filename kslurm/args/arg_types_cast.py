@@ -32,7 +32,7 @@ def positional(
 
 
 def positional(*args: Any, **kwargs: Any):  # type: ignore
-    return arg_types.positional(*args, **kwargs)
+    return arg_types.positional_arg(*args, **kwargs)
 
 
 @overload
@@ -59,14 +59,14 @@ def choice(
 
 
 def choice(*args: Any, **kwargs: Any):  # type: ignore
-    return arg_types.choice(*args, **kwargs)
+    return arg_types.choice_arg(*args, **kwargs)
 
 
 def subcommand(
     commands: Dict[str, WrappedCommand],
     default: Optional[str] = None,
 ) -> arg_types.Subcommand:
-    return arg_types.subcommand(commands, default)  # type: ignore
+    return arg_types.subcommand_arg(commands, default)  # type: ignore
 
 
 @overload
@@ -100,7 +100,7 @@ def shape(  # type: ignore
     *args: Any,
     **kwargs: Any,
 ):
-    return arg_types.shape(*args, **kwargs)
+    return arg_types.shape_arg(*args, **kwargs)
 
 
 def flag(
@@ -108,7 +108,7 @@ def flag(
     default: Optional[bool] = False,
     help: str = "",
 ) -> bool:
-    return arg_types.flag(match, default, help)  # type: ignore
+    return arg_types.flag_arg(match, default, help)  # type: ignore
 
 
 @overload
@@ -140,4 +140,4 @@ def keyword(  # type: ignore
     *args: Any,
     **kwargs: Any,
 ):
-    return arg_types.keyword(*args, **kwargs)
+    return arg_types.keyword_arg(*args, **kwargs)

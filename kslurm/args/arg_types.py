@@ -1,6 +1,6 @@
 from __future__ import absolute_import, annotations
 
-from typing import Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 import attr
 import docstring_parser as doc
@@ -133,7 +133,7 @@ class SubcommandTemplate(AbstractHelpTemplate):
 #         ]
 
 
-def positional(
+def positional_arg(
     default: Optional[str] = None,
     *,
     help: str = "",
@@ -151,7 +151,7 @@ def positional(
     ).with_value(default)
 
 
-def choice(
+def choice_arg(
     match: List[str],
     *,
     default: Optional[str] = None,
@@ -178,7 +178,7 @@ def choice(
 Subcommand = tuple[str, WrappedCommand]
 
 
-def subcommand(
+def subcommand_arg(
     commands: Dict[str, WrappedCommand],
     default: Optional[str] = None,
 ) -> Arg[Subcommand, None]:
@@ -200,7 +200,7 @@ def subcommand(
     ).with_value(default)
 
 
-def shape(
+def shape_arg(
     match: Callable[[str], bool],
     *,
     default: Optional[str] = None,
@@ -224,7 +224,7 @@ def shape(
     ).with_value(default)
 
 
-def flag(
+def flag_arg(
     match: List[str],
     default: Optional[bool] = False,
     help: str = "",
@@ -251,7 +251,7 @@ def flag(
     ).with_value(raw_value)
 
 
-def keyword(
+def keyword_arg(
     match: List[str],
     *,
     default: Optional[List[str]] = [],
@@ -286,4 +286,27 @@ def keyword(
         )
         .with_value(raw_value)
         .with_values(default or [])
+    )
+
+
+class HelpRequest(Exception):
+    pass
+
+
+def help_arg() -> Arg[Any, None]:
+    def check_match(val: str):
+        if val in ["--help", "-h"]:
+            return True
+        return False
+
+    def format(_: str):
+        raise HelpRequest()
+
+    return Arg[Any, None](
+        match=check_match,
+        priority=20,
+        format=format,
+        duplicates=DuplicatePolicy.REPLACE,
+        name="help",
+        value=False,  # type: ignore
     )

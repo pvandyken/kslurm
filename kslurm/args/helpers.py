@@ -65,8 +65,14 @@ def update_model(
     return [arg.with_id(name) for name, arg in d.items()]
 
 
-def finalize_model(arg_updates: Iterable[Arg[Any, Any]], model: ModelType) -> Any:
-    update = {arg.id: (arg.values if arg.num else arg.value) for arg in arg_updates}
+def finalize_model(
+    arg_updates: Iterable[Arg[Any, Any]], model: ModelType, exclude: list[str] = []
+) -> Any:
+    update = {
+        arg.id: (arg.values if arg.num else arg.value)
+        for arg in arg_updates
+        if arg.id not in exclude
+    }
     if isinstance(model, dict):
         return cast(T, {**model, **update})
     elif attr.has(model):

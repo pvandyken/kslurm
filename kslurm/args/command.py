@@ -8,11 +8,12 @@ from typing import Any, Callable, Literal, Optional, Union, overload
 import attr
 
 from kslurm.args.arg import Arg
-from kslurm.args.arg_types import flag
+from kslurm.args.arg_types import HelpRequest, help_arg
+from kslurm.args.help import print_help
 from kslurm.args.helpers import finalize_model, get_arg_list
-from kslurm.args.parser import ScriptHelp, parse_args
+from kslurm.args.parser import parse_args
 from kslurm.args.types import WrappedCommand
-from kslurm.exceptions import CommandLineError
+from kslurm.exceptions import CommandLineError, CommandLineErrorGroup
 
 _CommandFunc = Callable[..., Optional[int]]
 ModelType = Union[dict[str, Arg[Any, Any]], type]
@@ -171,22 +172,18 @@ def command(
                 doc = ""
 
             model_list = get_arg_list(model)
-            model_list.append(flag(match=["--help", "-h"]).with_id("help"))
+            if command_args.tail:
+                usage_suffix = "command_args"
+            else:
+                usage_suffix = ""
             try:
-                if command_args.tail:
-                    h = ScriptHelp(
-                        script_name=argv[0], docstring=doc, usage_suffix="command_args"
-                    )
-                else:
-                    h = ScriptHelp(script_name=argv[0], docstring=doc)
                 parsed_list, tail = parse_args(
                     argv[1:],
-                    model_list,
-                    help=h,
+                    model_list + [help_arg().with_id("help")],
                     terminate_on_unknown=terminate_on_unknown,
                 )
-                parsed_list = list(filter(lambda arg: arg.id != "help", parsed_list))
-                parsed = finalize_model(parsed_list, model)
+
+                parsed = finalize_model(parsed_list, model, exclude=["help"])
                 if typer:
                     args = attr.asdict(parsed, recurse=False)
                 else:
@@ -216,15 +213,41 @@ def command(
                             else {}
                         ),
                     }
-            except exceptions as err:
+            except (HelpRequest, CommandLineError, *exceptions) as err:
+                in_exceptions = isinstance(err, exceptions)
+                if isinstance(err, CommandLineError) and not in_exceptions:
+                    print_help(argv[0], model_list, doc, usage_suffix, just_usage=True)
+                    if isinstance(err, CommandLineErrorGroup):
+                        [print(e.msg) for e in err.sub_errors]
+                    else:
+                        print(err.msg)
+                    return 1
+                if isinstance(err, HelpRequest) and not in_exceptions:
+                    print_help(argv[0], model_list, doc, usage_suffix)
+                    return 0
+
                 parsed = err
-                args = {
+                args: dict[str, Any] = {
                     **(
                         {command_args.model: parsed}
                         if command_args.model is not None
                         else {}
                     ),
+                    **(
+                        {command_args.tail: []} if command_args.tail is not None else {}
+                    ),
+                    **(
+                        {command_args.modellist: {}}
+                        if command_args.modellist is not None
+                        else {}
+                    ),
+                    **(
+                        {command_args.name: argv[0]}
+                        if command_args.name is not None
+                        else {}
+                    ),
                 }
+
             try:
                 return func(**args) or 0
             except CommandError as err:

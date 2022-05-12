@@ -21,6 +21,7 @@ def install(args: List[str], name: str, home_dir: str, entrypoints: List[str] = 
         "based install (follow the instructions on the README: "
         "https://github.com/pvandyken/kslurm)"
     )
+    exit()
     parsed: UpdateModel = helpers.finalize_model(
         parse_args(args, helpers.get_arg_list(UpdateModel))[0], UpdateModel
     )

@@ -1,14 +1,10 @@
 from __future__ import absolute_import, annotations
 
 import itertools as it
-from typing import Any, Iterable, List, Optional, TypeVar, Union, cast
-
-import attr
+from typing import Any, Iterable, List, Optional, TypeVar, Union
 
 from kslurm.args.arg import Arg, DuplicatePolicy
-from kslurm.args.help import print_help
 from kslurm.exceptions import (
-    CommandLineError,
     CommandLineErrorGroup,
     MandatoryArgError,
     TailError,
@@ -19,59 +15,15 @@ T = TypeVar("T", bound=Union[dict[str, Arg[Any, Any]], type])
 S = TypeVar("S")
 
 
-@attr.frozen
-class ScriptHelp:
-    script_name: str = ""
-    docstring: str = ""
-    usage_suffix: str = ""
-
-
 def parse_args(
     args: Iterable[str],
     models: list[Arg[Any, Any]],
-    escalate_errors: bool = False,
-    help: ScriptHelp = ScriptHelp(),
-    allow_unknown: bool = True,
-    terminate_on_unknown: bool = True,
-):
-    try:
-        return _parse_args(
-            args,
-            models,
-            help,
-            allow_unknown=allow_unknown,
-            terminate_on_unknown=terminate_on_unknown,
-        )
-    except CommandLineError as err:
-        print(err.msg)
-        if isinstance(err, CommandLineErrorGroup):
-            [print(e.msg) for e in err.sub_errors]
-        if escalate_errors:
-            raise err
-        else:
-            exit()
-
-
-def _parse_args(
-    args: Iterable[str],
-    models: list[Arg[Any, Any]],
-    help: ScriptHelp,
     allow_unknown: bool = True,
     terminate_on_unknown: bool = True,
 ):
     model_list = sorted(models, key=lambda arg: arg.priority, reverse=True)
 
     parsed, tail = _match_args(args, model_list, terminate_on_unknown)
-
-    show_help = False
-    for arg in parsed:
-        if arg.id == "help":
-            show_help = arg.value
-            break
-
-    if show_help:
-        print_help(help.script_name, models, help.docstring, help.usage_suffix)
-        exit(0)
 
     validation_errs = filter(None, [arg.validation_err for arg in parsed])
 
@@ -80,17 +32,18 @@ def _parse_args(
     else:
         tail_err = []
 
-    mandatory_arg_errs = cast(List[MandatoryArgError], [])
+    mandatory_arg_errs: list[MandatoryArgError] = []
     for arg in parsed:
         try:
             arg.value
         except MandatoryArgError as err:
-            mandatory_arg_errs.append(err)
+            if arg.validation_err is None:
+                mandatory_arg_errs.append(err)
 
     all_err = list(it.chain(validation_errs, tail_err, mandatory_arg_errs))
 
     if all_err:
-        raise CommandLineErrorGroup("Problems found!", all_err)
+        raise CommandLineErrorGroup("Multiple errors found", all_err)
 
     return parsed, tail
 

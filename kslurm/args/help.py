@@ -41,6 +41,7 @@ def print_help(
     models: list[Arg[Any, Any]],
     script_help: str = "",
     usage_suffix: str = "",
+    just_usage: bool = False,
 ) -> None:
     script_name = Path(script).name
 
@@ -75,7 +76,10 @@ def print_help(
         Text(f" <{usage_suffix}>", style="cyan") if usage_suffix else "",
         "\n",
     ]
+    if just_usage:
+        console.print(*command_line_example, sep="")
+        return
 
     sections = [_section(template.title, template.table()) for template in templates]
 
-    console.print(*command_line_example, script_help, *sections, sep="")
+    console.print(*command_line_example, "\n", script_help, "\n", *sections, sep="")

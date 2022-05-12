@@ -115,7 +115,7 @@ def flag(
 def keyword(
     match: list[str],
     *,
-    default: list[str] = ...,
+    default: Optional[list[str]] = ...,
     num: int = ...,
     lazy: bool = ...,
     help: str = ...,
@@ -127,7 +127,7 @@ def keyword(
 def keyword(
     match: list[str],
     *,
-    default: list[str] = ...,
+    default: Optional[list[str]] = ...,
     num: int = ...,
     validate: Callable[[str], T] = ...,
     lazy: bool = ...,

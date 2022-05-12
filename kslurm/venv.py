@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import hashlib
 import json
+import os
 import re
 import subprocess as sp
 from collections import UserDict
@@ -158,3 +159,41 @@ class VenvPrompt:
         #     f"('{self.name}' != \"\")",
         #     bin_dir / "activate.csh",
         # )
+
+
+def rebase_venv(venv_dir: Path):
+    with (venv_dir / "bin" / "activate").open("r") as f:
+        resolved = venv_dir.resolve()
+        lines = f.read().splitlines()
+        # \x22 and \x27 are " and ' char
+        subbed = [
+            re.sub(
+                r"(?<=^VIRTUAL_ENV=([\x22\x27])).*(?=\1$)",
+                str(resolved),
+                line,
+            )
+            for line in lines
+        ]
+    with (venv_dir / "bin" / "activate").open("w") as f:
+        f.write("\n".join(subbed))
+
+    for root, _, files in os.walk(venv_dir / "bin"):
+        for file in files:
+            path = Path(root, file)
+            if path.is_symlink() or not os.access(path, os.X_OK):
+                continue
+            with path.open("r") as f:
+                lines = f.read().splitlines()
+                try:
+                    subbed = [
+                        re.sub(
+                            r"(?<=^#!)\/.*python.*$",
+                            str(resolved / "bin" / "python"),
+                            lines[0],
+                        ),
+                        *lines[1:],
+                    ]
+                except IndexError:
+                    subbed = lines
+            with path.open("w") as f:
+                f.write("\n".join(subbed))

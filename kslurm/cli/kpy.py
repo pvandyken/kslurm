@@ -13,7 +13,7 @@ from typing import Literal, Optional, cast, overload
 
 import attr
 
-from kslurm.args import Subcommand, flag, keyword, positional, shape, subcommand
+from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
 from kslurm.args.types import WrappedCommand
 from kslurm.shell import Shell
@@ -23,6 +23,7 @@ from kslurm.venv import (
     PromptRefreshError,
     VenvCache,
     VenvPrompt,
+    rebase_venv,
     venv_name_validate,
 )
 
@@ -118,37 +119,7 @@ def _load(
         tar.extractall(venv_dir)
 
     print("Updating paths")
-    with (venv_dir / "bin" / "activate").open("r") as f:
-        lines = f.read().splitlines()
-        # \x22 and \x27 are " and ' char
-        subbed = [
-            re.sub(
-                r"(?<=^VIRTUAL_ENV=([\x22\x27])).*(?=\1$)",
-                str(venv_dir),
-                line,
-            )
-            for line in lines
-        ]
-    with (venv_dir / "bin" / "activate").open("w") as f:
-        f.write("\n".join(subbed))
-
-    for root, _, files in os.walk(venv_dir / "bin"):
-        for file in files:
-            path = Path(root, file)
-            if path.is_symlink() or not os.access(path, os.X_OK):
-                continue
-            with path.open("r") as f:
-                lines = f.read().splitlines()
-                subbed = [
-                    re.sub(
-                        r"(?<=^#!)/.*$",
-                        str(venv_dir / "bin" / "python"),
-                        line,
-                    )
-                    for line in lines
-                ]
-            with path.open("w") as f:
-                f.write("\n".join(subbed))
+    rebase_venv(venv_dir)
 
     prompt = VenvPrompt(venv_dir)
     prompt.update_prompt(label)
@@ -165,6 +136,40 @@ def _load(
             f.write(shell.source(venv_dir))
         return 2
     shell.activate(venv_dir)
+
+
+@command(inline=True)
+def _export(
+    mode: str = choice(["venv"], help="What sort of export to perform"),
+    name: str = positional(help="Name of the venv to export"),
+    path: list[Path] = keyword(
+        ["--path", "-p"], default=None, help="Path for the export"
+    ),
+):
+    """Export a saved venv
+
+    Saves to a path of choice. Currently "venv" is the only valid export mode. Exported
+    venvs can only be safely activated by a bash shell.
+    """
+    venv_cache = VenvCache()
+
+    if name not in venv_cache:
+        print("Valid venvs:\n" + str(venv_cache))
+        return 1
+
+    if path[0].exists():
+        print(f"{path[0]} already exists")
+        return 1
+
+    print("exporting...")
+    with tarfile.open(venv_cache[name], "r") as tar:
+        tar.extractall(path[0])
+    rebase_venv(path[0])
+
+    print(
+        "Export complete! Activate the venv by running\n\tsource "
+        f"{path[0]}/bin/activate"
+    )
 
 
 @command(inline=True)
@@ -403,6 +408,7 @@ class _KpyModel:
             "activate": _activate,
             "list": _list,
             "rm": _rm,
+            "export": _export,
             "_refresh": _refresh,
             "_kpy_wrapper": cast(WrappedCommand, _kpy_wrapper),
         },

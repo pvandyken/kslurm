@@ -17,7 +17,7 @@ HOME_DIR = "KSLURM_HOME"
 ENTRYPOINTS = ["kbatch", "krun", "kjupyter", "kslurm", "kpy"]
 
 
-@command(typer=True)
+@command(inline=True)
 def _neuroglia_helpers(show_src: bool = flag(["--src-dir"])):
     if show_src:
         print(Path(neuroglia_helpers.__file__).parent)

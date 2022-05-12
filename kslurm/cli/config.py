@@ -82,7 +82,7 @@ def _account():
 INTERACTIVE_SETTINGS = {"account": _account}
 
 
-@command(typer=True)
+@command(inline=True)
 def config(
     entry: str = positional(help="Configuration value to update"),
     value: str = positional(

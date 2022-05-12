@@ -80,7 +80,7 @@ def command(
     maybe_func: None = ...,
     *,
     terminate_on_unknown: bool = ...,
-    typer: bool = ...,
+    inline: bool = ...,
 ) -> Callable[[_CommandFunc], WrappedCommand]:
     ...
 
@@ -90,7 +90,7 @@ def command(
     maybe_func: _CommandFunc = ...,
     *,
     terminate_on_unknown: Literal[True] = ...,
-    typer: Literal[False] = ...,
+    inline: Literal[False] = ...,
 ) -> WrappedCommand:
     ...
 
@@ -99,7 +99,7 @@ def command(
     maybe_func: Optional[_CommandFunc] = None,
     *,
     terminate_on_unknown: bool = False,
-    typer: bool = False,
+    inline: bool = False,
 ) -> Union[WrappedCommand, Callable[[_CommandFunc], WrappedCommand]]:
     @attr.frozen
     class BlankModel:
@@ -114,7 +114,7 @@ def command(
         model = BlankModel
 
         command_args = CommandArgs()
-        if typer:
+        if inline:
             model = attr.make_class(
                 "__Typer_Model__",
                 {
@@ -184,7 +184,7 @@ def command(
                 )
 
                 parsed = finalize_model(parsed_list, model, exclude=["help"])
-                if typer:
+                if inline:
                     args = attr.asdict(parsed, recurse=False)
                 else:
                     args = {

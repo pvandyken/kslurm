@@ -73,7 +73,7 @@ def _bash():
         print(f"\nsource {path.resolve()}")
 
 
-@command(typer=True)
+@command(inline=True)
 def _load(
     name: str = positional(default="", help="Test help"),
     new_name: list[str] = keyword(match=["--as"], validate=venv_name_validate),
@@ -167,7 +167,7 @@ def _load(
     shell.activate(venv_dir)
 
 
-@command(typer=True)
+@command(inline=True)
 def _save(
     name: str = positional(format=venv_name_validate),
     force: bool = flag(match=["--force", "-f"]),
@@ -210,7 +210,7 @@ def _save(
     shutil.move(tmp, dest)
 
 
-@command(typer=True)
+@command(inline=True)
 def _create(
     name: str = positional("", help="Name of the new venv", format=venv_name_validate),
     version: str = shape(
@@ -304,7 +304,7 @@ def _create(
     shell.activate(Path(venv_dir))
 
 
-@command(typer=True)
+@command(inline=True)
 def _activate(name: str = positional(""), script: list[str] = keyword(["--script"])):
     """Activate a venv already created or loaded
 
@@ -373,7 +373,7 @@ def _kpy_wrapper(argv: list[str] = sys.argv):
         print(path)
 
 
-@command(typer=True)
+@command(inline=True)
 def _rm(name: str = positional("")):
     try:
         venv_cache = VenvCache()

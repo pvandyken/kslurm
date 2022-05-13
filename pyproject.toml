@@ -39,6 +39,7 @@ virtualenv = ">=20.0.24,<21"
 docstring-parser = "^0.14.1"
 InquirerPy = "^0.3.3"
 more-itertools = "^8.13.0"
+requests = "^2.27.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
@@ -61,6 +62,7 @@ krun = 'kslurm.cli.krun:krun.cli'
 kjupyter = 'kslurm.cli.kjupyter:kjupyter.cli'
 kslurm = 'kslurm.cli.main:main.cli'
 kpy = 'kslurm.cli.kpy:kpy.cli'
+kapp = 'kslurm.cli.kapp:kapp.cli'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

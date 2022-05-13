@@ -98,7 +98,7 @@ class _Command(Protocol, Generic[P]):
 
 class CommandError(Exception):
     def __init__(self, msg: str, *args: Any):
-        super().__init__(*args)
+        super().__init__(msg, *args)
         self.msg = msg
 
 

@@ -16,6 +16,7 @@ import attr
 from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
 from kslurm.args.protocols import WrappedCommand
+from kslurm.models import validators
 from kslurm.shell import Shell
 from kslurm.venv import (
     KpyIndex,
@@ -24,7 +25,6 @@ from kslurm.venv import (
     VenvCache,
     VenvPrompt,
     rebase_venv,
-    venv_name_validate,
 )
 
 
@@ -77,7 +77,7 @@ def _bash():
 @command(inline=True)
 def _load(
     name: str = positional(default="", help="Test help"),
-    new_name: list[str] = keyword(match=["--as"], validate=venv_name_validate),
+    new_name: list[str] = keyword(match=["--as"], validate=validators.fs_name),
     script: list[str] = keyword(match=["--script"]),
 ):
     """Load a saved python venv
@@ -174,7 +174,7 @@ def _export(
 
 @command(inline=True)
 def _save(
-    name: str = positional(format=venv_name_validate),
+    name: str = positional(format=validators.fs_name),
     force: bool = flag(match=["--force", "-f"]),
 ):
     """Save current venv"""
@@ -217,7 +217,7 @@ def _save(
 
 @command(inline=True)
 def _create(
-    name: str = positional("", help="Name of the new venv", format=venv_name_validate),
+    name: str = positional("", help="Name of the new venv", format=validators.fs_name),
     version: str = shape(
         default="",
         match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s)),

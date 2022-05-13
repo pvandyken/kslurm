@@ -1,31 +1,22 @@
 from __future__ import absolute_import
 
-import hashlib
 import json
 import os
 import re
 import subprocess as sp
 from collections import UserDict
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from virtualenv.create import pyenv_cfg  # type: ignore
 
 from kslurm.appconfig import Config
 from kslurm.args.command import CommandError
-from kslurm.exceptions import ValidationError
+from kslurm.utils import get_hash
 
 
 class MissingPipdirError(CommandError):
     pass
-
-
-def venv_name_validate(name: str):
-    invalid_chars = "!@#$%^&*()[]{}\\/|?"
-    for char in invalid_chars:
-        if char in name:
-            raise ValidationError(f"Invalid characters found in {name}")
-    return name
 
 
 class KpyIndex(UserDict[str, str]):
@@ -84,12 +75,6 @@ def _pip_freeze(venv_dir: Path):
     ).stdout
 
 
-def _get_hash(item: Union[str, bytes]):
-    if isinstance(item, str):
-        item = item.encode()
-    return hashlib.md5(item).hexdigest()
-
-
 def _file_sub(path: Path, *replacements: tuple[str, str]):
     with path.open("r") as f:
         contents = f.read()
@@ -118,7 +103,7 @@ class VenvPrompt:
         self.cfg["prompt"] = name
 
     def update_hash(self):
-        self.cfg["state_hash"] = _get_hash(_pip_freeze(self.venv_dir))
+        self.cfg["state_hash"] = get_hash(_pip_freeze(self.venv_dir))
 
     def refresh(self):
         try:
@@ -127,7 +112,7 @@ class VenvPrompt:
             raise PromptRefreshError()
 
         try:
-            hsh = _get_hash(_pip_freeze(self.venv_dir))
+            hsh = get_hash(_pip_freeze(self.venv_dir))
             if hsh != state_hash and self.name[0] != "*":
                 self.update_prompt("*" + self.name)
             elif hsh == state_hash and self.name[0] == "*":

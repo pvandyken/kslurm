@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from typing import Any, Callable, Dict, Optional, TypeVar, overload
 
 import kslurm.args.arg_types as arg_types
-from kslurm.args.types import WrappedCommand
+from kslurm.args.protocols import WrappedCommand
 
 T = TypeVar("T")
 

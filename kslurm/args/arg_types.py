@@ -7,7 +7,7 @@ import docstring_parser as doc
 from rich.text import Text
 
 from kslurm.args.arg import AbstractHelpTemplate, Arg, DuplicatePolicy, HelpRow
-from kslurm.args.types import WrappedCommand
+from kslurm.args.protocols import WrappedCommand
 from kslurm.exceptions import ValidationError
 
 T = TypeVar("T")

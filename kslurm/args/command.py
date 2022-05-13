@@ -6,16 +6,18 @@ import sys
 from typing import Any, Callable, Literal, Optional, Union, overload
 
 import attr
+from typing_extensions import ParamSpec
 
 from kslurm.args.arg import Arg
 from kslurm.args.arg_types import HelpRequest, help_arg
 from kslurm.args.help import print_help
 from kslurm.args.helpers import finalize_model, get_arg_list
 from kslurm.args.parser import parse_args
-from kslurm.args.types import WrappedCommand
+from kslurm.args.protocols import TransparentWrappedCommand, WrappedCommand
 from kslurm.exceptions import CommandLineError, CommandLineErrorGroup
 
-_CommandFunc = Callable[..., Optional[int]]
+P = ParamSpec("P")
+_CommandFunc = Callable[P, Optional[int]]
 ModelType = Union[dict[str, Arg[Any, Any]], type]
 
 
@@ -80,14 +82,24 @@ def command(
     maybe_func: None = ...,
     *,
     terminate_on_unknown: bool = ...,
-    inline: bool = ...,
-) -> Callable[[_CommandFunc], WrappedCommand]:
+    inline: Literal[False] = ...,
+) -> Callable[[_CommandFunc[P]], WrappedCommand]:
     ...
 
 
 @overload
 def command(
-    maybe_func: _CommandFunc = ...,
+    maybe_func: None = ...,
+    *,
+    terminate_on_unknown: bool = ...,
+    inline: Literal[True] = ...,
+) -> Callable[[_CommandFunc[P]], TransparentWrappedCommand[P]]:
+    ...
+
+
+@overload
+def command(
+    maybe_func: _CommandFunc[P] = ...,
     *,
     terminate_on_unknown: Literal[True] = ...,
     inline: Literal[False] = ...,
@@ -96,16 +108,20 @@ def command(
 
 
 def command(
-    maybe_func: Optional[_CommandFunc] = None,
+    maybe_func: Optional[_CommandFunc[P]] = None,
     *,
     terminate_on_unknown: bool = False,
     inline: bool = False,
-) -> Union[WrappedCommand, Callable[[_CommandFunc], WrappedCommand]]:
+) -> Union[
+    WrappedCommand,
+    Callable[[_CommandFunc[P]], WrappedCommand],
+    Callable[[_CommandFunc[P]], Callable[P, int]],
+]:
     @attr.frozen
     class BlankModel:
         pass
 
-    def decorator(func: _CommandFunc):
+    def decorator(func: _CommandFunc[P]):
         if not callable(func):
             raise CommandLineError(f"{func} is not callable")
 
@@ -165,7 +181,6 @@ def command(
                     )
                 command_args.model = param.name
 
-        @ft.wraps(func)
         def wrapper(argv: list[str] = sys.argv):
             doc = func.__doc__
             if doc is None:
@@ -249,12 +264,33 @@ def command(
                 }
 
             try:
-                return func(**args) or 0
+                return func(**args) or 0  # type: ignore
             except CommandError as err:
                 print(err.msg)
                 return 1
 
-        return wrapper
+        @overload
+        def disambiguator(*args: P.args, **kwargs: P.kwargs) -> int:
+            ...
+
+        @overload
+        def disambiguator(argv: list[str] = ...) -> int:
+            ...
+
+        @ft.wraps(func)
+        def disambiguator(*args: Any, **kwargs: Any) -> int:
+            if not kwargs and len(args) == 1:
+                arg = args[0]
+            elif not args and len(kwargs) == 1:
+                arg = next(iter(kwargs.values()))
+            else:
+                return func(*args, **kwargs) or 0  # type: ignore
+
+            if not isinstance(arg, list):
+                raise TypeError(f"arg '{arg}' of '{func}' must be a list of strings.")
+            return wrapper(arg)  # type: ignore
+
+        return disambiguator
 
     if maybe_func is None:
         return decorator

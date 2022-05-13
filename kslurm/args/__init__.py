@@ -1,4 +1,4 @@
-__submodules__ = ["arg_types_cast"]
+__submodules__ = ["arg_types_cast", "command"]
 
 __ignore__ = ["T", "S"]
 
@@ -12,10 +12,22 @@ from kslurm.args.arg_types_cast import (
     shape,
     subcommand,
 )
+from kslurm.args.command import (
+    CommandArgs,
+    CommandError,
+    ModelType,
+    ParsedArgs,
+    command,
+)
 
 __all__ = [
+    "CommandArgs",
+    "CommandError",
+    "ModelType",
+    "ParsedArgs",
     "Subcommand",
     "choice",
+    "command",
     "flag",
     "keyword",
     "positional",

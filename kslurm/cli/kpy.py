@@ -15,7 +15,7 @@ import attr
 
 from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
-from kslurm.args.types import WrappedCommand
+from kslurm.args.protocols import WrappedCommand
 from kslurm.shell import Shell
 from kslurm.venv import (
     KpyIndex,

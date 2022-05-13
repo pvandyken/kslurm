@@ -79,7 +79,7 @@ def kbatch(
                 date = ""
             time = startdate.strftime("%I:%M%p")
 
-            ddhr, mn = divmod(int(delta.total_seconds()) // 60, 60)
+            ddhr, mn = divmod(int(max(0, delta.total_seconds())) // 60, 60)
             day, hr = divmod(ddhr, 24)
             _fromnow = ",".join(
                 filter(

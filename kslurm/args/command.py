@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import functools as ft
 import inspect
+import itertools as it
 import sys
 from typing import (
     Any,
@@ -194,6 +195,18 @@ def command(
         class Wrapper:
             @ft.wraps(func)
             def __call__(self, *args: P.args, **kwargs: P.kwargs):
+                if inline:
+                    for param in it.islice(
+                        params.parameters.values(), len(args), len(params.parameters)
+                    ):
+                        if (
+                            isinstance(param.default, Arg)
+                            and param.default.safe_value is None  # type: ignore
+                        ):
+                            raise SyntaxError(
+                                f"Mandatory param '{param}' in function '{func}' not "
+                                "provided a value"
+                            )
                 return func(*args, **kwargs) or 0
 
             @ft.wraps(func)

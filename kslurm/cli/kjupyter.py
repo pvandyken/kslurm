@@ -148,4 +148,4 @@ def kjupyter(
 
 
 if __name__ == "__main__":
-    kjupyter()
+    kjupyter.cli()

@@ -574,9 +574,9 @@ tests = ["pytest", "pytest-cov", "codecov", "xdoctest"]
 
 [[package]]
 name = "more-itertools"
-version = "8.12.0"
+version = "8.13.0"
 description = "More routines for operating on iterables, beyond itertools"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.5"
 
@@ -1200,7 +1200,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0"
-content-hash = "db3df47bb8921b79215de75cab183078a76ec5d92987d741c63e6db67f409888"
+content-hash = "486029728c96d14808506e5431bd9da7c945300dcea5f12e04f3a93bfdaec3ba"
 
 [metadata.files]
 appdirs = [
@@ -1504,8 +1504,8 @@ mkinit = [
     {file = "mkinit-0.3.4.tar.gz", hash = "sha256:e9fc1a252ca80cb730f7ca5b7cb02dac22a5dd4a08c434960ce143ad28c50333"},
 ]
 more-itertools = [
-    {file = "more-itertools-8.12.0.tar.gz", hash = "sha256:7dc6ad46f05f545f900dd59e8dfb4e84a4827b97b3cfecb175ea0c7d247f6064"},
-    {file = "more_itertools-8.12.0-py3-none-any.whl", hash = "sha256:43e6dd9942dffd72661a2c4ef383ad7da1e6a3e968a927ad7a6083ab410a688b"},
+    {file = "more-itertools-8.13.0.tar.gz", hash = "sha256:a42901a0a5b169d925f6f217cd5a190e32ef54360905b9c39ee7db5313bfec0f"},
+    {file = "more_itertools-8.13.0-py3-none-any.whl", hash = "sha256:c5122bffc5f104d37c1626b8615b511f3427aa5389b94d61e5ef8236bfbc3ddb"},
 ]
 msgpack = [
     {file = "msgpack-1.0.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:96acc674bb9c9be63fa8b6dabc3248fdc575c4adc005c440ad02f87ca7edd079"},

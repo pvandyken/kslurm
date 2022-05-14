@@ -401,15 +401,15 @@ def _rm(name: str = positional("")):
 class _KpyModel:
     command: Subcommand = subcommand(
         commands={
-            "load": _load,
-            "save": _save,
-            "bash": _bash,
-            "create": _create,
-            "activate": _activate,
-            "list": _list,
-            "rm": _rm,
-            "export": _export,
-            "_refresh": _refresh,
+            "load": _load.cli,
+            "save": _save.cli,
+            "bash": _bash.cli,
+            "create": _create.cli,
+            "activate": _activate.cli,
+            "list": _list.cli,
+            "rm": _rm.cli,
+            "export": _export.cli,
+            "_refresh": _refresh.cli,
             "_kpy_wrapper": cast(WrappedCommand, _kpy_wrapper),
         },
     )
@@ -424,4 +424,4 @@ def kpy(cmd_name: str, args: _KpyModel, tail: list[str]):
 
 
 if __name__ == "__main__":
-    kpy(["kpy", "--help"])
+    kpy.cli(["kpy", "--help"])

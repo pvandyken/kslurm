@@ -117,4 +117,4 @@ def kbatch(
 
 
 if __name__ == "__main__":
-    kbatch(["kbatch", "--help"])
+    kbatch.cli(["kbatch", "--help"])

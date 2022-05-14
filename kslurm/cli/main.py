@@ -7,7 +7,7 @@ import attr
 
 import neuroglia_helpers
 from kslurm.args import Subcommand, flag, subcommand
-from kslurm.args.command import command
+from kslurm.args.command import command, error
 from kslurm.cli import kbatch, kjupyter, kpy, krun
 from kslurm.cli.config import config
 from kslurm.installer.installer import install
@@ -30,13 +30,13 @@ def _neuroglia_helpers(show_src: bool = flag(["--src-dir"])):
 class KslurmModel:
     command: Subcommand = subcommand(
         commands={
-            "kbatch": kbatch,
-            "krun": krun,
-            "kjupyter": kjupyter,
-            "kpy": kpy,
-            "config": config,
-            "update": lambda x: None,  # type: ignore
-            "neuroglia-helpers": _neuroglia_helpers,
+            "kbatch": kbatch.cli,
+            "krun": krun.cli,
+            "kjupyter": kjupyter.cli,
+            "kpy": kpy.cli,
+            "config": config.cli,
+            "update": error,
+            "neuroglia-helpers": _neuroglia_helpers.cli,
         },
     )
 
@@ -51,4 +51,4 @@ def main(args: KslurmModel, tail: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    main(["kslurm", "kbatch", "-h"])
+    main.cli(["kslurm", "kbatch", "-h"])

@@ -3,7 +3,17 @@ from __future__ import absolute_import
 import functools as ft
 import inspect
 import sys
-from typing import Any, Callable, Literal, Optional, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Literal,
+    Optional,
+    Protocol,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import attr
 from typing_extensions import ParamSpec
@@ -13,7 +23,6 @@ from kslurm.args.arg_types import HelpRequest, help_arg
 from kslurm.args.help import print_help
 from kslurm.args.helpers import finalize_model, get_arg_list
 from kslurm.args.parser import parse_args
-from kslurm.args.protocols import TransparentWrappedCommand, WrappedCommand
 from kslurm.exceptions import CommandLineError, CommandLineErrorGroup
 
 P = ParamSpec("P")
@@ -24,10 +33,8 @@ ModelType = Union[dict[str, Arg[Any, Any]], type]
 ParsedArgs = dict[str, Arg[Any, Any]]
 
 
-class CommandError(Exception):
-    def __init__(self, msg: str, *args: Any):
-        super().__init__(*args)
-        self.msg = msg
+def error(argv: list[str] = []):
+    return 1
 
 
 class CommandArgs:
@@ -77,14 +84,21 @@ class CommandArgs:
         self._name = value
 
 
-@overload
-def command(
-    maybe_func: None = ...,
-    *,
-    terminate_on_unknown: bool = ...,
-    inline: Literal[False] = ...,
-) -> Callable[[_CommandFunc[P]], WrappedCommand]:
-    ...
+Exc = TypeVar("Exc", bound=type[Exception], covariant=True)
+
+
+class _Command(Protocol, Generic[P]):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> int:
+        ...
+
+    def cli(self, argv: list[str] = ...) -> int:
+        ...
+
+
+class CommandError(Exception):
+    def __init__(self, msg: str, *args: Any):
+        super().__init__(*args)
+        self.msg = msg
 
 
 @overload
@@ -92,8 +106,8 @@ def command(
     maybe_func: None = ...,
     *,
     terminate_on_unknown: bool = ...,
-    inline: Literal[True] = ...,
-) -> Callable[[_CommandFunc[P]], TransparentWrappedCommand[P]]:
+    inline: bool = ...,
+) -> Callable[[_CommandFunc[P]], _Command[P]]:
     ...
 
 
@@ -103,7 +117,7 @@ def command(
     *,
     terminate_on_unknown: Literal[True] = ...,
     inline: Literal[False] = ...,
-) -> WrappedCommand:
+) -> _Command[P]:
     ...
 
 
@@ -112,11 +126,7 @@ def command(
     *,
     terminate_on_unknown: bool = False,
     inline: bool = False,
-) -> Union[
-    WrappedCommand,
-    Callable[[_CommandFunc[P]], WrappedCommand],
-    Callable[[_CommandFunc[P]], Callable[P, int]],
-]:
+) -> Union[_Command[P], Callable[[_CommandFunc[P]], _Command[P]]]:
     @attr.frozen
     class BlankModel:
         pass
@@ -126,7 +136,7 @@ def command(
             raise CommandLineError(f"{func} is not callable")
 
         params = inspect.signature(func)
-        exceptions: Any = tuple()
+        exceptions: tuple[type[ValueError], ...] = tuple()
         model = BlankModel
 
         command_args = CommandArgs()
@@ -181,44 +191,86 @@ def command(
                     )
                 command_args.model = param.name
 
-        def wrapper(argv: list[str] = sys.argv):
-            doc = func.__doc__
-            if doc is None:
-                doc = ""
+        class Wrapper:
+            @ft.wraps(func)
+            def __call__(self, *args: P.args, **kwargs: P.kwargs):
+                return func(*args, **kwargs) or 0
 
-            model_list = get_arg_list(model)
-            if command_args.tail:
-                usage_suffix = "command_args"
-            else:
-                usage_suffix = ""
-            try:
-                parsed_list, tail = parse_args(
-                    argv[1:],
-                    model_list + [help_arg().with_id("help")],
-                    terminate_on_unknown=terminate_on_unknown,
-                )
+            @ft.wraps(func)
+            def cli(self, argv: list[str] = sys.argv):
+                doc = func.__doc__ or ""
 
-                parsed = finalize_model(parsed_list, model, exclude=["help"])
-                if inline:
-                    args = attr.asdict(parsed, recurse=False)
+                model_list = get_arg_list(model)
+                if command_args.tail:
+                    usage_suffix = "command_args"
                 else:
-                    args = {
+                    usage_suffix = ""
+                try:
+                    parsed_list, tail = parse_args(
+                        argv[1:],
+                        model_list + [help_arg().with_id("help")],
+                        terminate_on_unknown=terminate_on_unknown,
+                    )
+
+                    parsed = finalize_model(parsed_list, model, exclude=["help"])
+                    if inline:
+                        args = attr.asdict(parsed, recurse=False)
+                    else:
+                        args = {
+                            **(
+                                {command_args.model: parsed}
+                                if command_args.model is not None
+                                else {}
+                            ),
+                            **(
+                                {command_args.tail: tail}
+                                if command_args.tail is not None
+                                else {}
+                            ),
+                            **(
+                                {
+                                    command_args.modellist: {
+                                        arg.id: arg for arg in parsed_list
+                                    }
+                                }
+                                if command_args.modellist is not None
+                                else {}
+                            ),
+                            **(
+                                {command_args.name: argv[0]}
+                                if command_args.name is not None
+                                else {}
+                            ),
+                        }
+                except (HelpRequest, CommandLineError, *exceptions) as err:
+                    in_exceptions = isinstance(err, exceptions)
+                    if isinstance(err, CommandLineError) and not in_exceptions:
+                        print_help(
+                            argv[0], model_list, doc, usage_suffix, just_usage=True
+                        )
+                        if isinstance(err, CommandLineErrorGroup):
+                            [print(e.msg) for e in err.sub_errors]
+                        else:
+                            print(err.msg)
+                        return 1
+                    if isinstance(err, HelpRequest) and not in_exceptions:
+                        print_help(argv[0], model_list, doc, usage_suffix)
+                        return 0
+
+                    parsed = err
+                    args: dict[str, Any] = {
                         **(
                             {command_args.model: parsed}
                             if command_args.model is not None
                             else {}
                         ),
                         **(
-                            {command_args.tail: tail}
+                            {command_args.tail: []}
                             if command_args.tail is not None
                             else {}
                         ),
                         **(
-                            {
-                                command_args.modellist: {
-                                    arg.id: arg for arg in parsed_list
-                                }
-                            }
+                            {command_args.modellist: {}}
                             if command_args.modellist is not None
                             else {}
                         ),
@@ -228,69 +280,14 @@ def command(
                             else {}
                         ),
                     }
-            except (HelpRequest, CommandLineError, *exceptions) as err:
-                in_exceptions = isinstance(err, exceptions)
-                if isinstance(err, CommandLineError) and not in_exceptions:
-                    print_help(argv[0], model_list, doc, usage_suffix, just_usage=True)
-                    if isinstance(err, CommandLineErrorGroup):
-                        [print(e.msg) for e in err.sub_errors]
-                    else:
-                        print(err.msg)
+
+                try:
+                    return func(**args) or 0  # type: ignore
+                except CommandError as err:
+                    print(err.msg)
                     return 1
-                if isinstance(err, HelpRequest) and not in_exceptions:
-                    print_help(argv[0], model_list, doc, usage_suffix)
-                    return 0
 
-                parsed = err
-                args: dict[str, Any] = {
-                    **(
-                        {command_args.model: parsed}
-                        if command_args.model is not None
-                        else {}
-                    ),
-                    **(
-                        {command_args.tail: []} if command_args.tail is not None else {}
-                    ),
-                    **(
-                        {command_args.modellist: {}}
-                        if command_args.modellist is not None
-                        else {}
-                    ),
-                    **(
-                        {command_args.name: argv[0]}
-                        if command_args.name is not None
-                        else {}
-                    ),
-                }
-
-            try:
-                return func(**args) or 0  # type: ignore
-            except CommandError as err:
-                print(err.msg)
-                return 1
-
-        @overload
-        def disambiguator(*args: P.args, **kwargs: P.kwargs) -> int:
-            ...
-
-        @overload
-        def disambiguator(argv: list[str] = ...) -> int:
-            ...
-
-        @ft.wraps(func)
-        def disambiguator(*args: Any, **kwargs: Any) -> int:
-            if not kwargs and len(args) == 1:
-                arg = args[0]
-            elif not args and len(kwargs) == 1:
-                arg = next(iter(kwargs.values()))
-            else:
-                return func(*args, **kwargs) or 0  # type: ignore
-
-            if not isinstance(arg, list):
-                raise TypeError(f"arg '{arg}' of '{func}' must be a list of strings.")
-            return wrapper(arg)  # type: ignore
-
-        return disambiguator
+        return Wrapper()
 
     if maybe_func is None:
         return decorator

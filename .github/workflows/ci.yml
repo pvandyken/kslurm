@@ -50,15 +50,6 @@ jobs:
       - name: Install library
         run: poetry install --no-interaction
 
-
-      #----------------------------------------------
-      #       run pyright
-      #----------------------------------------------
-      - name: Run pyright
-        uses: jakebailey/pyright-action@v1
-        with:
-          venv-path: "."
-
       #----------------------------------------------
       #       run python style checks
       #----------------------------------------------

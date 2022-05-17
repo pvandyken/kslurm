@@ -11,7 +11,7 @@ from kslurm.cli.kbatch import kbatch
 def test_batch_submits_testmode(capsys: CaptureFixture[str]):
     with mock.patch("subprocess.run") as subprocess:
 
-        kbatch(
+        kbatch.cli(
             [
                 "kbatch",
                 "-t",
@@ -36,7 +36,7 @@ def test_params_can_be_altered(capsys: CaptureFixture[str]):
     with mock.patch("subprocess.run") as subprocess:
         starting_cwd = Path.cwd()
 
-        kbatch(
+        kbatch.cli(
             [
                 "kbatch",
                 "1-33:11",

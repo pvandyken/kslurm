@@ -15,6 +15,7 @@ from kslurm.args import CommandError, command, positional
 from kslurm.args.arg_types import Subcommand
 from kslurm.args.arg_types_cast import flag, keyword, subcommand
 from kslurm.cli.kapp.image import img_cmd
+from kslurm.cli.kapp.alias import alias_cmd
 from kslurm.cli.krun import krun
 from kslurm.container import Container, ContainerAlias, SingularityDir
 from kslurm.models import validators
@@ -210,6 +211,7 @@ class _KappModel:
             "run": _run.cli,
             "shell": _shell.cli,
             "exec": _exec.cli,
+            "alias": alias_cmd.cli,
         },
     )
 

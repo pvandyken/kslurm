@@ -139,7 +139,8 @@ class Container:
             tag=tag or "",
             digest=digest or "",
         )
-        return cls(uri=uri)
+        friendly_uri = attrs.evolve(uri, org="") if uri.org == "library" else None
+        return cls(uri=uri, friendly_uri=friendly_uri)
 
     @property
     def cache_path(self) -> Optional[str]:

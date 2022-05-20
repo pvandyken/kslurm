@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import operator as op
 import os
 import platform
 import re
@@ -28,27 +29,25 @@ def find_(arg: str):
 
 
 @attrs.frozen
-class Container:
+class URI:
     scheme: str
     org: str
     repo: str
     tag: str
-    digest: str = ""
+    digest: str
 
     URI_SCHEME = "<scheme>://[<org>/]<image>[:<tag>][@sha256:<digest>]"
 
     @classmethod
-    def from_uri(cls, uri: str, lookup_digest: bool = False):
+    def parse(cls, uri: str):
         if not (
             match := re.match(
                 r"""
-                ^(?P<scheme>[^:\/]+)
-                \:\/\/
-                (?:(?P<org>[^\/]*)\/)?
-                (?P<image>[^:]+)
-                (?::(?P<tag>[^\@]+))?
-                (?:\@(?P<digest>sha256\:.+))?
-                $
+                ^(?:(?P<scheme>[^:@\/]+)\:\/\/)?
+                (?:(?P<org>[^:@\/]+)\/)?
+                (?P<image>[^@:\/\s]+)
+                (?::(?P<tag>[^@\/]+))?
+                (?:@(?P<digest>sha256\:[^:@\/]+))?$
                 """,
                 uri,
                 re.VERBOSE,
@@ -57,21 +56,67 @@ class Container:
             raise ValueError(f"Invalid uri. Should be {cls.URI_SCHEME}")
 
         uri_elems = match.groupdict()
-
-        if not uri_elems["tag"] and not uri_elems["digest"]:
-            raise ValueError(
-                f"Invalid uri. Must provide a tag and/or digest. ({cls.URI_SCHEME})"
-            )
-        container: Container = cls(
+        return cls(
             scheme=uri_elems["scheme"] or "",
-            org=uri_elems["org"] or "library",
+            org=uri_elems["org"] or "",
             repo=uri_elems["image"] or "",
             tag=uri_elems["tag"] or "",
             digest=uri_elems["digest"] or "",
         )
-        if lookup_digest and not uri_elems["digest"]:
-            return attrs.evolve(container, digest=get_digest(container) or "")
-        return container
+
+    def __str__(self):
+        return self.uri
+
+    @property
+    def trimmed_digest(self):
+        if not (match := re.match(r".*\:(.*)", self.digest)):
+            return None
+        return match.group(1)
+
+    @property
+    def uri(self):
+        return "".join([f"{self.scheme}://" if self.scheme else "", self.address])
+
+    @property
+    def address(self):
+        return "".join(
+            [
+                self.org + "/" if self.org else "",
+                self.repo,
+                ":" + self.tag if self.tag else "",
+                "@" + self.digest if self.digest else "",
+            ]
+        )
+
+    @property
+    def image(self):
+        return f"{self.org}/{self.repo}"
+
+
+@attrs.frozen
+class Container:
+    uri: URI
+    friendly_uri: Optional[URI] = None
+
+    @classmethod
+    def from_uri(
+        cls,
+        uri: str,
+        lookup_digest: bool = False,
+        default: URI = URI(scheme="docker", repo="", org="library", tag="", digest=""),
+    ):
+
+        given = URI.parse(uri)
+        if not given.tag and not given.digest:
+            raise ValueError(
+                f"Invalid uri. Must provide a tag and/or digest. ({given.URI_SCHEME})"
+            )
+        actual = attrs.evolve(
+            default, **dict(filter(op.itemgetter(1), attrs.asdict(given).items()))
+        )
+        if lookup_digest and not actual.digest and actual.scheme == "docker":
+            actual = attrs.evolve(actual, digest=get_digest(actual) or "")
+        return cls(uri=actual, friendly_uri=given)
 
     @classmethod
     def from_uri_path(cls, path: Union[Path, str]):
@@ -80,52 +125,54 @@ class Container:
             raise ValueError(
                 f"Incorrect number of parts in cache_path {path}. Expected 3 or 4"
             )
-        return cls(
+        if len(elems) == 4:
+            assert (match := re.match(r"^([^\+]+)?(?:\+([^\+]+))?$", elems[3]))
+            tag, digest = match.groups()
+        else:
+            tag = ""
+            digest = ""
+
+        uri = URI(
             scheme=elems[0],
             org=elems[1],
             repo=elems[2],
-            tag=elems[3] if len(elems) == 4 else "",
+            tag=tag or "",
+            digest=digest or "",
         )
-
-    @property
-    def uri(self):
-        return f"{self.scheme}://{self.address}"
-
-    @property
-    def address(self):
-        return (
-            f"{self.org + '/' if self.org and self.org != 'library' else ''}{self.repo}"
-            f"{':' + self.tag if self.tag else ''}"
-        )
-
-    @property
-    def image(self):
-        return f"{self.org}/{self.repo}"
+        return cls(uri=uri)
 
     @property
     def cache_path(self) -> Optional[str]:
-        if not (match := re.match(r".*\:(.*)", self.digest)):
-            return None
-        return match.group(1) + ".sif"
+        if self.uri.trimmed_digest:
+            return self.uri.trimmed_digest + ".sif"
+        return None
 
     @property
     def uri_path(self):
-        image_name = Path(self.scheme, self.org or "libary", self.repo, self.tag)
+        tag_uri = self.friendly_uri or self.uri
+        tag_part = "".join(
+            [
+                tag_uri.tag,
+                f"+{tag_uri.trimmed_digest}" if tag_uri.trimmed_digest else "",
+            ]
+        )
+        image_name = Path(self.uri.scheme, self.uri.org, self.uri.repo, tag_part)
         return image_name.parent / (image_name.name + ".sif")
 
     @property
     def snakemake_cache_path(self):
-        return Path(get_hash(self.uri) + ".simg")
+        uri = self.friendly_uri or self.uri
+        return Path(get_hash(uri.uri) + ".simg")
 
     def is_same_container(self, other: "Container"):
         return (
-            other.scheme == self.scheme
-            and other.org == self.org
-            and other.repo == self.repo
+            other.uri.scheme == self.uri.scheme
+            and other.uri.org == self.uri.org
+            and other.uri.repo == self.uri.repo
         )
 
     def __str__(self):
-        return self.uri
+        return str(self.friendly_uri or self.uri)
 
 
 class ManifestError(CommandError):
@@ -144,19 +191,19 @@ def _get_target_arch():
         return None
 
 
-def get_digest(container: Container, token: Optional[str] = None) -> Optional[str]:
+def get_digest(uri: URI, token: Optional[str] = None) -> Optional[str]:
     if token is None:
         token = requests.get(
             f"{AUTHBASE}/token",
             params=dict(
                 service=AUTHSERVICE,
-                scope=f"repository:{container.image}:pull",
+                scope=f"repository:{uri.image}:pull",
             ),
         ).json()["token"]
 
-    digest = container.digest or container.tag
+    digest = uri.digest or uri.tag
     manifest_json = requests.get(
-        f"{REGISTRYBASE}/v2/{container.image}/manifests/{digest}",
+        f"{REGISTRYBASE}/v2/{uri.image}/manifests/{digest}",
         headers=dict(
             Authorization=f"Bearer {token}",
             Accept=(
@@ -168,7 +215,7 @@ def get_digest(container: Container, token: Optional[str] = None) -> Optional[st
     ).json()
     if "errors" in manifest_json:
         raise ManifestError(
-            f"Unable to find '{container}'. It may be a private repository, or you may "
+            f"Unable to find '{uri}'. It may be a private repository, or you may "
             "have mispelled it."
         )
 
@@ -181,7 +228,7 @@ def get_digest(container: Container, token: Optional[str] = None) -> Optional[st
             for manifest in manifest_json["manifests"]:
                 if manifest["platform"]["architecture"] == _get_target_arch():
                     return get_digest(
-                        attrs.evolve(container, digest=manifest["digest"]), token=token
+                        attrs.evolve(uri, digest=manifest["digest"]), token=token
                     )
     #     else:
     #         # fallback
@@ -283,7 +330,7 @@ class SingularityDir(type(Path())):
                 raise SingularityDirError(
                     f"Invalid identifier '{uri_or_alias}'. Must be either an alias for "
                     "a container, or a valid container uri: "
-                    f"'{Container.URI_SCHEME}'"
+                    f"'{URI.URI_SCHEME}'"
                 )
 
         if (self.uris / container.uri_path).exists():
@@ -341,9 +388,7 @@ class ContainerAlias:
     def image(self):
         if self._image is None:
             self._image = Container.from_uri_path(
-                Path(os.readlink(self.path)).relative_to(
-                    self.singularity_dir.uris
-                )
+                Path(os.readlink(self.path)).relative_to(self.singularity_dir.uris)
             )
         return self._image
 
@@ -371,5 +416,5 @@ class ContainerAlias:
 
 
 if __name__ == "__main__":
-    container = Container(scheme="docker", org="library", repo="ubuntu", tag="latest")
-    print(get_digest(container))
+    container = Container.from_uri("docker:/ubuntu:latest@sha256:wjfq23v3929vwio98")
+    pass

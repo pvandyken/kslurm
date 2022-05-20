@@ -30,7 +30,7 @@ def _update_aliases(
     alias: Optional[ContainerAlias],
 ):
     if singularity_dir.update_uri_link(app):
-        print(f"Updated '{uri}' to '{app.digest}'")
+        print(f"Updated '{uri}' to '{app.uri.digest}'")
     else:
         print(f"{uri} already up to date")
     if alias is not None:
@@ -72,8 +72,9 @@ def _pull(
     except ValueError as err:
         print(err.args[0])
         return 1
-    if app.scheme != "docker":
-        print(f"Invalid scheme '{app.scheme}'. Only 'docker://' uris supported")
+
+    if app.uri.scheme != "docker":
+        print(f"Invalid scheme '{app.uri.scheme}'. Only 'docker://' uris supported")
         return 1
 
     if alias_name and alias_name[0]:
@@ -114,8 +115,14 @@ def _pull(
         cache[url] = script
         os.chmod(cache.get_path(url), 0o776)
 
-    frozen_image = _SINGULARITY_DIR.work / get_hash(app.address)
-    proc = sp.run([str(cache.get_path(url)), str(frozen_image), app.address])
+    frozen_image = _SINGULARITY_DIR.work / get_hash(app.uri.address)
+    proc = sp.run(
+        [
+            str(cache.get_path(url)),
+            str(frozen_image),
+            (app.friendly_uri or app.uri).address,
+        ]
+    )
     if proc.returncode != 0:
         return 1
     with tarfile.open(frozen_image.with_suffix(".tar"), "w") as tar:

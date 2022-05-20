@@ -254,6 +254,17 @@ def _purge(
             print(f"Removed {count} files")
 
 
+@command
+def _snakemake():
+    """Print the snakemake singularity directory (to be used with --singularity-prefix)
+
+    Snakemake supports supplying a --singularity prefix: a directory will image files
+    will be searched and saved. By supplying the path printed by this command, snakemake
+    will automatically use any containers pulled using kapp
+    """
+    print(_SINGULARITY_DIR.snakemake.resolve())
+
+
 @attrs.frozen
 class _KappModel:
     command: Subcommand = subcommand(
@@ -266,6 +277,7 @@ class _KappModel:
             "exec": _exec.cli,
             "alias": alias_cmd.cli,
             "purge": _purge.cli,
+            "snakemake": _snakemake.cli,
         },
     )
 

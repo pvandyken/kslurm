@@ -351,8 +351,7 @@ class SingularityDir(type(Path())):
     def iter_images(self):
         for dirpath, _, filenames in os.walk(self.uris):
             for filename in filenames:
-                uri_path = Path(dirpath, filename).relative_to(self.uris)
-                yield Container.from_uri_path(uri_path)
+                yield Path(dirpath, filename)
 
 
 class AliasError(CommandError):

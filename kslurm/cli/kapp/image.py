@@ -5,14 +5,15 @@ import os
 import attrs
 
 from kslurm.args import Subcommand, command, flag, positional, subcommand
-from kslurm.container import SingularityDir
+from kslurm.container import Container, SingularityDir
 
 
 @command
 def _list():
     """List all available containers"""
-    for container in SingularityDir().iter_images():
-        print(container)
+    singularity_dir = SingularityDir()
+    for path in singularity_dir.iter_images():
+        print(Container.from_uri_path(path.relative_to(singularity_dir.uris)))
 
 
 @command(inline=True)

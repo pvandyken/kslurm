@@ -185,7 +185,7 @@ def get_digest(container: Container, token: Optional[str] = None) -> Optional[st
     # else:
     #     # fallback
     #     pass
-    print(manifest_json)
+    return None
 
 
 class SingularityDirError(CommandError):
@@ -325,7 +325,7 @@ class ContainerAlias:
         if self._image is None:
             self._image = Container.from_uri_path(
                 Path(os.readlink(self.path)).relative_to(
-                    self.singularity_dir / "images"
+                    self.singularity_dir.uris
                 )
             )
         return self._image
@@ -341,7 +341,7 @@ class ContainerAlias:
             )
 
     def link(self, app: Container):
-        if self.path.exists():
+        if self.path.is_symlink():
             if app == self.image:
                 print(f"Alias '{self.alias}' already set to '{app}'")
                 return
@@ -349,7 +349,7 @@ class ContainerAlias:
             self.path.unlink()
         else:
             print(f"Aliasing {app} as {self.alias}")
-        self.path.symlink_to(self.singularity_dir.images / app.uri_path)
+        self.path.symlink_to(self.singularity_dir.uris / app.uri_path)
         self._image = None
 
 

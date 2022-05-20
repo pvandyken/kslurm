@@ -15,19 +15,25 @@ from kslurm.args.arg_types_cast import (
 from kslurm.args.command import (
     CommandArgs,
     CommandError,
+    Exc,
     ModelType,
+    P,
     ParsedArgs,
     command,
+    error,
 )
 
 __all__ = [
     "CommandArgs",
     "CommandError",
+    "Exc",
     "ModelType",
+    "P",
     "ParsedArgs",
     "Subcommand",
     "choice",
     "command",
+    "error",
     "flag",
     "keyword",
     "positional",

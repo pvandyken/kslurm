@@ -62,7 +62,7 @@ krun = 'kslurm.cli.krun:krun.cli'
 kjupyter = 'kslurm.cli.kjupyter:kjupyter.cli'
 kslurm = 'kslurm.cli.main:main.cli'
 kpy = 'kslurm.cli.kpy:kpy.cli'
-kapp = 'kslurm.cli.kapp:kapp.cli'
+kapp = 'kslurm.cli.kapp.main:kapp.cli'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -11,7 +11,7 @@ from kslurm.container import SingularityDir
 
 @command
 def _list():
-    """List all available containers"""
+    """List all available aliases"""
     singularity_dir = SingularityDir()
     for alias in singularity_dir.aliases.iterdir():
         container = singularity_dir.find(alias.name) or "-INVALID-"
@@ -22,6 +22,7 @@ def _list():
 def _rm(
     alias: str = positional(),
 ):
+    """Remove an alias"""
     singularity_dir = SingularityDir()
     path = singularity_dir.aliases / alias
     if not path.exists():

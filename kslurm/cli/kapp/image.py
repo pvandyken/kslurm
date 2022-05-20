@@ -27,6 +27,8 @@ def _rm(
 
     By default, only the uri pointer is removed; underlying datafiles are kept. In a
     future release, the purge flag will be available for deleting the underlying data.
+
+    To remove datafiles, run `kapp purge dangling`
     """
     singularity_dir = SingularityDir()
     container = singularity_dir.find(uri_or_alias)

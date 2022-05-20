@@ -6,8 +6,8 @@ import os.path
 import shutil
 import subprocess as sp
 import tarfile
-from typing import DefaultDict, Optional
 from pathlib import Path
+from typing import DefaultDict, Optional
 
 import attrs
 import requests
@@ -75,6 +75,7 @@ def _pull(
     #     ["-x", "--exe"], help="Include --name as an executable on the $PATH"
     # ),
 ):
+    """Pull a container. Defaults to docker hub."""
     _check_singularity()
 
     try:
@@ -163,6 +164,7 @@ def _path(
     uri_or_alias: str = positional(),
     quiet: bool = flag(["-q", "--quiet"], help="Don't print any errors"),
 ):
+    """Print the path of the given uri or alias"""
     try:
         container = _SINGULARITY_DIR.find(uri_or_alias)
     except Exception as err:
@@ -211,16 +213,26 @@ def _exec(args: _RunModel, container_args: list[str]):
 
 
 @command(inline=True)
-def _purge(scope: str = choice(["dangling"]), dry: bool = flag(["-d", "--dry"])):
+def _purge(
+    scope: str = choice(["dangling"]),
+    dry: bool = flag(
+        ["-d", "--dry"],
+        help="Print what files will be deleted without deleting anything",
+    ),
+):
+    """Remove dangling containers
+
+    Remove all containers not referred to by any uris (e.g. because the uri was removed)
+    """
     uri_list = set(
         os.path.basename(os.readlink(path))
         for path in _SINGULARITY_DIR.iter_images()
         if path.is_symlink()
     )
-    snakemake_aliases: dict[str, list[Path]] = DefaultDict(list) 
+    snakemake_aliases: dict[str, list[Path]] = DefaultDict(list)
     for path in _SINGULARITY_DIR.snakemake.iterdir():
         if path.is_symlink():
-                snakemake_aliases[os.path.basename(os.readlink(path))].append(path)
+            snakemake_aliases[os.path.basename(os.readlink(path))].append(path)
     count = 0
     for file in _SINGULARITY_DIR.images.iterdir():
         if file.name in uri_list:

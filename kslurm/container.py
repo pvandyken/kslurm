@@ -20,6 +20,13 @@ AUTHBASE = "https://auth.docker.io"
 AUTHSERVICE = "registry.docker.io"
 
 
+def find_(arg: str):
+    container = SingularityDir().find(arg)
+    if container is None:
+        raise ValidationError(f"No image with identifier '{arg}' found")
+    return container
+
+
 @attrs.frozen
 class Container:
     scheme: str
@@ -282,6 +289,16 @@ class SingularityDir(type(Path())):
         if (self.uris / container.uri_path).exists():
             return container
         return None
+
+    def find_formatter(self, uri_or_alias: str):
+        """Formatter version of find for use in argparser"""
+        try:
+            container = self.find(uri_or_alias)
+        except SingularityDirError as err:
+            raise ValidationError(err.msg)
+        if container is None:
+            raise ValidationError(f"No image with identifier '{uri_or_alias}' found")
+        return container
 
     def iter_images(self):
         for dirpath, _, filenames in os.walk(self.uris):

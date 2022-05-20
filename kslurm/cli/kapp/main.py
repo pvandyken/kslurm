@@ -2,20 +2,29 @@ from __future__ import absolute_import
 
 import importlib.resources as impr
 import os
+import os.path
 import shutil
 import subprocess as sp
 import tarfile
-from typing import Optional
+from typing import DefaultDict, Optional
+from pathlib import Path
 
 import attrs
 import requests
 
 from kslurm.appcache import Cache
-from kslurm.args import CommandError, command, positional
-from kslurm.args.arg_types import Subcommand
-from kslurm.args.arg_types_cast import flag, keyword, subcommand
-from kslurm.cli.kapp.image import img_cmd
+from kslurm.args import (
+    CommandError,
+    Subcommand,
+    choice,
+    command,
+    flag,
+    keyword,
+    positional,
+    subcommand,
+)
 from kslurm.cli.kapp.alias import alias_cmd
+from kslurm.cli.kapp.image import img_cmd
 from kslurm.cli.krun import krun
 from kslurm.container import Container, ContainerAlias, SingularityDir
 from kslurm.models import validators
@@ -201,6 +210,38 @@ def _exec(args: _RunModel, container_args: list[str]):
     _generic_run(args.container, "exec", container_args)
 
 
+@command(inline=True)
+def _purge(scope: str = choice(["dangling"]), dry: bool = flag(["-d", "--dry"])):
+    uri_list = set(
+        os.path.basename(os.readlink(path))
+        for path in _SINGULARITY_DIR.iter_images()
+        if path.is_symlink()
+    )
+    snakemake_aliases: dict[str, list[Path]] = DefaultDict(list) 
+    for path in _SINGULARITY_DIR.snakemake.iterdir():
+        if path.is_symlink():
+                snakemake_aliases[os.path.basename(os.readlink(path))].append(path)
+    count = 0
+    for file in _SINGULARITY_DIR.images.iterdir():
+        if file.name in uri_list:
+            continue
+        if dry:
+            print(file.name)
+        else:
+            for path in snakemake_aliases[file.name]:
+                path.unlink()
+            os.remove(file)
+            count += 1
+
+    if not dry:
+        if not count:
+            print("Nothing to remove")
+        elif count == 1:
+            print("Removed 1 file")
+        else:
+            print(f"Removed {count} files")
+
+
 @attrs.frozen
 class _KappModel:
     command: Subcommand = subcommand(
@@ -212,6 +253,7 @@ class _KappModel:
             "shell": _shell.cli,
             "exec": _exec.cli,
             "alias": alias_cmd.cli,
+            "purge": _purge.cli,
         },
     )
 

@@ -162,15 +162,17 @@ def choice_arg(
     def check_match(val: str) -> T:
         if val in match:
             return format(val)
-        choices = "\n".join([f"\t\t• {m}" for m in match])
+        choices = "\n".join([f"\t• {m}" for m in match])
         raise ValidationError(f"Please select between:\n" f"{choices}")
 
+    choices = ", ".join(match)
     return Arg[T, None](
         match=lambda _: True,
         priority=0,
         duplicates=DuplicatePolicy.SKIP,
         format=check_match,
-        help=help,
+        help=f"{help} - options: [{choices}]",
+        help_template=PositionalArg(),
         name=name,
     ).with_value(default)
 

@@ -11,7 +11,7 @@ import attrs
 import requests
 
 from kslurm.appcache import Cache
-from kslurm.args import command, positional
+from kslurm.args import CommandError, command, positional
 from kslurm.args.arg_types import Subcommand
 from kslurm.args.arg_types_cast import flag, keyword, subcommand
 from kslurm.cli.kapp.image import img_cmd
@@ -19,6 +19,8 @@ from kslurm.cli.krun import krun
 from kslurm.container import Container, ContainerAlias, SingularityDir
 from kslurm.models import validators
 from kslurm.utils import get_hash
+
+_SINGULARITY_DIR = SingularityDir()
 
 
 def _update_aliases(
@@ -43,6 +45,13 @@ def _update_aliases(
     snakemake_path.symlink_to(singularity_dir.get_data_path(app))
 
 
+def _check_singularity():
+    if sp.run(["command", "-v", "singularity"], capture_output=True).returncode != 0:
+        raise CommandError(
+            "singularity command is not available. Try running `module load singularity"
+        )
+
+
 @command(inline=True)
 def _pull(
     uri: str = positional(),
@@ -56,11 +65,7 @@ def _pull(
     #     ["-x", "--exe"], help="Include --name as an executable on the $PATH"
     # ),
 ):
-    if sp.run(["command", "-v", "singularity"], capture_output=True).returncode != 0:
-        print(
-            "singularity command is not available. Try running `module load singularity"
-        )
-        return 1
+    _check_singularity()
 
     try:
         app = Container.from_uri(uri, lookup_digest=True)
@@ -71,20 +76,18 @@ def _pull(
         print(f"Invalid scheme '{app.scheme}'. Only 'docker://' uris supported")
         return 1
 
-    singularity_dir = SingularityDir()
-
     if alias_name and alias_name[0]:
-        alias = ContainerAlias(alias_name[0], singularity_dir)
+        alias = ContainerAlias(alias_name[0], _SINGULARITY_DIR)
         if alias and not force:
             alias.check_upgrade(app)
     else:
         alias = None
 
-    if singularity_dir.has_container(app):
-        _update_aliases(singularity_dir, app, uri, alias)
+    if _SINGULARITY_DIR.has_container(app):
+        _update_aliases(_SINGULARITY_DIR, app, uri, alias)
         return 0
 
-    image_path = singularity_dir.get_data_path(app)
+    image_path = _SINGULARITY_DIR.get_data_path(app)
 
     url = (
         "https://raw.githubusercontent.com/moby/moby/v20.10.16/contrib/"
@@ -111,7 +114,7 @@ def _pull(
         cache[url] = script
         os.chmod(cache.get_path(url), 0o776)
 
-    frozen_image = singularity_dir.work / get_hash(app.address)
+    frozen_image = _SINGULARITY_DIR.work / get_hash(app.address)
     proc = sp.run([str(cache.get_path(url)), str(frozen_image), app.address])
     if proc.returncode != 0:
         return 1
@@ -133,9 +136,9 @@ def _pull(
             f"docker-archive://{frozen_image.with_suffix('.tar')}",
         ]
     )
-    shutil.rmtree(singularity_dir.work)
+    shutil.rmtree(_SINGULARITY_DIR.work)
 
-    _update_aliases(singularity_dir, app, uri, alias)
+    _update_aliases(_SINGULARITY_DIR, app, uri, alias)
 
 
 @command(inline=True)
@@ -143,9 +146,8 @@ def _path(
     uri_or_alias: str = positional(),
     quiet: bool = flag(["-q", "--quiet"], help="Don't print any errors"),
 ):
-    singularity_dir = SingularityDir()
     try:
-        container = singularity_dir.find(uri_or_alias)
+        container = _SINGULARITY_DIR.find(uri_or_alias)
     except Exception as err:
         if not quiet:
             raise err
@@ -154,7 +156,41 @@ def _path(
     if container is None:
         print(f"No image with identifier '{uri_or_alias}' found")
         return 1
-    print(singularity_dir.get_data_path(container))
+    print(_SINGULARITY_DIR.get_data_path(container))
+
+
+@attrs.frozen
+class _RunModel:
+    container: Container = positional(
+        format=_SINGULARITY_DIR.find_formatter, name="uri_or_alias"
+    )
+
+
+def _generic_run(container: Container, cmd: str, args: list[str]):
+    _check_singularity()
+    sp.run(
+        [
+            "singularity",
+            cmd,
+            _SINGULARITY_DIR.get_data_path(container),
+            *args,
+        ]
+    )
+
+
+@command
+def _run(args: _RunModel, container_args: list[str]):
+    _generic_run(args.container, "run", container_args)
+
+
+@command
+def _shell(args: _RunModel, container_args: list[str]):
+    _generic_run(args.container, "shell", container_args)
+
+
+@command
+def _exec(args: _RunModel, container_args: list[str]):
+    _generic_run(args.container, "exec", container_args)
 
 
 @attrs.frozen
@@ -164,6 +200,9 @@ class _KappModel:
             "pull": _pull.cli,
             "path": _path.cli,
             "image": img_cmd.cli,
+            "run": _run.cli,
+            "shell": _shell.cli,
+            "exec": _exec.cli,
         },
     )
 

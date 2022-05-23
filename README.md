@@ -258,6 +258,32 @@ This adds a few features to your command line environment:
 - **pip wrapper**: Adds a wrapper around pip that detects if you are on a login node when running `install`, `wheel`, or `download`. If not on a login node, the `--no-index` flag will be appended to the command, preventing the use of an internet connection.
 - **wheelhouse management**: If `pipdir` is configured in the kslurm config, a wheelhouse will be created in your pip repository. Any wheels downloaded using `pip wheel` will be placed in that wheelhouse, and all wheels in the wheelhouse will be discoverable by `pip install`, both on login and compute nodes.
 
+## Kapp
+
+Kapp provides a set of tools to manage singularity containers. Pull images from docker hub without worring about image size, pulling the same image twice, or tracking whether your ":latest" image is up to date. Kapp manages your `.sif` image files so you can run them from anywhere on the cluster, without managing environment variables or remembering paths. Kapp managed images can be seamlessly consumed by snakemake workflows using the provided `--singularity-prefix` directory.
+
+### `pull`
+
+```bash
+# usage
+kapp pull <image_uri> [-a <alias>] [--mem <memory>]
+```
+
+Pull an image from a repository. Currently, only docker-hub is supported. The image uri should look like this:
+
+```bash
+[<scheme>://[<organization>/]<repo>:<tag>]
+
+# examples
+docker://ubuntu:latest
+nipreps/fmriprep:21.0.2
+busybox:latest
+```
+
+Note that the scheme is optional, and defaults to `docker`. The organization should be omitted for official docker images.
+
+Because container tags can change over time (e.g. `:latest`) and multiple tags can point to the same container, `kapp` keeps two seperate stores: one for the actual image data, and one for the uris pointing to those images. When you call `kapp pull`, it will first check the content hash of the requested image and verify if you've already pulled it. For example, pretend the latest release of `fancy_software` is `v1.2.3`. When you call `kapp pull fancy/fancy_software:v.1.2.3`, it will pull the image data from docker hub. Later, if call `kapp pull fancy/fancy_software:latest`, kapp will see that `:latest` points to the same image as `v1.2.3`. Instead of pulling the image a second time, it will make a new entry. If you've pulled the requested tag in the past, it will check that your local copy is still up to date, pulling an updated image if necessary (important for tags like `:latest`, which change over time). Note that, for research analysis, best practice is to pull specific version tags (e.g. `:v.x.x.x`) to ensure your analysis is replicable.
+
 ## Configuration
 
 kslurm currently supports a few basic configuration values, and more will come with time. All configuration can be set using the command

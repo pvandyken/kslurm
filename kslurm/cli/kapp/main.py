@@ -97,9 +97,15 @@ def _pull(
 
     if _SINGULARITY_DIR.has_container(app):
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
-        return 0
+        return
 
     image_path = _SINGULARITY_DIR.get_data_path(app)
+
+    # Small images we can directly use the singularity command
+    if app.docker_data and app.docker_data.size_mb < 200:
+        sp.run(["singularity", "pull", str(image_path), app.uri.uri])
+        _update_aliases(_SINGULARITY_DIR, app, uri, alias)
+        return
 
     url = (
         "https://raw.githubusercontent.com/moby/moby/v20.10.16/contrib/"

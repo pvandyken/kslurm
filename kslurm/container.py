@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools as ft
 import operator as op
 import os
 import platform
@@ -34,9 +35,8 @@ class URI:
     org: str
     repo: str
     tag: str
-    digest: str
 
-    URI_SCHEME = "<scheme>://[<org>/]<image>[:<tag>][@sha256:<digest>]"
+    URI_SCHEME = "<scheme>://[<org>/]<image>[:<tag>]"
 
     @classmethod
     def parse(cls, uri: str):
@@ -47,7 +47,7 @@ class URI:
                 (?:(?P<org>[^:@\/]+)\/)?
                 (?P<image>[^@:\/\s]+)
                 (?::(?P<tag>[^@\/]+))?
-                (?:@(?P<digest>sha256\:[^:@\/]+))?$
+                $
                 """,
                 uri,
                 re.VERBOSE,
@@ -61,17 +61,10 @@ class URI:
             org=uri_elems["org"] or "",
             repo=uri_elems["image"] or "",
             tag=uri_elems["tag"] or "",
-            digest=uri_elems["digest"] or "",
         )
 
     def __str__(self):
         return self.uri
-
-    @property
-    def trimmed_digest(self):
-        if not (match := re.match(r".*\:(.*)", self.digest)):
-            return None
-        return match.group(1)
 
     @property
     def uri(self):
@@ -84,7 +77,6 @@ class URI:
                 self.org + "/" if self.org else "",
                 self.repo,
                 ":" + self.tag if self.tag else "",
-                "@" + self.digest if self.digest else "",
             ]
         )
 
@@ -97,26 +89,27 @@ class URI:
 class Container:
     uri: URI
     friendly_uri: Optional[URI] = None
+    docker_data: Optional["DockerData"] = None
 
     @classmethod
     def from_uri(
         cls,
         uri: str,
         lookup_digest: bool = False,
-        default: URI = URI(scheme="docker", repo="", org="library", tag="", digest=""),
+        default: URI = URI(scheme="docker", repo="", org="library", tag=""),
     ):
 
         given = URI.parse(uri)
-        if not given.tag and not given.digest:
-            raise ValueError(
-                f"Invalid uri. Must provide a tag and/or digest. ({given.URI_SCHEME})"
-            )
+        if not given.tag:
+            raise ValueError(f"Invalid uri. Must provide a tag. ({given.URI_SCHEME})")
         actual = attrs.evolve(
             default, **dict(filter(op.itemgetter(1), attrs.asdict(given).items()))
         )
-        if lookup_digest and not actual.digest and actual.scheme == "docker":
-            actual = attrs.evolve(actual, digest=get_digest(actual) or "")
-        return cls(uri=actual, friendly_uri=given)
+        if lookup_digest and actual.scheme == "docker":
+            data = DockerData.from_uri(actual)
+        else:
+            data = None
+        return cls(uri=actual, friendly_uri=given, docker_data=data)
 
     @classmethod
     def from_uri_path(cls, path: Union[Path, str]):
@@ -126,38 +119,28 @@ class Container:
                 f"Incorrect number of parts in cache_path {path}. Expected 3 or 4"
             )
         if len(elems) == 4:
-            assert (match := re.match(r"^([^\+]+)?(?:\+([^\+]+))?$", elems[3]))
-            tag, digest = match.groups()
+            tag = elems[3]
         else:
             tag = ""
-            digest = ""
 
         uri = URI(
             scheme=elems[0],
             org=elems[1],
             repo=elems[2],
             tag=tag or "",
-            digest=digest or "",
         )
         friendly_uri = attrs.evolve(uri, org="") if uri.org == "library" else None
         return cls(uri=uri, friendly_uri=friendly_uri)
 
     @property
     def cache_path(self) -> Optional[str]:
-        if self.uri.trimmed_digest:
-            return self.uri.trimmed_digest + ".sif"
+        if self.docker_data and self.docker_data.trimmed_digest:
+            return self.docker_data.trimmed_digest + ".sif"
         return None
 
     @property
     def uri_path(self):
-        tag_uri = self.friendly_uri or self.uri
-        tag_part = "".join(
-            [
-                tag_uri.tag,
-                f"+{tag_uri.trimmed_digest}" if tag_uri.trimmed_digest else "",
-            ]
-        )
-        image_name = Path(self.uri.scheme, self.uri.org, self.uri.repo, tag_part)
+        image_name = Path(self.uri.scheme, self.uri.org, self.uri.repo, self.uri.tag)
         return image_name.parent / (image_name.name + ".sif")
 
     @property
@@ -180,67 +163,93 @@ class ManifestError(CommandError):
     pass
 
 
-def _get_target_arch():
-    arch = platform.machine()
-    if arch == "x86_64":
-        return "amd64"
-    elif arch.startswith("arm"):
-        return "arm"
-    elif arch.startswith("aarch64"):
-        return "arm64"
-    else:
+@attrs.frozen
+class DockerData:
+    digest: str
+    size: int
+
+    @staticmethod
+    def _get_target_arch():
+        arch = platform.machine()
+        if arch == "x86_64":
+            return "amd64"
+        elif arch.startswith("arm"):
+            return "arm"
+        elif arch.startswith("aarch64"):
+            return "arm64"
+        else:
+            return None
+
+    @staticmethod
+    def _get_container_size(layers: list[dict[str, Any]]):
+        return ft.reduce(op.add, map(op.itemgetter("size"), layers))
+
+    @classmethod
+    def from_uri(
+        cls, uri: URI, digest: Optional[str] = None, token: Optional[str] = None
+    ) -> Optional["DockerData"]:
+        if token is None:
+            token = requests.get(
+                f"{AUTHBASE}/token",
+                params=dict(
+                    service=AUTHSERVICE,
+                    scope=f"repository:{uri.image}:pull",
+                ),
+            ).json()["token"]
+
+        digest = digest or uri.tag
+        manifest_json = requests.get(
+            f"{REGISTRYBASE}/v2/{uri.image}/manifests/{digest}",
+            headers=dict(
+                Authorization=f"Bearer {token}",
+                Accept=(
+                    "application/vnd.docker.distribution.manifest.v2+json, "
+                    "application/vnd.docker.distribution.manifest.list.v2+json, "
+                    "application/vnd.docker.distribution.manifest.v1+json"
+                ),
+            ),
+        ).json()
+        if "errors" in manifest_json:
+            raise ManifestError(
+                f"Unable to find '{uri}'. It may be a private repository, or you may "
+                "have mispelled it."
+            )
+
+        schema_version = manifest_json["schemaVersion"]
+        if schema_version == 2:
+            media_type = manifest_json["mediaType"]
+            if media_type == "application/vnd.docker.distribution.manifest.v2+json":
+                return cls(
+                    manifest_json["config"]["digest"],
+                    size=cls._get_container_size(manifest_json["layers"]),
+                )
+            elif (
+                media_type
+                == "application/vnd.docker.distribution.manifest.list.v2+json"
+            ):
+                for manifest in manifest_json["manifests"]:
+                    if manifest["platform"]["architecture"] == cls._get_target_arch():
+                        return cls.from_uri(uri, digest=manifest["digest"], token=token)
+        #     else:
+        #         # fallback
+        #         pass
+        # elif schema_version == 1:
+        #     # fallback
+        #     pass
+        # else:
+        #     # fallback
+        #     pass
         return None
 
+    @property
+    def trimmed_digest(self):
+        if not (match := re.match(r".*\:(.*)", self.digest)):
+            return None
+        return match.group(1)
 
-def get_digest(uri: URI, token: Optional[str] = None) -> Optional[str]:
-    if token is None:
-        token = requests.get(
-            f"{AUTHBASE}/token",
-            params=dict(
-                service=AUTHSERVICE,
-                scope=f"repository:{uri.image}:pull",
-            ),
-        ).json()["token"]
-
-    digest = uri.digest or uri.tag
-    manifest_json = requests.get(
-        f"{REGISTRYBASE}/v2/{uri.image}/manifests/{digest}",
-        headers=dict(
-            Authorization=f"Bearer {token}",
-            Accept=(
-                "application/vnd.docker.distribution.manifest.v2+json, "
-                "application/vnd.docker.distribution.manifest.list.v2+json, "
-                "application/vnd.docker.distribution.manifest.v1+json"
-            ),
-        ),
-    ).json()
-    if "errors" in manifest_json:
-        raise ManifestError(
-            f"Unable to find '{uri}'. It may be a private repository, or you may "
-            "have mispelled it."
-        )
-
-    schema_version = manifest_json["schemaVersion"]
-    if schema_version == 2:
-        media_type = manifest_json["mediaType"]
-        if media_type == "application/vnd.docker.distribution.manifest.v2+json":
-            return manifest_json["config"]["digest"]
-        elif media_type == "application/vnd.docker.distribution.manifest.list.v2+json":
-            for manifest in manifest_json["manifests"]:
-                if manifest["platform"]["architecture"] == _get_target_arch():
-                    return get_digest(
-                        attrs.evolve(uri, digest=manifest["digest"]), token=token
-                    )
-    #     else:
-    #         # fallback
-    #         pass
-    # elif schema_version == 1:
-    #     # fallback
-    #     pass
-    # else:
-    #     # fallback
-    #     pass
-    return None
+    @property
+    def size_mb(self):
+        return int(self.size / 1_000_000)
 
 
 class SingularityDirError(CommandError):
@@ -416,5 +425,7 @@ class ContainerAlias:
 
 
 if __name__ == "__main__":
-    container = Container.from_uri("docker:/ubuntu:latest@sha256:wjfq23v3929vwio98")
+    container = Container.from_uri(
+        "docker://akhanf/hippunfold:latest", lookup_digest=True
+    )
     pass

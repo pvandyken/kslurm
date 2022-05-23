@@ -27,7 +27,7 @@ from kslurm.cli.kapp.alias import alias_cmd
 from kslurm.cli.kapp.image import img_cmd
 from kslurm.cli.krun import krun
 from kslurm.container import Container, ContainerAlias, SingularityDir
-from kslurm.models import validators
+from kslurm.models import formatters, validators
 from kslurm.utils import get_hash
 
 _SINGULARITY_DIR = SingularityDir()
@@ -71,6 +71,11 @@ def _pull(
         validate=validators.fs_name,
     ),
     force: bool = flag(["-f", "--force"], help="Force overwriting of aliases"),
+    mem: list[int] = keyword(
+        ["--mem"],
+        validate=formatters.mem,
+        help="Amount of memory to allocate when building image",
+    )
     # executable: bool = flag(
     #     ["-x", "--exe"], help="Include --name as an executable on the $PATH"
     # ),
@@ -102,7 +107,7 @@ def _pull(
     image_path = _SINGULARITY_DIR.get_data_path(app)
 
     # Small images we can directly use the singularity command
-    if app.docker_data and app.docker_data.size_mb < 200:
+    if app.docker_data and app.docker_data.size_mb < 200 and not mem:
         sp.run(["singularity", "pull", str(image_path), app.uri.uri])
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
         return
@@ -149,11 +154,16 @@ def _pull(
     # Check that image_path is not a broken symlink
     if not image_path.exists() and image_path.is_symlink():
         image_path.unlink()
+    _mem = (
+        mem[0]
+        if mem
+        else (max(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
+    )
     krun.cli(
         [
             "krun",
             "1:00",
-            "32G",
+            f"{_mem}M",
             "singularity",
             "build",
             str(image_path),

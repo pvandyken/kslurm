@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import re
 
+from kslurm.exceptions import ValidationError
+
 
 def time(time: str):
     if ":" in time:
@@ -20,12 +22,15 @@ def time(time: str):
 
 
 def mem(mem: str):
-    match = re.match(r"^[0-9]+", mem)
+    match = re.match(r"^([0-9]+)[GMgm][bB]?$", mem)
     if match:
-        num = int(match.group())
+        num = int(match.group(1))
     else:
-        raise Exception("Memory is not formatted correctly")
-    if "G" in mem:
+        raise ValidationError(
+            "Memory is not formatted correctly. Must be xxx(G|M)[B], e.g. 32G, 4000MB, "
+            "etc"
+        )
+    if "G" in mem or "g" in mem:
         return num * 1000
     else:
         return num

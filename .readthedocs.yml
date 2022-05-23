@@ -13,6 +13,11 @@ mkdocs:
 formats:
   - pdf
 
+submodules:
+  include:
+    - all
+  recursive: true
+
 # Optionally set the version of Python and requirements required to build your docs
 python:
   version: "3.8"

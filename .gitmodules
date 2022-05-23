@@ -1,5 +1,2 @@
-[submodule "neuroglia-helpers"]
-	path = neuroglia_helpers
-	url = git@github.com:pvandyken/neuroglia-helpers.git
 [submodule "neuroglia_helpers"]
 	url = https://github.com/pvandyken/neuroglia-helpers

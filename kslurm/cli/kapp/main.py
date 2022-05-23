@@ -39,8 +39,8 @@ def _update_aliases(
     uri: str,
     alias: Optional[ContainerAlias],
 ):
-    if singularity_dir.update_uri_link(app):
-        print(f"Updated '{uri}' to '{app.uri.digest}'")
+    if singularity_dir.update_uri_link(app) and app.docker_data:
+        print(f"Updated '{uri}' to '{app.docker_data.digest}'")
     else:
         print(f"{uri} already up to date")
     if alias is not None:

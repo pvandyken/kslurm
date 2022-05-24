@@ -311,6 +311,10 @@ class SingularityDir(type(Path())):
             return (self.images / container.cache_path).exists()
         return (self.uris / container.uri_path).exists()
 
+    def has_raw_uri_file(self, container: Container):
+        path = self.uris / container.uri_path
+        return path.exists() and not path.is_symlink()
+
     def update_uri_link(self, container: Container):
         if container.cache_path:
             if (cache_path := self.images / container.cache_path).exists():

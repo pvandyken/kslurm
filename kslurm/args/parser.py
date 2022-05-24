@@ -71,15 +71,15 @@ def _match_args(
             continue
 
         next_arg = None
+        sub_arg: Optional[Arg[Any, None]] = None
         for argtype in arg_list:
+            sub_arg_match = sub_arg is not None and sub_arg.match(arg)
             if argtype.match(arg) and argtype not in skip:
-                if prev_arg and group_size and prev_arg.greediness > argtype.priority:
+                if sub_arg_match and sub_arg.priority > argtype.priority:
                     try:
-                        next_arg = prev_arg.with_values(
-                            it.chain(prev_arg.values, [arg]), True
-                        )
+                        sub_arg = sub_arg.with_value(arg)
                     except ValidationError as err:
-                        next_arg = prev_arg.with_err(err)
+                        sub_arg = sub_arg.with_err(err)
                     group_size -= 1
                     next_update = it.chain(updated_args, [next_arg])
                     break
@@ -88,7 +88,7 @@ def _match_args(
                     next_arg = argtype.with_value(arg, True)
                 except ValidationError as err:
                     next_arg = argtype.with_err(err)
-                group_size = argtype.num
+                sub_arg = argtype.sub_arg
                 if argtype.terminal:
                     terminated = True
                 if next_arg.duplicates == DuplicatePolicy.SKIP:

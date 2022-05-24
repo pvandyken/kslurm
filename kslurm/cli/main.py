@@ -8,8 +8,11 @@ import attr
 import neuroglia_helpers
 from kslurm.args import Subcommand, flag, subcommand
 from kslurm.args.command import command, error
-from kslurm.cli import kbatch, kjupyter, kpy, krun
 from kslurm.cli.config import config
+from kslurm.cli.kbatch import kbatch
+from kslurm.cli.kjupyter import kjupyter
+from kslurm.cli.kpy import kpy
+from kslurm.cli.krun import krun
 from kslurm.installer.installer import install
 
 NAME = "kslurm"

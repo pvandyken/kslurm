@@ -322,6 +322,7 @@ class SingularityDir(type(Path())):
                         return False
                     else:
                         os.unlink(uri_path)
+                uri_path.parent.mkdir(exist_ok=True, parents=True)
                 uri_path.symlink_to(cache_path)
                 return True
             raise ValueError()

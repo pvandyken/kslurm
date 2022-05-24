@@ -11,6 +11,7 @@ from typing import DefaultDict, Optional
 
 import attrs
 import requests
+from InquirerPy import inquirer as inq  # type: ignore
 
 from kslurm.appcache import Cache
 from kslurm.args import (
@@ -103,6 +104,15 @@ def _pull(
     if _SINGULARITY_DIR.has_container(app):
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
         return
+
+    if _SINGULARITY_DIR.has_raw_uri_file(app):
+        if not inq.confirm(
+            f"An image matching {app.uri.uri} already exists, but we can't verify if "
+            "it's up to date. Would you like to pull it again?"
+        ).execute():
+            return
+
+    exit(1)
 
     image_path = _SINGULARITY_DIR.get_data_path(app)
 

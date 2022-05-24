@@ -112,7 +112,6 @@ def _pull(
         ).execute():
             return
 
-    exit(1)
 
     image_path = _SINGULARITY_DIR.get_data_path(app)
 

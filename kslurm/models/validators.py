@@ -16,6 +16,6 @@ _FS_NAME_PATTERN = re.compile(r"^[\w\-\. ]+$")
 
 
 def fs_name(name: str):
-    if not re.match(_FS_NAME_PATTERN, name):
+    if name and not re.match(_FS_NAME_PATTERN, name):
         raise ValidationError(f"Invalid characters found in {name}")
     return name

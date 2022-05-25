@@ -424,4 +424,4 @@ def kpy(cmd_name: str, args: _KpyModel, tail: list[str]):
 
 
 if __name__ == "__main__":
-    kpy.cli(["kpy", "--help"])
+    kpy.cli(["kpy", "create"])

@@ -10,7 +10,7 @@ from typing import List, Union
 import kslurm.appconfig as appconfig
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
-from kslurm.args.command import ParsedArgs
+from kslurm.args.command import Parsers
 from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.models.slurm import SlurmModel
 
@@ -20,7 +20,7 @@ class SlurmCommand:
         self,
         args: Union[SlurmModel, TemplateError],
         tail: list[str],
-        arglist: ParsedArgs,
+        arglist: Parsers,
     ):
         self._name = ""
         self._output = ""
@@ -29,17 +29,17 @@ class SlurmCommand:
             print(args.msg)
             print("Choose from the following list of templates:\n")
             templates.list_templates()
-            exit()
+            exit(1)
 
+        assert isinstance(args, SlurmModel)
         if args.list_job_templates:
             templates.list_templates()
             exit()
 
         # set_template returns templated values only if a template is passed
         # if we pass a blank string, the models are returned unchanged
-        template = args.job_template[0] if args.job_template else ""
         template_vals = templates.set_template(
-            template, mem=args.mem, cpu=args.cpu, time=args.time
+            args.job_template, mem=args.mem, cpu=args.cpu, time=args.time
         )
 
         # Start by setting these three with model/template
@@ -48,11 +48,11 @@ class SlurmCommand:
         self.mem = template_vals.mem
 
         # Then update if values were specifically supplied on the command line
-        if arglist["time"].updated:
+        if arglist["time"].value is not None:
             self.time = args.time
-        if arglist["cpu"].updated:
+        if arglist["cpu"].value is not None:
             self.cpu = args.cpu
-        if arglist["mem"].updated:
+        if arglist["mem"].value is not None:
             self.mem = args.mem
 
         self.gpu = bool(args.gpu)
@@ -74,7 +74,7 @@ class SlurmCommand:
                 sys.exit(1)
             self.account = account
         else:
-            self.account = args.account[0]
+            self.account = args.account
         self.cwd = args.directory
         self.test = args.test
         self.job_template = args.job_template
@@ -83,7 +83,7 @@ class SlurmCommand:
         os.chdir(self.cwd)
 
         self.args = args
-        self._venv = args.venv[0] if args.venv else None
+        self._venv = args.venv or None
 
     ###
     # Job Paramaters

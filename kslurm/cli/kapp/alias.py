@@ -4,8 +4,7 @@ import os
 
 import attrs
 
-from kslurm.args import Subcommand, command, subcommand
-from kslurm.args.arg_types_cast import positional
+from kslurm.args import Subcommand, command, positional, subcommand
 from kslurm.container import SingularityDir
 
 

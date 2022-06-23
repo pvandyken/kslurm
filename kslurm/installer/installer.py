@@ -23,7 +23,7 @@ def install(args: List[str], name: str, home_dir: str, entrypoints: List[str] = 
     )
     exit()
     parsed: UpdateModel = helpers.finalize_model(
-        parse_args(args, helpers.get_arg_list(UpdateModel))[0], UpdateModel
+        parse_args(args, helpers.get_arg_dict(UpdateModel))[0], UpdateModel
     )
     data = data_dir(home_dir)
     bin = bin_dir(home_dir)

@@ -10,7 +10,7 @@ from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
-from kslurm.args.arg import AbstractHelpTemplate, Arg
+from kslurm.args.arg import AbstractHelpTemplate, Arg, ParamSet
 from kslurm.style.console import console
 
 
@@ -38,7 +38,7 @@ def _section(header: str, body: Union[Table, str]):
 
 def print_help(
     script: str,
-    models: list[Arg[Any, Any]],
+    models: dict[str, Union[Arg[Any], ParamSet[Any]]],
     script_help: str = "",
     usage_suffix: str = "",
     just_usage: bool = False,
@@ -47,12 +47,12 @@ def print_help(
 
     templates: set[type[AbstractHelpTemplate]] = set()
     usages: dict[type[AbstractHelpTemplate], list[str]] = DefaultDict(list)
-    for model in models:
+    for model in models.values():
         if model.help_template is None:
             template = BasicTemplate()
         else:
             template = model.help_template
-        args = model.label, model.help, str(model.safe_value or "")
+        args = model.label, model.help, str(model.assigned_value or "")
         template.add_row(*args)
         try:
             usages[type(template)].append(template.usage(*args))

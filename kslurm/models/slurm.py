@@ -1,21 +1,20 @@
 from __future__ import absolute_import
 
-import re
 from pathlib import Path
 
 import attr
 
 import kslurm.models.formatters as formatters
 import kslurm.models.validators as validators
-from kslurm.args import flag, keyword, shape
+from kslurm.args import flag, keyword, path, shape
 
 
 @attr.s(auto_attribs=True)
 class SlurmModel:
     time: int = shape(
-        match=lambda arg: bool(re.match(r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$", arg)),
+        match=r"^([0-9]{1,2}-)?[0-9]{1,2}:[0-9]{2}$",
         format=formatters.time,
-        default="03:00",
+        default=180,
         name="Time",
         syntax="[d-]dd:dd",
         help="Amount of time requested. Written as [days-]hr:min.",
@@ -25,8 +24,8 @@ class SlurmModel:
     gpu: bool = flag(match=["gpu"], help="Request a gpu instance")
 
     cpu: int = shape(
-        match=lambda arg: bool(re.match(r"^[0-9]+$", arg)),
-        default="1",
+        match=r"^[0-9]+$",
+        default=1,
         name="Number of CPUs",
         syntax="d",
         help="Number of CPUs to request. Maximum of 32 on Graham Nodes.",
@@ -34,9 +33,9 @@ class SlurmModel:
     )
 
     mem: int = shape(
-        match=lambda arg: bool(re.match(r"^[0-9]+[MG]B?$", arg)),
+        match=r"^[0-9]+[MG]B?$",
         format=formatters.mem,
-        default="4G",
+        default=4000,
         name="Memory",
         syntax="d(M|G)[B]",
         examples=["3000MB (3 GB)", "16G (16GB)"],
@@ -49,11 +48,9 @@ class SlurmModel:
         "X-forwarding on your SSH connection.",
     )
 
-    directory: Path = shape(
-        match=lambda arg: Path(arg).exists() and Path(arg).is_dir(),
-        default=".",
+    directory: Path = path(
         name="Directory",
-        syntax="/absolute/path | ./relative/path",
+        default=Path(),
         help="Change working directory before submitting the command. All other "
         "relative paths will be evaluated relative to the new directory.",
     )
@@ -64,10 +61,9 @@ class SlurmModel:
         "anything.",
     )
 
-    job_template: list[str] = keyword(
+    job_template: str = keyword(
         match=["-j", "--job-template"],
-        validate=validators.job_template,
-        num=1,
+        format=validators.job_template,
         help="Set CPU, memory, and time from a template. "
         "Run with -J to see list of templates. Any "
         "template item can be overridden by supplying "
@@ -78,10 +74,9 @@ class SlurmModel:
         match=["-J", "--list", "-l"], help="List all available templates."
     )
 
-    account: list[str] = keyword(
+    account: str = keyword(
         match=["-a", "--account"],
-        num=1,
         help="Compute account to submit the job under.",
     )
 
-    venv: list[str] = keyword(["--venv"], help="kpy venv to load")
+    venv: str = keyword(["--venv"], help="kpy venv to load", default="")

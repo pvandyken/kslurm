@@ -8,3 +8,4 @@ extend-exclude =
     .venv/
     .hypothesis/
     neuroglia_helpers/
+    *.pyi

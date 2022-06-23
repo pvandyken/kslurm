@@ -77,8 +77,8 @@ def _bash():
 @command(inline=True)
 def _load(
     name: str = positional(default="", help="Test help"),
-    new_name: list[str] = keyword(match=["--as"], validate=validators.fs_name),
-    script: list[str] = keyword(match=["--script"]),
+    new_name: str = keyword(match=["--as"], format=validators.fs_name),
+    script: str = keyword(match=["--script"]),
 ):
     """Load a saved python venv
 
@@ -88,7 +88,7 @@ def _load(
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
 
-        label = new_name[0] if new_name else name
+        label = new_name or name
         if label in index:
             print(
                 f"An environment called '{label}' already exists. You can load "
@@ -132,7 +132,7 @@ def _load(
 
     shell = Shell.get()
     if script:
-        with Path(script[0]).open("w") as f:
+        with Path(script).open("w") as f:
             f.write(shell.source(venv_dir))
         return 2
     shell.activate(venv_dir)
@@ -142,9 +142,7 @@ def _load(
 def _export(
     mode: str = choice(["venv"], help="What sort of export to perform"),
     name: str = positional(help="Name of the venv to export"),
-    path: list[Path] = keyword(
-        ["--path", "-p"], default=None, help="Path for the export"
-    ),
+    path: Path = keyword(["--path", "-p"], default=None, help="Path for the export"),
 ):
     """Export a saved venv
 
@@ -157,18 +155,18 @@ def _export(
         print("Valid venvs:\n" + str(venv_cache))
         return 1
 
-    if path[0].exists():
-        print(f"{path[0]} already exists")
+    if path.exists():
+        print(f"{path} already exists")
         return 1
 
     print("exporting...")
     with tarfile.open(venv_cache[name], "r") as tar:
-        tar.extractall(path[0])
-    rebase_venv(path[0])
+        tar.extractall(path)
+    rebase_venv(path)
 
     print(
         "Export complete! Activate the venv by running\n\tsource "
-        f"{path[0]}/bin/activate"
+        f"{path}/bin/activate"
     )
 
 
@@ -217,16 +215,17 @@ def _save(
 
 @command(inline=True)
 def _create(
-    name: str = positional("", help="Name of the new venv", format=validators.fs_name),
-    version: str = shape(
-        default="",
-        match=lambda s: bool(re.match(r"^[23]\.\d{1,2}$", s)),
+    name: Optional[str] = positional(
+        help="Name of the new venv", format=validators.fs_name
+    ),
+    version: Optional[str] = shape(
+        match=r"^[23]\.\d{1,2}$",
         syntax="(2|3).x",
         examples=["2.7", "3.8"],
         help="Python version to use in new venv. An appropriate executable must be on "
         "the $PATH (e.g. 3.7 -> python3.7",
     ),
-    script: list[str] = keyword(match=["--script"]),
+    script: str = keyword(match=["--script"]),
 ):
     """Create a new venv
 
@@ -303,14 +302,14 @@ def _create(
 
     shell = Shell.get()
     if script:
-        with Path(script[0]).open("w") as f:
+        with Path(script).open("w") as f:
             f.write(shell.source(Path(venv_dir)))
         return 2
     shell.activate(Path(venv_dir))
 
 
 @command(inline=True)
-def _activate(name: str = positional(""), script: list[str] = keyword(["--script"])):
+def _activate(name: Optional[str] = positional(), script: str = keyword(["--script"])):
     """Activate a venv already created or loaded
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node
@@ -341,7 +340,7 @@ def _activate(name: str = positional(""), script: list[str] = keyword(["--script
 
     shell = Shell.get()
     if script:
-        with Path(script[0]).open("w") as f:
+        with Path(script).open("w") as f:
             f.write(shell.source(Path(index[name])))
         return 2
     shell.activate(Path(index[name]))
@@ -379,7 +378,7 @@ def _kpy_wrapper(argv: list[str] = sys.argv):
 
 
 @command(inline=True)
-def _rm(name: str = positional("")):
+def _rm(name: Optional[str] = positional()):
     try:
         venv_cache = VenvCache()
     except MissingPipdirError as err:
@@ -388,6 +387,7 @@ def _rm(name: str = positional("")):
 
     if not name:
         print("Valid venvs:\n" + str(venv_cache))
+        return 1
 
     if name not in venv_cache:
         print(f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}")

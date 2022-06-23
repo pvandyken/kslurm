@@ -8,7 +8,7 @@ from typing import Union
 from colorama import Fore
 
 import kslurm.text as txt
-from kslurm.args.command import ParsedArgs, command
+from kslurm.args.command import Parsers, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
 from kslurm.slurm.slurm_command import SlurmCommand
@@ -18,7 +18,7 @@ from kslurm.slurm.slurm_command import SlurmCommand
 def kbatch(
     args: Union[SlurmModel, TemplateError],
     command_args: list[str],
-    arglist: ParsedArgs,
+    arglist: Parsers,
 ):
     """Submit a job using sbatch
 
@@ -117,4 +117,4 @@ def kbatch(
 
 
 if __name__ == "__main__":
-    kbatch.cli(["kbatch", "--help"])
+    kbatch.cli(["kbatch", "--account", "foo", "-t"])

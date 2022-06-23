@@ -9,7 +9,7 @@ import sys
 from typing import Union
 
 import kslurm.text as txt
-from kslurm.args.command import ParsedArgs, command
+from kslurm.args.command import Parsers, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
 from kslurm.slurm.slurm_command import SlurmCommand
@@ -21,7 +21,7 @@ from kslurm.venv import VenvCache
 def kjupyter(
     args: Union[SlurmModel, TemplateError],
     command_args: list[str],
-    arglist: ParsedArgs,
+    arglist: Parsers,
 ):
     """Start a Jupyter session
 

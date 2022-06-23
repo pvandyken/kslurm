@@ -12,7 +12,8 @@ class CommandLineError(Exception):
 
 
 class ValidationError(CommandLineError):
-    pass
+    def format(self, label: str):
+        self.msg = self.msg.format(label=label)
 
 
 class TailError(CommandLineError):

@@ -19,19 +19,19 @@ from typing import (
 import attr
 from typing_extensions import ParamSpec
 
-from kslurm.args.arg import Arg
-from kslurm.args.arg_types import HelpRequest, help_arg
+from kslurm.args.arg import Arg, Parser
+from kslurm.args.arg_types import HelpRequest, help_parser
 from kslurm.args.help import print_help
-from kslurm.args.helpers import finalize_model, get_arg_list
+from kslurm.args.helpers import get_arg_dict, get_parsers, read_parsers
 from kslurm.args.parser import parse_args
-from kslurm.exceptions import CommandLineError, CommandLineErrorGroup
+from kslurm.exceptions import CommandLineError, TailError
 
 P = ParamSpec("P")
 _CommandFunc = Callable[P, Optional[int]]
-ModelType = Union[dict[str, Arg[Any, Any]], type]
+ModelType = Union[dict[str, Arg[Any]], type]
 
 
-ParsedArgs = dict[str, Arg[Any, Any]]
+Parsers = dict[str, Parser[Any]]
 
 
 def error(argv: list[str] = []):
@@ -114,7 +114,7 @@ def command(
 
 @overload
 def command(
-    maybe_func: _CommandFunc[P] = ...,
+    maybe_func: _CommandFunc[P] = ...,  # type: ignore
     *,
     terminate_on_unknown: Literal[True] = ...,
     inline: Literal[False] = ...,
@@ -137,13 +137,13 @@ def command(
             raise CommandLineError(f"{func} is not callable")
 
         params = inspect.signature(func)
-        exceptions: tuple[type[ValueError], ...] = tuple()
+        exceptions: tuple[type[Exception], ...] = tuple()  # type: ignore
         model = BlankModel
 
         command_args = CommandArgs()
         if inline:
             model = attr.make_class(
-                "__Typer_Model__",
+                f"{func.__name__}__Model__",
                 {
                     param.name: attr.attrib(
                         default=param.default
@@ -165,7 +165,7 @@ def command(
                 if param.annotation == list[str]:
                     command_args.tail = param.name
                     continue
-                if param.annotation == ParsedArgs:
+                if param.annotation == Parsers:
                     command_args.modellist = param.name
                     continue
                 if param.annotation == str:
@@ -201,7 +201,7 @@ def command(
                     ):
                         if (
                             isinstance(param.default, Arg)
-                            and param.default.safe_value is None  # type: ignore
+                            and param.default.assigned_value is None  # type: ignore
                         ):
                             raise SyntaxError(
                                 f"Mandatory param '{param}' in function '{func}' not "
@@ -213,7 +213,7 @@ def command(
             def cli(self, argv: list[str] = sys.argv):
                 doc = func.__doc__ or ""
 
-                model_list = get_arg_list(model)
+                model_dict = get_arg_dict(model)
                 if command_args.tail:
                     usage_suffix = "command_args"
                 else:
@@ -221,78 +221,58 @@ def command(
                 try:
                     parsed_list, tail = parse_args(
                         argv[1:],
-                        model_list + [help_arg().with_id("help")],
+                        {
+                            **get_parsers(model_dict),
+                            "help": help_parser().with_id("help"),
+                        },
                         terminate_on_unknown=terminate_on_unknown,
                     )
 
-                    parsed = finalize_model(parsed_list, model, exclude=["help"])
-                    if inline:
-                        args = attr.asdict(parsed, recurse=False)
-                    else:
-                        args = {
-                            **(
-                                {command_args.model: parsed}
-                                if command_args.model is not None
-                                else {}
-                            ),
-                            **(
-                                {command_args.tail: tail}
-                                if command_args.tail is not None
-                                else {}
-                            ),
-                            **(
-                                {
-                                    command_args.modellist: {
-                                        arg.id: arg for arg in parsed_list
-                                    }
-                                }
-                                if command_args.modellist is not None
-                                else {}
-                            ),
-                            **(
-                                {command_args.name: argv[0]}
-                                if command_args.name is not None
-                                else {}
-                            ),
-                        }
-                except (HelpRequest, CommandLineError, *exceptions) as err:
-                    in_exceptions = isinstance(err, exceptions)
-                    if isinstance(err, CommandLineError) and not in_exceptions:
+                    parsed, errors = read_parsers(model_dict, parsed_list, False, False)
+
+                    if errors or isinstance(tail, TailError):
                         print_help(
-                            argv[0], model_list, doc, usage_suffix, just_usage=True
+                            argv[0], model_dict, doc, usage_suffix, just_usage=True
                         )
-                        if isinstance(err, CommandLineErrorGroup):
-                            [print(e.msg) for e in err.sub_errors]
-                        else:
-                            print(err.msg)
+                        for error in errors.values():
+                            print(error.msg)
+                        if isinstance(tail, TailError):
+                            print(tail.msg)
                         return 1
-                    if isinstance(err, HelpRequest) and not in_exceptions:
-                        print_help(argv[0], model_list, doc, usage_suffix)
+                    if not inline:
+                        args: dict[str, Any] = {}
+
+                        if command_args.model is not None:
+                            args[command_args.model] = model(**parsed)
+
+                        if command_args.tail is not None:
+                            args[command_args.tail] = tail
+
+                        if command_args.modellist is not None:
+                            args[command_args.modellist] = parsed_list
+
+                        if command_args.name is not None:
+                            args[command_args.name] = argv[0]
+                    else:
+                        args = parsed
+
+                except (HelpRequest, *exceptions) as err:
+                    if isinstance(err, HelpRequest) and not isinstance(err, exceptions):
+                        print_help(argv[0], model_dict, doc, usage_suffix)
                         return 0
 
-                    parsed = err
-                    args: dict[str, Any] = {
-                        **(
-                            {command_args.model: parsed}
-                            if command_args.model is not None
-                            else {}
-                        ),
-                        **(
-                            {command_args.tail: []}
-                            if command_args.tail is not None
-                            else {}
-                        ),
-                        **(
-                            {command_args.modellist: {}}
-                            if command_args.modellist is not None
-                            else {}
-                        ),
-                        **(
-                            {command_args.name: argv[0]}
-                            if command_args.name is not None
-                            else {}
-                        ),
-                    }
+                    args: dict[str, Any] = {}
+                    if command_args.model is not None:
+                        args[command_args.model] = err
+
+                    if command_args.tail is not None:
+                        args[command_args.tail] = []
+
+                    if command_args.modellist is not None:
+                        args[command_args.modellist] = {}
+
+                    if command_args.name is not None:
+                        args[command_args.name] = argv[0]
 
                 try:
                     return func(**args) or 0  # type: ignore

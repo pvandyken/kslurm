@@ -66,15 +66,15 @@ def _check_singularity():
 @command(inline=True)
 def _pull(
     uri: str = positional(),
-    alias_name: list[str] = keyword(
+    alias_name: str = keyword(
         ["-a", "--alias"],
         help="Alias for the docker container",
-        validate=validators.fs_name,
+        format=validators.fs_name,
     ),
     force: bool = flag(["-f", "--force"], help="Force overwriting of aliases"),
-    mem: list[int] = keyword(
+    mem: int = keyword(
         ["--mem"],
-        validate=formatters.mem,
+        format=formatters.mem,
         help="Amount of memory to allocate when building image",
     )
     # executable: bool = flag(
@@ -94,8 +94,8 @@ def _pull(
         print(f"Invalid scheme '{app.uri.scheme}'. Only 'docker://' uris supported")
         return 1
 
-    if alias_name and alias_name[0]:
-        alias = ContainerAlias(alias_name[0], _SINGULARITY_DIR)
+    if alias_name:
+        alias = ContainerAlias(alias_name, _SINGULARITY_DIR)
         if alias and not force:
             alias.check_upgrade(app)
     else:
@@ -111,7 +111,6 @@ def _pull(
             "it's up to date. Would you like to pull it again?"
         ).execute():
             return
-
 
     image_path = _SINGULARITY_DIR.get_data_path(app)
 
@@ -163,8 +162,8 @@ def _pull(
     # Check that image_path is not a broken symlink
     if not image_path.exists() and image_path.is_symlink():
         image_path.unlink()
-    _mem = (
-        mem[0]
+    mem = (
+        mem
         if mem
         else (max(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
     )
@@ -172,7 +171,7 @@ def _pull(
         [
             "krun",
             "1:00",
-            f"{_mem}M",
+            f"{mem}M",
             "singularity",
             "build",
             str(image_path),

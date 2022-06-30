@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import hashlib
-from typing import Union
+from typing import TypeVar, Union
+
+T = TypeVar("T")
 
 
 def get_hash(item: Union[str, bytes], method: str = "md5"):

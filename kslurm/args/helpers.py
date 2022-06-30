@@ -103,11 +103,16 @@ def read_parsers(
     raw_values: bool = False,
     updated: bool = False,
 ) -> Any:
+    default: list[dict[str, Any]] = [{}, {}]
+    if raw_values:
+        default.append({})
+    if updated:
+        default.append({})
     unmerged = [
         model.read_parsers(parsers, raw_values, updated) for model in models.values()
     ]
     result = [_merge_dicts(elem) for elem in zip(*unmerged)]
-    return tuple(result)
+    return tuple(result) or tuple(default)
 
 
 @attr.frozen

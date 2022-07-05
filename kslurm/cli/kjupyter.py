@@ -43,7 +43,7 @@ def kjupyter(
 
     if args.venv:
         venv_cache = VenvCache()
-        if args.venv[0] not in venv_cache:
+        if args.venv not in venv_cache:
             print("Valid venvs:\n" + str(venv_cache))
             return 1
 
@@ -62,7 +62,7 @@ def kjupyter(
                     str(path),
                     "; ",
                     "kpy load",
-                    args.venv[0],
+                    args.venv,
                     "; ",
                     "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not "
                     "found, attempting install' && pip install jupyterlab);",

@@ -44,4 +44,4 @@ def krun(
         print(txt.INTERACTIVE_MSG.format(args=slurm.slurm_args))
 
     if not slurm.test:
-        subprocess.run(slurm.run, shell=True)
+        return subprocess.run(slurm.run, shell=True).returncode

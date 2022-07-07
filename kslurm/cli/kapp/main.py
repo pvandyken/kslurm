@@ -165,22 +165,25 @@ def _pull(
     mem = (
         mem
         if mem
-        else (max(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
+        else (min(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
     )
-    krun.cli(
+    ret = krun.cli(
         [
             "krun",
             "1:00",
             f"{mem}M",
             "singularity",
             "build",
+            "--disable-cache",
             str(image_path),
             f"docker-archive://{frozen_image.with_suffix('.tar')}",
         ]
     )
-    shutil.rmtree(_SINGULARITY_DIR.work)
+    if ret == 0:
+        shutil.rmtree(_SINGULARITY_DIR.work)
 
-    _update_aliases(_SINGULARITY_DIR, app, uri, alias)
+        _update_aliases(_SINGULARITY_DIR, app, uri, alias)
+    return ret
 
 
 @command(inline=True)

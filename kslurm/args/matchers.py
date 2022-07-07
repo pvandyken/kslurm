@@ -57,7 +57,7 @@ class path(BasicMatcher):
     def test(self, arg: str):
         is_path = "/" in arg and Path(arg).exists()
         if self.is_dir:
-            return is_path and (self.is_dir ^ Path(arg).is_dir())
+            return is_path and Path(arg).is_dir()
         return is_path
 
 

@@ -15,13 +15,16 @@ class BasicMatcher(abc.ABC):
     max_len: Optional[int] = None
 
     def __call__(self, arg: str, param: Parser[Any], context: Context):
-        if not self.duplicates and param.value is not None:
+        if param.value is None and param.validation_err is None:
+            return self.test(arg)
+        if not self.duplicates:
             return False
-        if (
-            self.max_len is not None
-            and getattr(param.value, "__len__", 0) > self.max_len
-        ):
-            return False
+        if self.max_len is not None:
+            try:
+                if len(param.value or "") > self.max_len:
+                    return False
+            except KeyError:
+                pass
         return self.test(arg)
 
     @abc.abstractmethod

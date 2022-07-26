@@ -193,7 +193,7 @@ def _save(
 
     dest = venv_cache.get_path(name)
 
-    _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
+    _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix=".tar.gz")
 
     venv_dir = Path(os.environ["VIRTUAL_ENV"])
     prompt = VenvPrompt(venv_dir)
@@ -203,14 +203,20 @@ def _save(
     with tarfile.open(tmp, mode="w:gz") as tar:
         tar.add(venv_dir, arcname="")
 
-    if delete:
-        os.remove(dest)
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
         index[name] = str(venv_dir)
         index.write()
-    shutil.move(tmp, dest)
+
+    # Do a two stage move in case tmp and dest are on different file systems, which
+    # could make the move take some time. This lets us delete the old dest at the last
+    # possible second
+    stage = dest.with_suffix(".tar.gz.tmp")
+    shutil.move(tmp, stage)
+    if delete:
+        os.remove(dest)
+    shutil.move(stage, dest)
 
 
 @command(inline=True)

@@ -3,12 +3,12 @@ from __future__ import absolute_import
 import importlib.resources as impr
 import re
 import signal
-import subprocess
 import subprocess as sp
 import sys
 from typing import Union
 
 import kslurm.text as txt
+import kslurm.utils as kutil
 from kslurm.args.command import Parsers, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
@@ -75,17 +75,17 @@ def kjupyter(
 
     if not slurm.test:
 
-        proc = subprocess.Popen(
+        proc = sp.Popen(
             slurm.run,
             shell=True,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stdin=sp.PIPE,
+            stdout=sp.PIPE,
+            stderr=sp.STDOUT,
         )
         jobid = "0"
 
         def signal_handler(*args):  # type: ignore
-            subprocess.run(f"scancel {jobid}", shell=True)
+            sp.run(f"scancel {jobid}", shell=True)
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)  # type: ignore
@@ -121,26 +121,19 @@ def kjupyter(
                     domain = url.group(1)
                     port = url.group(2)
                     path = url.group(3)
-                    try:
-                        hostname = (
-                            sp.run(
-                                ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
-                            )
-                            .stdout.decode()
-                            .strip()
-                        )
-                    except RuntimeError:
-                        hostname = "<hostname>"
                     console.print(
                         txt.JUPYTER_WELCOME.format(
                             port=port,
                             domain=domain,
                             path=path,
                             url=url.group(0),
-                            username=sp.run(["whoami"], capture_output=True)
-                            .stdout.decode()
-                            .strip(),
-                            hostname=hostname,
+                            username=kutil.get_sp_output(
+                                ["whoami"], default="<username>"
+                            ),
+                            hostname=kutil.get_sp_output(
+                                ["wget", "-qO-", "-T2", "ipinfo.io/ip"],
+                                default="<hostname>",
+                            ),
                         )
                     )
                 else:

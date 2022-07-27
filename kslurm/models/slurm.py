@@ -51,6 +51,7 @@ class SlurmModel:
     directory: Path = path(
         name="Directory",
         default=Path(),
+        dir_only=True,
         help="Change working directory before submitting the command. All other "
         "relative paths will be evaluated relative to the new directory.",
     )

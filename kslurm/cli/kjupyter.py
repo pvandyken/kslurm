@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import importlib.resources as impr
 import re
 import signal
-import subprocess
 import subprocess as sp
 import sys
-from typing import Union
+from typing import Any, Union
 
 import kslurm.text as txt
 from kslurm.args.command import Parsers, command
@@ -73,78 +72,74 @@ def kjupyter(
             *cmd,
         ]
 
-    if not slurm.test:
+    if slurm.test:
+        return
 
-        proc = subprocess.Popen(
-            slurm.run,
-            shell=True,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-        jobid = "0"
+    proc = sp.Popen(
+        slurm.run,
+        shell=True,
+        stdin=sp.PIPE,
+        stdout=sp.PIPE,
+        stderr=sp.STDOUT,
+    )
+    jobid = "0"
 
-        def signal_handler(*args):  # type: ignore
-            subprocess.run(f"scancel {jobid}", shell=True)
-            sys.exit(0)
+    def signal_handler(*args: Any):
+        sp.run(f"scancel {jobid}", shell=True)
+        sys.exit(0)
 
-        signal.signal(signal.SIGINT, signal_handler)  # type: ignore
+    signal.signal(signal.SIGINT, signal_handler)
 
-        while proc.poll() is None:
-            if proc.stdout:
-                line = proc.stdout.readline().decode().strip()
-                queued = re.match(
-                    r"^srun: job (\d+) queued and waiting for resources", line
-                )
-                url = re.match(
-                    r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
-                    line,
-                )
-                if queued:
-                    jobid = queued.group(1)
-                elif any(
-                    [
-                        re.match(r"^srun: job \d+ has been allocated resources", line),
-                        re.match(
-                            r"^To access the server, open this file in a browser:$",
-                            line,
-                        ),
-                        re.match(r"^file:\/\/\/(?:[\w.\-_]+\/)+[\w.\-_]+\.html$", line),
-                        re.match(r"^Or copy and paste one of these URLs:$", line),
-                        re.match(
-                            r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$", line
-                        ),
-                    ]
-                ):
-                    pass
-                elif url:
-                    domain = url.group(1)
-                    port = url.group(2)
-                    path = url.group(3)
-                    try:
-                        hostname = (
-                            sp.run(
-                                ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
-                            )
-                            .stdout.decode()
-                            .strip()
-                        )
-                    except RuntimeError:
-                        hostname = "<hostname>"
-                    console.print(
-                        txt.JUPYTER_WELCOME.format(
-                            port=port,
-                            domain=domain,
-                            path=path,
-                            url=url.group(0),
-                            username=sp.run(["whoami"], capture_output=True)
-                            .stdout.decode()
-                            .strip(),
-                            hostname=hostname,
-                        )
+    while proc.poll() is None:
+        if proc.stdout:
+            line = proc.stdout.readline().decode().strip()
+            queued = re.match(
+                r"^srun: job (\d+) queued and waiting for resources", line
+            )
+            url = re.match(
+                r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
+                line,
+            )
+            if queued:
+                jobid = queued.group(1)
+            elif any(
+                [
+                    re.match(r"^srun: job \d+ has been allocated resources", line),
+                    re.match(
+                        r"^To access the server, open this file in a browser:$", line
+                    ),
+                    re.match(r"^file:\/\/\/(?:[\w.\-_]+\/)+[\w.\-_]+\.html$", line),
+                    re.match(r"^Or copy and paste one of these URLs:$", line),
+                    re.match(
+                        r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$", line
+                    ),
+                ]
+            ):
+                pass
+            elif url:
+                domain = url.group(1)
+                port = url.group(2)
+                path = url.group(3)
+                try:
+                    hostname_proc = sp.run(
+                        ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
                     )
-                else:
-                    print(line)
+                    hostname_proc.check_returncode()
+                    hostname = hostname_proc.stdout.decode().strip()
+                except (RuntimeError, sp.CalledProcessError):
+                    hostname = "<hostname>"
+                console.print(
+                    txt.JUPYTER_WELCOME.format(
+                        port=port,
+                        domain=domain,
+                        path=path,
+                        url=url.group(0),
+                        username=sp.getoutput("whoami").strip(),
+                        hostname=hostname,
+                    )
+                )
+            else:
+                print(line)
 
 
 if __name__ == "__main__":

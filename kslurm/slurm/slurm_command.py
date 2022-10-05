@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import importlib.resources as impr
 import os

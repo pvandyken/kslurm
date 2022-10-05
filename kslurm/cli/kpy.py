@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import importlib.resources as impr
 import os
@@ -9,13 +9,12 @@ import sys
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Literal, Optional, cast, overload
+from typing import Literal, Optional, overload
 
 import attr
 
 from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
-from kslurm.args.protocols import WrappedCommand
 from kslurm.models import validators
 from kslurm.shell import Shell
 from kslurm.venv import (
@@ -376,6 +375,7 @@ def _refresh():
 def _kpy_wrapper(argv: list[str] = sys.argv):
     with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
         print(path)
+    return 0
 
 
 @command(inline=True)
@@ -400,16 +400,16 @@ def _rm(name: Optional[str] = positional()):
 class _KpyModel:
     command: Subcommand = subcommand(
         commands={
-            "load": _load.cli,
-            "save": _save.cli,
-            "bash": _bash.cli,
-            "create": _create.cli,
-            "activate": _activate.cli,
-            "list": _list.cli,
-            "rm": _rm.cli,
-            "export": _export.cli,
-            "_refresh": _refresh.cli,
-            "_kpy_wrapper": cast(WrappedCommand, _kpy_wrapper),
+            "load": _load,
+            "save": _save,
+            "bash": _bash,
+            "create": _create,
+            "activate": _activate,
+            "list": _list,
+            "rm": _rm,
+            "export": _export,
+            "_refresh": _refresh,
+            "_kpy_wrapper": _kpy_wrapper,
         },
     )
 
@@ -423,4 +423,4 @@ def kpy(cmd_name: str, args: _KpyModel, tail: list[str]):
 
 
 if __name__ == "__main__":
-    kpy.cli(["kpy", "bash"])
+    kpy.cli(["kpy", "foo"])

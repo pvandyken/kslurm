@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import itertools as it
 import typing
@@ -124,27 +124,27 @@ class ParamAnnotation:
     root_type: type[Any]
 
     @classmethod
-    def parse(cls, _t: Optional[type[Any]], /):
+    def parse(cls, __t: Optional[type[Any]], /):
         optional = False
         is_generic = False
         is_list = False
-        if typing.get_origin(_t) == Union and type(None) in (
-            args := typing.get_args(_t)
+        if typing.get_origin(__t) == Union and type(None) in (
+            args := typing.get_args(__t)
         ):
             i = args.index(type(None))
             rest = (*args[:i], *args[i + 1 :])
             if len(rest) > 1 or not len(rest):
                 raise TypeError()
             optional = True
-            _t = rest[0]
-        main_type = _t
-        if len(typing.get_args(_t)):
+            __t = rest[0]
+        main_type = __t
+        if len(typing.get_args(__t)):
             is_generic = True
-        if typing.get_origin(_t) == list:
+        if typing.get_origin(__t) == list:
             is_list = True
-            _t = typing.get_args(_t)[0]
-        if _t is None:
-            _t = Literal[None]
+            __t = typing.get_args(__t)[0]
+        if __t is None:
+            __t = Literal[None]
         if main_type is None:
             main_type = Literal[None]
         return cls(
@@ -152,7 +152,7 @@ class ParamAnnotation:
             is_generic=is_generic,
             is_list=is_list,
             main_type=main_type,
-            root_type=_t,
+            root_type=__t,
         )
 
 

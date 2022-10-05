@@ -2,7 +2,16 @@ from __future__ import absolute_import, annotations
 
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
+
+from typing_extensions import ParamSpec
+
+if TYPE_CHECKING:
+    from typing_extensions import StrictTypeGuard
+else:
+    from typing_extensions import TypeGuard
+
+    StrictTypeGuard = TypeGuard
 
 import attr
 
@@ -10,11 +19,12 @@ import kslurm.args.actions as actions
 import kslurm.args.matchers as matchers
 from kslurm.args.arg import Arg, ParamSet, Parser
 from kslurm.args.help_templates import PositionalArg, ShapeArg, SubcommandTemplate
-from kslurm.args.protocols import WrappedCommand
+from kslurm.args.protocols import Command, WrappedCommand
 from kslurm.exceptions import ValidationError
 
 T = TypeVar("T")
 S = TypeVar("S")
+P = ParamSpec("P")
 
 Subcommand = tuple[str, WrappedCommand]
 
@@ -67,27 +77,48 @@ def choice(
     )
 
 
+C = TypeVar("C", bound="Command[Any] | Command[[]]")
+
+
+def _is_command(command: WrappedCommand | C) -> StrictTypeGuard[C]:
+    return hasattr(command, "cli")
+
+
+class InvalidSubcommand(Exception):
+    pass
+
+
 def subcommand(
-    commands: Dict[str, WrappedCommand],
-    default: Optional[str] = None,
+    commands: Dict[str, WrappedCommand | Command[Any] | Command[[]]],
+    default: Optional[WrappedCommand | Command[Any] | Command[[]]] = None,
 ):
-    def check_match(val: str):
-        if val in commands.keys():
-            return (val, commands[val])
-        choices = "\n".join([f"\t\t• {m}" for m in commands.keys()])
-        raise ValidationError(f"Please select between:\n{choices}")
+    cli = {
+        name: command.cli if _is_command(command) else command
+        for name, command in commands.items()
+    }
+
+    _default = default.cli if default and _is_command(default) else default
+
+    def get_action(val: str):
+        if val in cli.keys():
+            return (val, cli[val])
+        choices = "\n".join([f"\t\t• {m}" for m in cli.keys()])
+        err = f"Please select between:\n{choices}"
+        if _default:
+            raise InvalidSubcommand(err)
+        raise ValidationError(err)
 
     return Arg(
         parser=Parser(
             match=matchers.everything(),
             priority=0,
-            action=actions.convert(check_match).replace(),
+            action=actions.convert(get_action).replace(),
             terminal=True,
         ),
         help="Run any command followed by -h for more information",
-        help_template=SubcommandTemplate(commands),
+        help_template=SubcommandTemplate(cli),
         name="subcommand",
-        default=check_match(default) if default else None,
+        default=("", _default) if _default is not None else None,
     )
 
 

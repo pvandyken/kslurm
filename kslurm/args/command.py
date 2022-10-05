@@ -1,30 +1,22 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import functools as ft
 import inspect
 import itertools as it
 import sys
-from typing import (
-    Any,
-    Callable,
-    Generic,
-    Literal,
-    Optional,
-    Protocol,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Literal, Optional, TypeVar, Union, overload
 
 import attr
 from typing_extensions import ParamSpec
 
 from kslurm.args.arg import Arg, Parser
 from kslurm.args.arg_types import HelpRequest, help_parser
-from kslurm.args.help import print_help
+from kslurm.args.help import HelpText
 from kslurm.args.helpers import get_arg_dict, get_parsers, read_parsers
 from kslurm.args.parser import parse_args
+from kslurm.args.protocols import Command
 from kslurm.exceptions import CommandLineError, TailError
+from kslurm.style import console
 
 P = ParamSpec("P")
 _CommandFunc = Callable[P, Optional[int]]
@@ -43,6 +35,7 @@ class CommandArgs:
     _tail: Optional[str] = None
     _modellist: Optional[str] = None
     _name: Optional[str] = None
+    _helptext: Optional[str] = None
 
     @property
     def model(self):
@@ -84,16 +77,18 @@ class CommandArgs:
             raise ValueError("name is already set")
         self._name = value
 
+    @property
+    def helptext(self):
+        return self._helptext
+
+    @helptext.setter
+    def helptext(self, value: str):
+        if self._helptext is not None:
+            raise ValueError("helptext is already set")
+        self._helptext = value
+
 
 Exc = TypeVar("Exc", bound=type[Exception], covariant=True)
-
-
-class _Command(Protocol, Generic[P]):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> int:
-        ...
-
-    def cli(self, argv: list[str] = ...) -> int:
-        ...
 
 
 class CommandError(Exception):
@@ -108,17 +103,17 @@ def command(
     *,
     terminate_on_unknown: bool = ...,
     inline: bool = ...,
-) -> Callable[[_CommandFunc[P]], _Command[P]]:
+) -> Callable[[_CommandFunc[P]], Command[P]]:
     ...
 
 
 @overload
 def command(
-    maybe_func: _CommandFunc[P] = ...,  # type: ignore
+    maybe_func: _CommandFunc[P],
     *,
     terminate_on_unknown: Literal[True] = ...,
     inline: Literal[False] = ...,
-) -> _Command[P]:
+) -> Command[P]:
     ...
 
 
@@ -127,7 +122,7 @@ def command(
     *,
     terminate_on_unknown: bool = False,
     inline: bool = False,
-) -> Union[_Command[P], Callable[[_CommandFunc[P]], _Command[P]]]:
+) -> Union[Command[P], Callable[[_CommandFunc[P]], Command[P]]]:
     @attr.frozen
     class BlankModel:
         pass
@@ -158,27 +153,33 @@ def command(
             )
         else:
             for param in params.parameters.values():
-                if param.annotation == param.empty:
+                annotation = (
+                    eval(param.annotation, func.__globals__)
+                    if isinstance(param.annotation, str)
+                    else param.annotation
+                )
+                if annotation == param.empty:
                     raise CommandLineError(
                         f"parameter '{param}' in {func} must be annotated"
                     )
-                if param.annotation == list[str]:
+                if annotation == list[str]:
                     command_args.tail = param.name
                     continue
-                if param.annotation == Parsers:
+                if annotation == Parsers:
                     command_args.modellist = param.name
                     continue
-                if param.annotation == str:
+                if annotation == str:
                     command_args.name = param.name
+                    continue
+                if annotation == HelpText:
+                    command_args.helptext = param.name
                     continue
 
                 if model is not BlankModel:
                     raise CommandLineError(
-                        f"Mutliple models detected: {model} and {param.annotation}"
+                        f"Mutliple models detected: {model} and {annotation}"
                     )
-                model = param.annotation
-                if isinstance(model, str):
-                    model = eval(model, func.__globals__)
+                model = annotation
 
                 types = getattr(model, "__args__", None)
                 if types is not None:
@@ -192,7 +193,18 @@ def command(
                     )
                 command_args.model = param.name
 
+        doc = func.__doc__ or ""
+
+        model_dict = get_arg_dict(model)
+        if command_args.tail:
+            usage_suffix = "command_args"
+        else:
+            usage_suffix = ""
+
         class Wrapper:
+            def get_helptext(self, entrypoint: str):
+                return HelpText(entrypoint, model_dict, doc, usage_suffix)
+
             @ft.wraps(func)
             def __call__(self, *args: P.args, **kwargs: P.kwargs):
                 if inline:
@@ -211,13 +223,7 @@ def command(
 
             @ft.wraps(func)
             def cli(self, argv: list[str] = sys.argv):
-                doc = func.__doc__ or ""
-
-                model_dict = get_arg_dict(model)
-                if command_args.tail:
-                    usage_suffix = "command_args"
-                else:
-                    usage_suffix = ""
+                helptext = self.get_helptext(argv[0])
                 try:
                     parsed_list, tail = parse_args(
                         argv[1:],
@@ -231,9 +237,7 @@ def command(
                     parsed, errors = read_parsers(model_dict, parsed_list, False, False)
 
                     if errors or isinstance(tail, TailError):
-                        print_help(
-                            argv[0], model_dict, doc, usage_suffix, just_usage=True
-                        )
+                        console.print(helptext.with_usage_only())
                         for error in errors.values():
                             print(error.msg, file=sys.stderr)
                         if isinstance(tail, TailError):
@@ -253,12 +257,15 @@ def command(
 
                         if command_args.name is not None:
                             args[command_args.name] = argv[0]
+
+                        if command_args.helptext is not None:
+                            args[command_args.helptext] = helptext
                     else:
                         args = parsed
 
                 except (HelpRequest, *exceptions) as err:
                     if isinstance(err, HelpRequest) and not isinstance(err, exceptions):
-                        print_help(argv[0], model_dict, doc, usage_suffix)
+                        console.print(helptext)
                         return 0
 
                     args: dict[str, Any] = {}
@@ -266,7 +273,7 @@ def command(
                         args[command_args.model] = err
 
                     if command_args.tail is not None:
-                        args[command_args.tail] = []
+                        args[command_args.tail] = argv[1:]
 
                     if command_args.modellist is not None:
                         args[command_args.modellist] = {}
@@ -274,6 +281,8 @@ def command(
                     if command_args.name is not None:
                         args[command_args.name] = argv[0]
 
+                    if command_args.helptext is not None:
+                        args[command_args.helptext] = helptext
                 try:
                     return func(**args) or 0  # type: ignore
                 except CommandError as err:

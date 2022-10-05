@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 from typing import Any, Callable, Generic, Optional, TypeVar
 

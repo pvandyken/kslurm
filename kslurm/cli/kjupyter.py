@@ -1,23 +1,58 @@
 from __future__ import absolute_import
 
 import importlib.resources as impr
+import os
 import re
 import signal
 import subprocess as sp
 import sys
+import tempfile as tmp
+from pathlib import Path
 from typing import Any, Union
 
+import attrs
+
+import kslurm.bin
 import kslurm.text as txt
-from kslurm.args.command import Parsers, command
+from kslurm.args import HelpRequest, InvalidSubcommand, Subcommand, subcommand
+from kslurm.args.arg_types import keyword
+from kslurm.args.command import CommandError, Parsers, command
+from kslurm.args.help import HelpText
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
 from kslurm.slurm.slurm_command import SlurmCommand
-from kslurm.style.console import console
+from kslurm.style import console
 from kslurm.venv import VenvCache
 
 
+@attrs.frozen
+class KjupyterEnv:
+    active: bool
+    logs: Path
+
+    @staticmethod
+    def get_env_var(name: str):
+        return "_KJUPYTER_" + name
+
+    def export(self):
+        for field, value in attrs.asdict(self).items():
+            os.environ[self.get_env_var(field)] = str(value or "")
+
+    @classmethod
+    def load(cls):
+        fields = attrs.fields(cls)
+        vals = {
+            field.name: field.type(val)
+            if (val := os.environ.get(cls.get_env_var(field.name))) is not None
+            else field.type()
+            for field in fields
+            if field.type is not attrs.NOTHING and field.type is not None
+        }
+        return cls(**vals)
+
+
 @command(terminate_on_unknown=True)
-def kjupyter(
+def _kjupyter(
     args: Union[SlurmModel, TemplateError],
     command_args: list[str],
     arglist: Parsers,
@@ -46,22 +81,24 @@ def kjupyter(
             print("Valid venvs:\n" + str(venv_cache))
             return 1
 
-    with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
-        cmd = [
-            "jupyter-lab",
-            "--ip",
-            "$(hostname -f)",
-            "--no-browser",
-        ]
-        print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=" ".join(cmd)))
+    env = KjupyterEnv(active=True, logs=Path(tmp.mkstemp(prefix="kjupyter_logs.")[1]))
+
+    cmd = [
+        "jupyter-lab",
+        "--ip",
+        "$(hostname -f)",
+        "--no-browser",
+        "|",
+        "tee",
+        str(env.logs),
+    ]
+    print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=" ".join(cmd)))
+    with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+        venv_load = ["source", str(path), "; kpy load", args.venv] if args.venv else []
         slurm.command = [
             *(
                 [
-                    "source",
-                    str(path),
-                    "; ",
-                    "kpy load",
-                    args.venv,
+                    *venv_load,
                     "; ",
                     "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not "
                     "found, attempting install' && pip install jupyterlab);",
@@ -138,9 +175,65 @@ def kjupyter(
                         hostname=hostname,
                     )
                 )
-            else:
-                print(line)
+                sp.run(
+                    [
+                        "srun",
+                        f"--jobid={jobid}",
+                        "bash",
+                        "-c",
+                        " ".join(venv_load) + "; bash -i",
+                    ]
+                )
+
+
+@command(inline=True)
+def _log(lines: int = keyword(["-n", "--lines"], default=20)):
+    env = KjupyterEnv.load()
+    lines_arg = ["--lines", str(lines)]
+    sp.run(["tail", env.logs, *lines_arg])
+
+
+@command(inline=True)
+def _console():
+    sp.run(["jupyter", "console", "--use-existing"])
+
+
+@attrs.frozen
+class _JupyterModel:
+    cmd: Subcommand = subcommand({"log": _log, "console": _console}, default=_kjupyter)
+
+
+@command
+def kjupyter(
+    entrypoint: str,
+    args: Union[_JupyterModel, InvalidSubcommand, HelpRequest],
+    command_args: list[str],
+    helptext: HelpText,
+):
+    """Placeholder docstring"""
+    env = KjupyterEnv.load()
+    if isinstance(args, HelpRequest):
+        if env.active:
+            console.print(helptext)
+        else:
+            console.print(_kjupyter.get_helptext(entrypoint))
+        return
+    if isinstance(args, InvalidSubcommand):
+        if env.active:
+            console.print(args.args[0])
+            return
+        return _kjupyter.cli(["kjupyter", *command_args])
+    name, func = args.cmd
+    if not name:
+        return func([name, *command_args])
+    entry = f"{entrypoint} {name}"
+    if not env.active:
+        raise CommandError(
+            f"The '{name}' command is only available in a running jupyter notebook"
+        )
+    return func([entry, *command_args])
 
 
 if __name__ == "__main__":
-    kjupyter.cli()
+    KjupyterEnv(True, Path("./poetry.lock")).export()
+    kjupyter.cli(["kjupyter", "log"])

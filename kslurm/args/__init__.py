@@ -1,20 +1,19 @@
 __submodules__ = ["command", "arg_types"]
 
-__ignore__ = ["T", "S"]
+__ignore__ = ["T", "S", "C", "P", "Exc"]
 
 # <AUTOGEN_INIT>
 from kslurm.args.command import (
     CommandArgs,
     CommandError,
-    Exc,
     ModelType,
-    P,
     Parsers,
     command,
     error,
 )
 from kslurm.args.arg_types import (
     HelpRequest,
+    InvalidSubcommand,
     Subcommand,
     choice,
     flag,
@@ -29,10 +28,9 @@ from kslurm.args.arg_types import (
 __all__ = [
     "CommandArgs",
     "CommandError",
-    "Exc",
     "HelpRequest",
+    "InvalidSubcommand",
     "ModelType",
-    "P",
     "Parsers",
     "Subcommand",
     "choice",

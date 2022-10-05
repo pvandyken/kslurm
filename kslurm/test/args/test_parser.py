@@ -1,5 +1,5 @@
 # pyright: reportPrivateUsage=false, reportUnknownArgumentType=false
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 from copy import copy
 from typing import Any, NamedTuple

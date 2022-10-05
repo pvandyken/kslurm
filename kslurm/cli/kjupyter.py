@@ -88,6 +88,7 @@ def _kjupyter(
         "--ip",
         "$(hostname -f)",
         "--no-browser",
+        "2>&1",
         "|",
         "tee",
         str(env.logs),
@@ -110,6 +111,7 @@ def _kjupyter(
         ]
 
     if slurm.test:
+        print(slurm.run)
         return
 
     proc = sp.Popen(
@@ -175,15 +177,17 @@ def _kjupyter(
                         hostname=hostname,
                     )
                 )
-                sp.run(
-                    [
-                        "srun",
-                        f"--jobid={jobid}",
-                        "bash",
-                        "-c",
-                        " ".join(venv_load) + "; bash -i",
-                    ]
-                )
+                # sp.run(
+                #     [
+                #         "srun",
+                #         f"--jobid={jobid}",
+                #         "bash",
+                #         "-c",
+                #         " ".join(venv_load) + "; bash -i",
+                #     ]
+                # )
+            # else:
+            #     print(line)
 
 
 @command(inline=True)

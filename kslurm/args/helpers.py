@@ -188,7 +188,7 @@ def get_arg_dict(models: ModelType) -> ModelDict:
                 )
 
             if not callable(newtype):
-                raise TypeError(f"{field.name} must be annotated with a callable type")
+                raise TypeError(f"{field.name} in '{models}' must be annotated with a callable type")
 
             default = default.with_primary_parser(
                 attr.evolve(

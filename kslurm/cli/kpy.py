@@ -90,14 +90,13 @@ def _load(
 
         label = new_name or name
         if label in index:
-            print(
+            raise CommandError(
                 f"An environment called '{label}' already exists. You can load "
                 f"'{name}' under a different name using --as:\n"
                 f"\tkpy load {label} --as <name>\n"
                 f"You can also activate the existing '{label}' using\n"
                 f"\tkpy activate {label}"
             )
-            return 1
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
     else:
         index = None
@@ -152,12 +151,10 @@ def _export(
     venv_cache = VenvCache()
 
     if name not in venv_cache:
-        print("Valid venvs:\n" + str(venv_cache))
-        return 1
+        raise CommandError("Valid venvs:\n" + str(venv_cache))
 
     if path.exists():
-        print(f"{path} already exists")
-        return 1
+        raise CommandError(f"{path} already exists")
 
     print("exporting...")
     with tarfile.open(venv_cache[name], "r") as tar:
@@ -177,7 +174,7 @@ def _save(
 ):
     """Save current venv"""
     if not os.environ.get("VIRTUAL_ENV"):
-        print(
+        raise CommandError(
             "No active virtual env detected. Please activate one, or ensure "
             "$VIRTUAL_ENV is being set correctly"
         )
@@ -256,12 +253,11 @@ def _create(
         index = KpyIndex(slurm_tmp)
         name = name if name else _get_unique_name(index, "venv")
         if name in index:
-            print(
+            raise CommandError(
                 f"An environment called '{name}' already exists. You can activate "
                 f"the existing '{name}' using\n"
                 "\tkpy activate {name}"
             )
-            return 1
 
         venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp")
         no_download = ["--no-download"]
@@ -327,22 +323,21 @@ def _activate(name: Optional[str] = positional(), script: str = keyword(["--scri
         return
 
     if name not in index:
-        print(
-            f"An environment with the name '{name}' has not yet been initialized. ",
-            end="",
-        )
+        err = [f"An environment with the name '{name}' has not yet been initialized. "]
         try:
             venv_cache = VenvCache()
             if name in venv_cache:
-                print(
-                    f"The saved environment called '{name}' can be loaded using\n"
-                    f"\tkpy load {name}\n"
-                )
+                err += [
+                    f"The saved environment called '{name}' can be loaded using",
+                    f"\tkpy load {name}\n",
+                ]
         except MissingPipdirError:
             pass
-        print(f"A new environment can be created using\n\tkpy create {name}")
-        print(f"Currently initialized environments:\n{index}")
-        return 1
+        err += [
+            f"A new environment can be created using\n\tkpy create {name}\n",
+            f"Currently initialized environments:\n{index}",
+        ]
+        raise CommandError("\n".join(err))
 
     shell = Shell.get()
     if script:
@@ -388,19 +383,17 @@ def _rm(name: Optional[str] = positional()):
     try:
         venv_cache = VenvCache()
     except MissingPipdirError as err:
-        print(err.msg)
-        return 1
+        raise CommandError(err.msg)
 
     if not name:
-        print("Valid venvs:\n" + str(venv_cache))
-        return 1
+        raise CommandError("Valid venvs:\n" + str(venv_cache))
 
     if name not in venv_cache:
-        print(f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}")
-        return 1
+        raise CommandError(
+            f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}"
+        )
 
     os.remove(venv_cache[name])
-    return
 
 
 @attr.frozen

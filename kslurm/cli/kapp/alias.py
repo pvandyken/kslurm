@@ -4,7 +4,7 @@ import os
 
 import attrs
 
-from kslurm.args import Subcommand, command, positional, subcommand
+from kslurm.args import CommandError, Subcommand, command, positional, subcommand
 from kslurm.container import SingularityDir
 
 
@@ -25,7 +25,7 @@ def _rm(
     singularity_dir = SingularityDir()
     path = singularity_dir.aliases / alias
     if not path.exists():
-        print(f"'{alias}' is not a valid alias")
+        raise CommandError(f"'{alias}' is not a valid alias")
         return 1
     if path.is_symlink():
         path.unlink()

@@ -235,9 +235,9 @@ def command(
                             argv[0], model_dict, doc, usage_suffix, just_usage=True
                         )
                         for error in errors.values():
-                            print(error.msg)
+                            print(error.msg, file=sys.stderr)
                         if isinstance(tail, TailError):
-                            print(tail.msg)
+                            print(tail.msg, file=sys.stderr)
                         return 1
                     if not inline:
                         args: dict[str, Any] = {}
@@ -277,7 +277,7 @@ def command(
                 try:
                     return func(**args) or 0  # type: ignore
                 except CommandError as err:
-                    print(err.msg)
+                    print(err.msg, file=sys.stderr)
                     return 1
 
         return Wrapper()

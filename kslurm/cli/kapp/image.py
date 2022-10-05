@@ -4,7 +4,7 @@ import os
 
 import attrs
 
-from kslurm.args import Subcommand, command, flag, positional, subcommand
+from kslurm.args import CommandError, Subcommand, command, flag, positional, subcommand
 from kslurm.container import Container, SingularityDir
 
 
@@ -33,17 +33,15 @@ def _rm(
     singularity_dir = SingularityDir()
     container = singularity_dir.find(uri_or_alias)
     if container is None:
-        print(f"No image with identifier '{uri_or_alias}' found")
-        return 1
+        raise CommandError(f"No image with identifier '{uri_or_alias}' found")
 
     path = singularity_dir.uris / container.uri_path
 
     if not path.is_symlink() and not purge:
-        print(
+        raise CommandError(
             f"The uri {container.uri}' is directly attached to it's data and cannot "
             "be removed without the --purge flag."
         )
-        return 1
 
     if path.is_symlink() and purge:
         print("[INFO] The purge flag is not yet implemented in this context.")

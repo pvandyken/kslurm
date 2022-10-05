@@ -87,12 +87,12 @@ def _pull(
     try:
         app = Container.from_uri(uri, lookup_digest=True)
     except ValueError as err:
-        print(err.args[0])
-        return 1
+        raise CommandError(err.args[0])
 
     if app.uri.scheme != "docker":
-        print(f"Invalid scheme '{app.uri.scheme}'. Only 'docker://' uris supported")
-        return 1
+        raise CommandError(
+            f"Invalid scheme '{app.uri.scheme}'. Only 'docker://' uris supported"
+        )
 
     if alias_name:
         alias = ContainerAlias(alias_name, _SINGULARITY_DIR)
@@ -135,13 +135,13 @@ def _pull(
         )
 
         if r.status_code >= 400:
-            print("Unable to retrieve container download script")
-            return 1
+            raise CommandError("Unable to retrieve container download script")
         script = r.text
         hashed = impr.read_text("kslurm.data", "download_frozen_container.hash")
         if get_hash(script, method="sha512") != hashed.strip():
-            print("Frozen image download script does not match hash. Cannot continue.")
-            return 1
+            raise CommandError(
+                "Frozen image download script does not match hash. Cannot continue."
+            )
         cache[url] = script
         os.chmod(cache.get_path(url), 0o776)
 
@@ -200,8 +200,7 @@ def _path(
         return 1
 
     if container is None:
-        print(f"No image with identifier '{uri_or_alias}' found")
-        return 1
+        raise CommandError(f"No image with identifier '{uri_or_alias}' found")
     print(_SINGULARITY_DIR.get_data_path(container))
 
 

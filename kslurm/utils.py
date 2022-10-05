@@ -20,8 +20,7 @@ def get_hash(item: Union[str, bytes], method: str = "md5"):
 
 def get_sp_output(cmd: list[str], default: T = None) -> Union[str, T]:
     try:
-        lookup = sp.run(cmd, capture_output=True)
-        lookup.check_returncode()
-        return lookup.stdout.decode().strip()
+        lookup = sp.check_output(cmd)
+        return lookup.decode().strip()
     except (RuntimeError, sp.CalledProcessError):
         return default

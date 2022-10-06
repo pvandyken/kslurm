@@ -175,15 +175,16 @@ def _kjupyter(
                         hostname=hostname,
                     )
                 )
-                # sp.run(
-                #     [
-                #         "srun",
-                #         f"--jobid={jobid}",
-                #         "bash",
-                #         "-c",
-                #         " ".join(venv_load) + "; bash -i",
-                #     ]
-                # )
+                sp.run(
+                    [
+                        "srun",
+                        f"--jobid={jobid}",
+                        "--pty",
+                        "bash",
+                        "-c",
+                        slurm.venv + " bash -i",
+                    ]
+                )
             # else:
             #     print(line)
 

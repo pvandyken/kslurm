@@ -42,13 +42,13 @@ JUPYTER_WELCOME = """
         When prompted, enter the Server URL
 
     [heading]Tunnel script (replace <hostname> with your own hostname):[/]
-        ssh -L {port}:{domain}:{port} {username}@{hostname}
+        {tunnel_script}
     [heading]Browser URL:[/]
-        http://localhost:{port}/lab?token={token}
+        {browser_url}
     [heading]Server URL:[/]
         {url}
 
-    Once in the interactive shell, you can use kjupyter subcommands to interact with 
+    Once in the interactive shell, you can use kjupyter subcommands to interact with
     jupyter:
         - kjupyter log      View the server logs
         - kjupyter console  Start an interactive ipython console

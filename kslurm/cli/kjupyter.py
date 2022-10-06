@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import importlib.resources as impr
+import json
 import os
 import re
 import signal
@@ -9,7 +10,6 @@ import sys
 import tempfile as tmp
 from pathlib import Path
 from typing import Any, Union
-import json
 
 import attrs
 from yaspin import yaspin  # type: ignore
@@ -17,7 +17,7 @@ from yaspin import yaspin  # type: ignore
 import kslurm.bin
 import kslurm.text as txt
 from kslurm.args import HelpRequest, InvalidSubcommand, Subcommand, subcommand
-from kslurm.args.arg_types import flag, keyword
+from kslurm.args.arg_types import choice, flag, keyword
 from kslurm.args.command import CommandError, Parsers, command
 from kslurm.args.help import HelpText
 from kslurm.exceptions import TemplateError
@@ -31,9 +31,12 @@ from kslurm.venv import VenvCache
 class KjupyterEnv:
     active: bool
     logs: Path
+    domain: str = ""
     hostname: str = ""
+    username: str = ""
     port: str = ""
     token: str = ""
+    url: str = ""
 
     @staticmethod
     def get_env_var(name: str):
@@ -43,8 +46,18 @@ class KjupyterEnv:
         for field, value in attrs.asdict(self).items():
             os.environ[self.get_env_var(field)] = str(value or "")
 
-    def set_url(self, hostname: str, port: str, token: str):
-        return attrs.evolve(self, hostname=hostname, port=port, token=token)
+    def set_server_vals(
+        self, hostname: str, username: str, port: str, token: str, url: str, domain: str
+    ):
+        return attrs.evolve(
+            self,
+            hostname=hostname,
+            username=username,
+            port=port,
+            token=token,
+            url=url,
+            domain=domain,
+        )
 
     @classmethod
     def load(cls):
@@ -62,6 +75,14 @@ class KjupyterEnv:
 @attrs.frozen
 class _KjupyterExtendedModel(SlurmModel):
     debug: bool = flag(["--debug"])
+
+
+def _get_tunnel_script(*, port: str, domain: str, username: str, hostname: str):
+    return f"ssh -L {port}:{hostname}:{port} {username}@{domain}"
+
+
+def _get_browser_url(*, port: str, token: str):
+    return f"http://localhost:{port}/lab?token={token}"
 
 
 @command(terminate_on_unknown=True)
@@ -187,29 +208,39 @@ def _kjupyter(
                         print(line)
 
                 elif url:
-                    domain = url.group(1)
+                    hostname = url.group(1)
                     port = url.group(2)
                     token = url.group(3)
-                    env.set_url(domain, port, token).export()
+                    username = sp.getoutput("whoami").strip()
                     try:
-                        hostname_proc = sp.run(
-                            ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
+                        domain = (
+                            sp.check_output(["wget", "-qO-", "ipinfo.io/ip"])
+                            .decode()
+                            .strip()
                         )
-                        hostname_proc.check_returncode()
-                        hostname = hostname_proc.stdout.decode().strip()
                     except (RuntimeError, sp.CalledProcessError):
-                        hostname = "<hostname>"
+                        domain = "<hostname>"
+                    env.set_server_vals(
+                        hostname=hostname,
+                        username=username,
+                        port=port,
+                        token=token,
+                        url=url.group(0),
+                        domain=domain,
+                    ).export()
                     spinner.text = "Finished!"
                     if not args.debug:
                         spinner.ok("🚀")
                         console.print(
                             txt.JUPYTER_WELCOME.format(
-                                port=port,
-                                domain=domain,
-                                token=token,
+                                browser_url=_get_browser_url(port=port, token=token),
+                                tunnel_script=_get_tunnel_script(
+                                    port=port,
+                                    domain=domain,
+                                    username=username,
+                                    hostname=hostname,
+                                ),
                                 url=url.group(0),
-                                username=sp.getoutput("whoami").strip(),
-                                hostname=hostname,
                             )
                         )
                         break
@@ -260,15 +291,53 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
 @command(inline=True)
 def _console():
     env = KjupyterEnv.load()
-    sessions = json.loads(sp.check_output(["curl", "-sSLG", f"{env.hostname}:{env.port}/api/sessions", "--data-urlencode", f"token={env.token}"]))
+    sessions = json.loads(
+        sp.check_output(
+            [
+                "curl",
+                "-sSLG",
+                f"{env.hostname}:{env.port}/api/sessions",
+                "--data-urlencode",
+                f"token={env.token}",
+            ]
+        )
+    )
     if not len(sessions):
-        raise CommandError("No sessions found. Activate a jupyter notebook before running this command.")
+        raise CommandError(
+            "No sessions found. Activate a jupyter notebook before running this "
+            "command."
+        )
     sp.run(["jupyter", "console", "--existing"])
+
+
+@command(inline=True)
+def _url(url: str = choice(["browser", "server"])):
+    env = KjupyterEnv.load()
+    if url == "browser":
+        print(_get_browser_url(port=env.port, token=env.token))
+        return 0
+    print(env.url)
+
+
+@command(inline=True)
+def _tunnel():
+    env = KjupyterEnv.load()
+    print(
+        _get_tunnel_script(
+            port=env.port,
+            domain=env.domain,
+            username=env.username,
+            hostname=env.hostname,
+        )
+    )
 
 
 @attrs.frozen
 class _JupyterModel:
-    cmd: Subcommand = subcommand({"log": _log, "console": _console}, default=_kjupyter)
+    cmd: Subcommand = subcommand(
+        {"log": _log, "console": _console, "url": _url, "tunnel": _tunnel},
+        default=_kjupyter,
+    )
 
 
 @command

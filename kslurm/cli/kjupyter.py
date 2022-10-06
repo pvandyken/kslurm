@@ -187,6 +187,7 @@ def _kjupyter(
                         slurm.venv_activate + " bash -i",
                     ]
                 )
+                sp.run(["scancel", jobid])
             # else:
             #     print(line)
 
@@ -198,7 +199,7 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
     proc = sp.Popen(["tail", env.logs, *lines_arg], stdout=sp.PIPE)
     while proc.poll() is None:
         if proc.stdout:
-            console.print(proc.stdout.readline(), markup=False)
+            console.print(proc.stdout.readline().decode().strip(), markup=False)
 
 
 @command(inline=True)

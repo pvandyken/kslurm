@@ -73,7 +73,7 @@ def _kjupyter(
     slurm.name = "jupyter"
     assert isinstance(args, SlurmModel)
 
-    slurm.set_venv("")
+    # slurm.set_venv("")
 
     if args.venv:
         venv_cache = VenvCache()
@@ -93,22 +93,20 @@ def _kjupyter(
         "tee",
         str(env.logs),
     ]
-    print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=" ".join(cmd)))
+    console.print(
+        txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=" ".join(cmd))
+    )
+    # venv_load = ["source", str(path), "; kpy load", args.venv] if args.venv else []
     with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
-        venv_load = ["source", str(path), "; kpy load", args.venv] if args.venv else []
-        slurm.command = [
-            *(
-                [
-                    *venv_load,
-                    "; ",
-                    "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not "
-                    "found, attempting install' && pip install jupyterlab);",
-                ]
-                if args.venv
-                else []
-            ),
-            *cmd,
-        ]
+        slurm.command = (
+            [
+                "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not found, "
+                "attempting install' && pip install jupyterlab);",
+                *cmd,
+            ]
+            if args.venv
+            else cmd
+        )
 
     if slurm.test:
         print(slurm.run)
@@ -239,5 +237,5 @@ def kjupyter(
 
 
 if __name__ == "__main__":
-    KjupyterEnv(True, Path("./poetry.lock")).export()
-    kjupyter.cli(["kjupyter", "log"])
+    # KjupyterEnv(True, Path("./poetry.lock")).export()
+    kjupyter.cli(["kjupyter", "--account", "foo", "--venv", "test", "-t"])

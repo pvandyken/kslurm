@@ -1,30 +1,28 @@
 from __future__ import absolute_import, annotations
 
-from colorama import Fore
-
-SETTINGS_HEADER = f"{Fore.LIGHTBLUE_EX}SETTINGS{Fore.RESET}"
-COMMAND_HEADER = f"{Fore.LIGHTBLUE_EX}COMMAND{Fore.RESET}"
+SETTINGS_HEADER = "[sky_blue1]SETTINGS[/]"
+COMMAND_HEADER = "[sky_blue1]COMMAND[/]"
 
 KBATCH_MSG = f"""
-    {Fore.GREEN}Scheduling Batch Command
+    [green]Scheduling Batch Command[/]
         {SETTINGS_HEADER}
-            {Fore.WHITE}{{slurm_args}}
-        {COMMAND_HEADER}
-            {Fore.WHITE}{{command}}
-"""
-
-KRUN_CMD_MESSAGE = f""" \
-    {Fore.GREEN}Running job
-        {SETTINGS_HEADER}
-            {Fore.WHITE} {{args}}
+            [white]{{slurm_args}}[/]
         {COMMAND_HEADER}
             {{command}}
 """
 
-INTERACTIVE_MSG = f"""
-    {Fore.GREEN}Running interactive session
+KRUN_CMD_MESSAGE = f""" \
+    [green]Running job[/]
         {SETTINGS_HEADER}
-            {Fore.WHITE} {{args}}
+            [white]{{args}}[/]
+        {COMMAND_HEADER}
+            [white]{{command}}[/]
+"""
+
+INTERACTIVE_MSG = f"""
+    [green]Running interactive session[/]
+        {SETTINGS_HEADER}
+            [white]{{args}}[/]
 """
 
 JUPYTER_WELCOME = """

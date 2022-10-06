@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import importlib.resources as impr
 import os
 import re
@@ -14,7 +16,7 @@ from yaspin import yaspin  # type: ignore
 import kslurm.bin
 import kslurm.text as txt
 from kslurm.args import HelpRequest, InvalidSubcommand, Subcommand, subcommand
-from kslurm.args.arg_types import keyword
+from kslurm.args.arg_types import flag, keyword
 from kslurm.args.command import CommandError, Parsers, command
 from kslurm.args.help import HelpText
 from kslurm.exceptions import TemplateError
@@ -50,9 +52,14 @@ class KjupyterEnv:
         return cls(**vals)
 
 
+@attrs.frozen
+class _KjupyterExtendedModel(SlurmModel):
+    debug: bool = flag(["--debug"])
+
+
 @command(terminate_on_unknown=True)
 def _kjupyter(
-    args: Union[SlurmModel, TemplateError],
+    args: Union[_KjupyterExtendedModel, TemplateError],
     command_args: list[str],
     arglist: Parsers,
 ):
@@ -130,6 +137,8 @@ def _kjupyter(
 
     port = None
     with yaspin(text="Aquiring resources") as spinner:
+        if args.debug:
+            spinner.stop()
         while proc.poll() is None:
             if proc.stdout:
                 line = proc.stdout.readline().decode().strip()
@@ -140,15 +149,10 @@ def _kjupyter(
                     r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
                     line,
                 )
-                if queued:
-                    jobid = queued.group(1)
-                elif re.match(r"^Unpacking venv \'.+\'", line):
-                    spinner.text = "Unpacking venv"
-                elif re.match(r"jupyter-lab not found", line):
-                    spinner.text = "Installing jupyter-lab"
-                elif any(
+
+                # unused code to grab the address lines
+                _ = any(
                     [
-                        re.match(r"^srun: job \d+ has been allocated resources", line),
                         re.match(
                             r"^To access the server, open this file in a browser:$",
                             line,
@@ -156,11 +160,25 @@ def _kjupyter(
                         re.match(r"^file:\/\/\/(?:[\w.\-_]+\/)+[\w.\-_]+\.html$", line),
                         re.match(r"^Or copy and paste one of these URLs:$", line),
                         re.match(
-                            r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$", line
+                            r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$",
+                            line,
                         ),
                     ]
-                ):
-                    pass
+                )
+
+                if queued:
+                    jobid = queued.group(1)
+
+                elif re.match(r"^Unpacking venv \'.+\'", line):
+                    spinner.text = "Unpacking venv"
+                    if args.debug:
+                        print(line)
+
+                elif re.match(r"jupyter-lab not found", line):
+                    spinner.text = "Installing jupyter-lab"
+                    if args.debug:
+                        print(line)
+
                 elif url:
                     domain = url.group(1)
                     port = url.group(2)
@@ -175,6 +193,9 @@ def _kjupyter(
                         hostname = "<hostname>"
                     spinner.text = "Finished!"
                     spinner.ok("🚀")
+                    if args.debug:
+                        break
+
                     console.print(
                         txt.JUPYTER_WELCOME.format(
                             port=port,
@@ -186,8 +207,10 @@ def _kjupyter(
                         )
                     )
                     break
-                # else:
-                #     print(line)
+
+                elif args.debug:
+                    print(line)
+
         assert port
         sp.run(
             [
@@ -201,7 +224,19 @@ def _kjupyter(
             ]
         )
         with yaspin(text="Shutting down jupyter") as spinner:
-            sp.run(["srun", f"--jobid={jobid}", "--overlap", "bash", "--noprofile", "--norc", "-c", slurm.venv_activate + f" jupyter lab stop {port}"], capture_output=True)
+            sp.run(
+                [
+                    "srun",
+                    f"--jobid={jobid}",
+                    "--overlap",
+                    "bash",
+                    "--noprofile",
+                    "--norc",
+                    "-c",
+                    slurm.venv_activate + f" jupyter lab stop {port}",
+                ],
+                capture_output=True,
+            )
             spinner.ok()
 
 

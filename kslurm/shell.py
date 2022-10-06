@@ -81,8 +81,9 @@ class Shell:
 
         if self._name == "bash":
             with impr.path("kslurm.bin", "kpy-init.sh") as path:
-                os.environ["activate_path"] = str(activate_path)
-                return f"activate_path={activate_path}; . {path.resolve()}"
+                return (
+                    f"activate_path={activate_path}; _skiprc=true; . {path.resolve()}"
+                )
         return ""
 
     def _get_activate_script(self) -> str:

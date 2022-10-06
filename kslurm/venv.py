@@ -119,7 +119,7 @@ class VenvPrompt:
                 r'\[\s"x[^"$]*"\s!=\sx\s\]',
                 f'[ "x{self.name}" != x ]',
             ),
-            (r'\sPS1="[^"$]*\$\{PS1\-\}"', f'PS1="({self.name}) ${{PS1-}}"'),
+            (r'\sPS1="[^"$]*\$\{PS1\-\}"', f' PS1="({self.name}) ${{PS1-}}"'),
         )
 
         # _file_sub(

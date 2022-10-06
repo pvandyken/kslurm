@@ -16,7 +16,7 @@ kpy () {
       command kpy $@ --script $cmd
       ret=$?
       if [[ $ret == 2 ]]; then
-        eval $(cat $cmd)
+        source $cmd
         ret=0
       fi
       rm $cmd

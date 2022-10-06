@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import importlib.resources as impr
 import os
 import re
@@ -90,6 +88,7 @@ def _kjupyter(
         "--ip",
         "$(hostname -f)",
         "--no-browser",
+        "-y",
         "2>&1",
         "|",
         "tee",
@@ -129,6 +128,7 @@ def _kjupyter(
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    port = None
     with yaspin(text="Aquiring resources") as spinner:
         while proc.poll() is None:
             if proc.stdout:
@@ -186,6 +186,7 @@ def _kjupyter(
                         )
                     )
                     break
+        assert port
         sp.run(
             [
                 "srun",
@@ -194,10 +195,10 @@ def _kjupyter(
                 "--overlap",
                 "bash",
                 "-c",
-                slurm.venv_activate + " bash -i",
+                slurm.venv_activate + " bash",
             ]
         )
-        sp.run(["scancel", jobid])
+        sp.run(["srun", f"--jobid={jobid}", "--overlap", "bash", "--noprofile", "--norc", "-c", slurm.venv_activate + f" jupyter lab stop {port}"])
 
 
 @command(inline=True)
@@ -212,7 +213,7 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
 
 @command(inline=True)
 def _console():
-    sp.run(["jupyter", "console", "--use-existing"])
+    sp.run(["jupyter", "console", "--existing"])
 
 
 @attrs.frozen

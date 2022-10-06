@@ -82,6 +82,7 @@ def _kjupyter(
             return 1
 
     env = KjupyterEnv(active=True, logs=Path(tmp.mkstemp(prefix="kjupyter_logs.")[1]))
+    env.export()
 
     cmd = [
         "jupyter-lab",

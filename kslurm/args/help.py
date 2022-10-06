@@ -12,7 +12,6 @@ from rich.table import Table
 from rich.text import Text
 
 from kslurm.args.arg import AbstractHelpTemplate, Arg, ParamSet
-from kslurm.style.console import console
 
 
 class BasicTemplate(AbstractHelpTemplate):
@@ -89,11 +88,18 @@ class HelpText:
             "\n",
         )
         if self.just_usage:
-            console.print(*command_line_example, sep="")
-            return
+            return Group(command_line_example)
 
-        sections = [
-            _section(template.title, template.table()) for template in templates
-        ]
-
-        return Group(command_line_example, self.script_help, "", *sections)
+        return Group(
+            *filter(
+                None,
+                [
+                    command_line_example,
+                    self.script_help + "\n" if self.script_help else "",
+                    *(
+                        _section(template.title, template.table())
+                        for template in templates
+                    ),
+                ],
+            )
+        )

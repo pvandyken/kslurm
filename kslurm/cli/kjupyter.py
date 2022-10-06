@@ -311,9 +311,15 @@ def _console():
 
 
 @command(inline=True)
-def _url(url: str = choice(["browser", "server"])):
+def _url(
+    format: str = choice(
+        ["browser", "server"],
+        help="The url format to retrieve: browser for the webapp, and server for "
+        "vscode",
+    )
+):
     env = KjupyterEnv.load()
-    if url == "browser":
+    if format == "browser":
         print(_get_browser_url(port=env.port, token=env.token))
         return 0
     print(env.url)
@@ -373,4 +379,4 @@ def kjupyter(
 
 if __name__ == "__main__":
     # KjupyterEnv(True, Path("./poetry.lock")).export()
-    kjupyter.cli(["kjupyter", "--account", "foo", "--venv", "test", "-t"])
+    kjupyter.cli(["kjupyter", "url", "--help"])

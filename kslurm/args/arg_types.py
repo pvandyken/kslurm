@@ -64,13 +64,14 @@ def choice(
         raise ValidationError(f"Please select between:\n{choices}")
 
     choices = ", ".join(match)
+    helptxt = help + "\n" if help else ""
     return Arg[T](
         parser=Parser(
             match=matchers.everything(),
             priority=0,
             action=actions.convert(check_match).replace(),
         ),
-        help=f"{help} - options: [{choices}]",
+        help=f"{helptxt}options: [{choices}]",
         help_template=PositionalArg(),
         name=name,
         default=default,
@@ -89,8 +90,8 @@ class InvalidSubcommand(Exception):
 
 
 def subcommand(
-    commands: Dict[str, WrappedCommand | Command[Any] | Command[[]]],
-    default: Optional[WrappedCommand | Command[Any] | Command[[]]] = None,
+    commands: Dict[str, WrappedCommand | Command[...] | Command[[]]],
+    default: Optional[WrappedCommand | Command[...] | Command[[]]] = None,
 ):
     cli = {
         name: command.cli if _is_command(command) else command

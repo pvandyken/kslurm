@@ -1,4 +1,4 @@
-from __future__ import absolute_import, annotations
+from __future__ import absolute_import
 
 import subprocess
 from typing import Union

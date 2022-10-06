@@ -1,6 +1,7 @@
 from __future__ import absolute_import, annotations
 
 import abc
+import textwrap as txt
 from typing import (
     Any,
     Callable,
@@ -26,6 +27,23 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 HelpRow = Union[list[Union[Text, str]], list[Text], list[str]]
+
+
+def _mandatoryarg_err(label: str, help: str | None = None):
+    return MandatoryArgError(
+        f"{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}\n"
+        + txt.indent(
+            f"{Style.BRIGHT}'{label}'{Style.RESET_ALL} has not been "
+            "provided a value.\n",
+            "    ",
+        )
+        + (
+            f"{Fore.CYAN + Style.BRIGHT}HELP:{Style.RESET_ALL}\n"
+            + txt.indent(f"{help}", "    ")
+            if help
+            else ""
+        )
+    )
 
 
 class AbstractHelpEntry(abc.ABC):
@@ -277,11 +295,7 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
         if self.default is not None:
             return self.default
 
-        raise MandatoryArgError(
-            f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value.
-        """
-        )
+        raise _mandatoryarg_err(self.label, self.help)
 
     @property
     def assigned_value(self) -> Optional[T]:
@@ -310,10 +324,7 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
             value = {self.id: self.default}
         else:
             value = {}
-            err = err or MandatoryArgError(
-                f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value."""
-            )
+            err = err or _mandatoryarg_err(self.label, self.help)
 
         err_dict = {parser.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)
@@ -361,11 +372,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T]):
         if self.default is not None:
             return self.default
 
-        raise MandatoryArgError(
-            f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value.
-        """
-        )
+        raise _mandatoryarg_err(self.label, self.help)
 
     @property
     def assigned_value(self):
@@ -397,10 +404,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T]):
 
         else:
             value = {}
-            err = err or MandatoryArgError(
-                f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value."""
-            )
+            err = err or _mandatoryarg_err(self.label, self.help)
 
         err_dict = {child.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)

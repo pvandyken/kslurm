@@ -1,4 +1,4 @@
-from __future__ import absolute_import, annotations
+from __future__ import absolute_import
 
 import importlib.resources as impr
 from pathlib import Path
@@ -9,7 +9,7 @@ import neuroglia_helpers
 from kslurm.args import Subcommand, command, error, flag, subcommand
 from kslurm.cli.config import config
 from kslurm.cli.kbatch import kbatch
-from kslurm.cli.kjupyter import _kjupyter
+from kslurm.cli.kjupyter import kjupyter
 from kslurm.cli.kpy import kpy
 from kslurm.cli.krun import krun
 from kslurm.installer.installer import install
@@ -32,13 +32,13 @@ def _neuroglia_helpers(show_src: bool = flag(["--src-dir"])):
 class KslurmModel:
     command: Subcommand = subcommand(
         commands={
-            "kbatch": kbatch.cli,
-            "krun": krun.cli,
-            "kjupyter": _kjupyter.cli,
-            "kpy": kpy.cli,
-            "config": config.cli,
+            "kbatch": kbatch,
+            "krun": krun,
+            "kjupyter": kjupyter,
+            "kpy": kpy,
+            "config": config,
             "update": error,
-            "neuroglia-helpers": _neuroglia_helpers.cli,
+            "neuroglia-helpers": _neuroglia_helpers,
         },
     )
 

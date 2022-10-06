@@ -7,6 +7,7 @@ import sys
 from typing import Any, Callable, Literal, Optional, TypeVar, Union, overload
 
 import attr
+from rich.text import Text
 from typing_extensions import ParamSpec
 
 from kslurm.args.arg import Arg, Parser
@@ -16,7 +17,7 @@ from kslurm.args.helpers import get_arg_dict, get_parsers, read_parsers
 from kslurm.args.parser import parse_args
 from kslurm.args.protocols import Command
 from kslurm.exceptions import CommandLineError, TailError
-from kslurm.style import console
+from kslurm.style import console, stderr
 
 P = ParamSpec("P")
 _CommandFunc = Callable[P, Optional[int]]
@@ -239,7 +240,7 @@ def command(
                     if errors or isinstance(tail, TailError):
                         console.print(helptext.with_usage_only())
                         for error in errors.values():
-                            print(error.msg, file=sys.stderr)
+                            stderr.print(Text.from_ansi(error.msg))
                         if isinstance(tail, TailError):
                             print(tail.msg, file=sys.stderr)
                         return 1

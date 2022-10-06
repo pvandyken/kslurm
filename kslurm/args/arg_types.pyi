@@ -66,8 +66,8 @@ def choice(
     name: str = ...,
 ) -> T: ...
 def subcommand(
-    commands: dict[str, WrappedCommand | Command[Any] | Command[[]]],
-    default: Optional[WrappedCommand | Command[P] | Command[[]]] = ...,
+    commands: dict[str, WrappedCommand | Command[...] | Command[[]]],
+    default: Optional[WrappedCommand | Command[...] | Command[[]]] = ...,
 ) -> arg_types.Subcommand: ...
 
 class InvalidSubcommand(ValidationError):

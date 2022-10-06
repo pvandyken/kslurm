@@ -195,7 +195,10 @@ def _kjupyter(
 def _log(lines: int = keyword(["-n", "--lines"], default=20)):
     env = KjupyterEnv.load()
     lines_arg = ["--lines", str(lines)]
-    sp.run(["tail", env.logs, *lines_arg])
+    proc = sp.Popen(["tail", env.logs, *lines_arg], stdout=sp.PIPE)
+    while proc.poll() is None:
+        if proc.stdout:
+            console.print(proc.stdout.readline(), markup=False)
 
 
 @command(inline=True)

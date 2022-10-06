@@ -12,19 +12,14 @@ from pathlib import Path
 from typing import Literal, Optional, overload
 
 import attr
+from shellingham import ShellDetectionFailure
 
+from kslurm.appconfig import InvalidPipdirError
 from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
 from kslurm.models import validators
 from kslurm.shell import Shell
-from kslurm.venv import (
-    KpyIndex,
-    MissingPipdirError,
-    PromptRefreshError,
-    VenvCache,
-    VenvPrompt,
-    rebase_venv,
-)
+from kslurm.venv import KpyIndex, PromptRefreshError, VenvCache, VenvPrompt, rebase_venv
 
 
 def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
@@ -35,6 +30,13 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     if candidate in index:
         return _get_unique_name(index, stem, i + 1)
     return candidate
+
+
+def _get_shell():
+    try:
+        return Shell.get()
+    except ShellDetectionFailure as err:
+        raise CommandError(err.args[0])
 
 
 class MissingSlurmTmpdirError(CommandError):
@@ -128,7 +130,7 @@ def _load(
         index[label] = str(venv_dir)
         index.write()
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(venv_dir))
@@ -301,7 +303,7 @@ def _create(
     prompt.update_prompt(name)
     prompt.save()
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(Path(venv_dir)))
@@ -330,7 +332,7 @@ def _activate(name: Optional[str] = positional(), script: str = keyword(["--scri
                     f"The saved environment called '{name}' can be loaded using",
                     f"\tkpy load {name}\n",
                 ]
-        except MissingPipdirError:
+        except InvalidPipdirError:
             pass
         err += [
             f"A new environment can be created using\n\tkpy create {name}\n",
@@ -338,7 +340,7 @@ def _activate(name: Optional[str] = positional(), script: str = keyword(["--scri
         ]
         raise CommandError("\n".join(err))
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(Path(index[name])))
@@ -380,10 +382,7 @@ def _kpy_wrapper(argv: list[str] = sys.argv):
 
 @command(inline=True)
 def _rm(name: Optional[str] = positional()):
-    try:
-        venv_cache = VenvCache()
-    except MissingPipdirError as err:
-        raise CommandError(err.msg)
+    venv_cache = VenvCache()
 
     if not name:
         raise CommandError("Valid venvs:\n" + str(venv_cache))

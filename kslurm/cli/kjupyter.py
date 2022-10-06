@@ -102,8 +102,8 @@ def _kjupyter(
     with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
         slurm.command = (
             [
-                "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not found, "
-                "attempting install' && pip install jupyterlab);",
+                "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not found' "
+                "&& pip install jupyterlab);",
                 *cmd,
             ]
             if args.venv
@@ -129,7 +129,7 @@ def _kjupyter(
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    with yaspin(text="Loading") as spinner:
+    with yaspin(text="Aquiring resources") as spinner:
         while proc.poll() is None:
             if proc.stdout:
                 line = proc.stdout.readline().decode().strip()
@@ -142,6 +142,10 @@ def _kjupyter(
                 )
                 if queued:
                     jobid = queued.group(1)
+                elif re.match(r"^Unpacking venv \'.+\'", line):
+                    spinner.text = "Unpacking venv"
+                elif re.match(r"jupyter-lab not found", line):
+                    spinner.text = "Installing jupyter-lab"
                 elif any(
                     [
                         re.match(r"^srun: job \d+ has been allocated resources", line),
@@ -169,7 +173,8 @@ def _kjupyter(
                         hostname = hostname_proc.stdout.decode().strip()
                     except (RuntimeError, sp.CalledProcessError):
                         hostname = "<hostname>"
-                    spinner.ok("🚀 ")
+                    spinner.text = "Finished!"
+                    spinner.ok("🚀")
                     console.print(
                         txt.JUPYTER_WELCOME.format(
                             port=port,

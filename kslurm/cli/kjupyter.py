@@ -9,6 +9,7 @@ import sys
 import tempfile as tmp
 from pathlib import Path
 from typing import Any, Union
+import json
 
 import attrs
 from yaspin import yaspin  # type: ignore
@@ -30,6 +31,9 @@ from kslurm.venv import VenvCache
 class KjupyterEnv:
     active: bool
     logs: Path
+    hostname: str = ""
+    port: str = ""
+    token: str = ""
 
     @staticmethod
     def get_env_var(name: str):
@@ -38,6 +42,9 @@ class KjupyterEnv:
     def export(self):
         for field, value in attrs.asdict(self).items():
             os.environ[self.get_env_var(field)] = str(value or "")
+
+    def set_url(self, hostname: str, port: str, token: str):
+        return attrs.evolve(self, hostname=hostname, port=port, token=token)
 
     @classmethod
     def load(cls):
@@ -105,7 +112,7 @@ def _kjupyter(
         txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=" ".join(cmd))
     )
     # venv_load = ["source", str(path), "; kpy load", args.venv] if args.venv else []
-    with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+    with impr.path(kslurm.bin, "kpy-wrapper.sh") as token:
         slurm.command = (
             [
                 "command -v jupyter-lab > /dev/null || (echo 'jupyter-lab not found' "
@@ -146,7 +153,7 @@ def _kjupyter(
                     r"^srun: job (\d+) queued and waiting for resources", line
                 )
                 url = re.match(
-                    r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
+                    r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)\/lab\?token=(\w+)$",
                     line,
                 )
 
@@ -182,7 +189,8 @@ def _kjupyter(
                 elif url:
                     domain = url.group(1)
                     port = url.group(2)
-                    path = url.group(3)
+                    token = url.group(3)
+                    env.set_url(domain, port, token).export()
                     try:
                         hostname_proc = sp.run(
                             ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
@@ -198,7 +206,7 @@ def _kjupyter(
                             txt.JUPYTER_WELCOME.format(
                                 port=port,
                                 domain=domain,
-                                path=path,
+                                token=token,
                                 url=url.group(0),
                                 username=sp.getoutput("whoami").strip(),
                                 hostname=hostname,
@@ -245,11 +253,16 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
     proc = sp.Popen(["tail", env.logs, *lines_arg], stdout=sp.PIPE)
     while proc.poll() is None:
         if proc.stdout:
-            console.print(proc.stdout.readline().decode().strip(), markup=False)
+            for line in proc.stdout.readlines():
+                console.print(line.decode().rstrip(), markup=False)
 
 
 @command(inline=True)
 def _console():
+    env = KjupyterEnv.load()
+    sessions = json.loads(sp.check_output(["curl", "-sSLG", f"{env.hostname}:{env.port}/api/sessions", "--data-urlencode", f"token={env.token}"]))
+    if not len(sessions):
+        raise CommandError("No sessions found. Activate a jupyter notebook before running this command.")
     sp.run(["jupyter", "console", "--existing"])
 
 

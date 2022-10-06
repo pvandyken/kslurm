@@ -44,7 +44,7 @@ JUPYTER_WELCOME = """
     [heading]Tunnel script (replace <hostname> with your own hostname):[/]
         ssh -L {port}:{domain}:{port} {username}@{hostname}
     [heading]Browser URL:[/]
-        http://localhost:{port}{path}
+        http://localhost:{port}/lab?token={token}
     [heading]Server URL:[/]
         {url}
 

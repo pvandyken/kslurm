@@ -58,6 +58,7 @@ class PositionalArg(AbstractHelpTemplate):
 @attr.frozen
 class SubcommandTemplate(AbstractHelpTemplate):
     title = "Commands"
+    description = "Run any command followed by -h for more information"
     header = []
 
     commands: dict[str, WrappedCommand]
@@ -69,7 +70,6 @@ class SubcommandTemplate(AbstractHelpTemplate):
         self, name: str, help: str, default: Optional[str]
     ) -> Union[list[HelpRow], HelpRow]:
         return [
-            ["", help],
             [],
             *(
                 [

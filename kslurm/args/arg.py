@@ -61,6 +61,7 @@ class AbstractHelpEntry(abc.ABC):
 
 class AbstractHelpTemplate(abc.ABC):
     title: str
+    description: str | None = None
     header: list[str]
     cls_usage: str = ""
     rows: dict[str, list[HelpRow]] = DefaultDict(list)

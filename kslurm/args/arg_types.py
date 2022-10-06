@@ -116,7 +116,6 @@ def subcommand(
             action=actions.convert(get_action).replace(),
             terminal=True,
         ),
-        help="Run any command followed by -h for more information",
         help_template=SubcommandTemplate(cli),
         name="subcommand",
         default=("", _default) if _default is not None else None,

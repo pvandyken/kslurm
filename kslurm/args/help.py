@@ -28,11 +28,17 @@ def _header(header: str):
     return f"[bold green]{header.upper()}[/bold green]"
 
 
-def _section(header: str, body: Union[Table, str]):
-    return (
-        Group(Padding.indent(_header(header), 4), Padding.indent(body, 8), "\n")
-        if body
-        else ""
+def _section(header: str, description: str | None, body: Union[Table, str]):
+    return Group(
+        *filter(
+            None,
+            [
+                Padding.indent(_header(header), 4),
+                Padding.indent(description, 8) if description else None,
+                Padding.indent(body, 8) if body else None,
+                "\n",
+            ],
+        )
     )
 
 
@@ -97,7 +103,7 @@ class HelpText:
                     command_line_example,
                     self.script_help + "\n" if self.script_help else "",
                     *(
-                        _section(template.title, template.table())
+                        _section(template.title, template.description, template.table())
                         for template in templates
                     ),
                 ],

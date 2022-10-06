@@ -180,6 +180,7 @@ def _kjupyter(
                         "srun",
                         f"--jobid={jobid}",
                         "--pty",
+                        "--overlap",
                         "bash",
                         "-c",
                         slurm.venv_activate + " bash -i",

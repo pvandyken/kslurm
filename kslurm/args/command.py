@@ -123,12 +123,14 @@ def command(
     *,
     terminate_on_unknown: bool = False,
     inline: bool = False,
+    allow_unknown: bool = False,
 ) -> Union[Command[P], Callable[[_CommandFunc[P]], Command[P]]]:
     @attr.frozen
     class BlankModel:
         pass
 
     def decorator(func: _CommandFunc[P]):
+        unknown = allow_unknown
         if not callable(func):
             raise CommandLineError(f"{func} is not callable")
 
@@ -165,6 +167,7 @@ def command(
                     )
                 if annotation == list[str]:
                     command_args.tail = param.name
+                    unknown = True
                     continue
                 if annotation == Parsers:
                     command_args.modellist = param.name
@@ -233,6 +236,7 @@ def command(
                             "help": help_parser().with_id("help"),
                         },
                         terminate_on_unknown=terminate_on_unknown,
+                        allow_unknown=unknown,
                     )
 
                     parsed, errors = read_parsers(model_dict, parsed_list, False, False)

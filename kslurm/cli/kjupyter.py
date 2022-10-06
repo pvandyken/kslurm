@@ -186,6 +186,8 @@ def _kjupyter(
                         )
                     )
                     break
+                # else:
+                #     print(line)
         assert port
         sp.run(
             [
@@ -198,7 +200,9 @@ def _kjupyter(
                 slurm.venv_activate + " bash",
             ]
         )
-        sp.run(["srun", f"--jobid={jobid}", "--overlap", "bash", "--noprofile", "--norc", "-c", slurm.venv_activate + f" jupyter lab stop {port}"])
+        with yaspin(text="Shutting down jupyter") as spinner:
+            sp.run(["srun", f"--jobid={jobid}", "--overlap", "bash", "--noprofile", "--norc", "-c", slurm.venv_activate + f" jupyter lab stop {port}"], capture_output=True)
+            spinner.ok()
 
 
 @command(inline=True)

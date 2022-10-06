@@ -48,5 +48,8 @@ JUPYTER_WELCOME = """
     [heading]Server URL:[/]
         {url}
 
-    Press Ctrl+C to exit the server
+    Once in the interactive shell, you can use kjupyter subcommands to interact with 
+    jupyter:
+        - kjupyter log      View the server logs
+        - kjupyter console  Start an interactive ipython console
 """

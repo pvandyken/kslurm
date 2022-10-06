@@ -192,21 +192,19 @@ def _kjupyter(
                     except (RuntimeError, sp.CalledProcessError):
                         hostname = "<hostname>"
                     spinner.text = "Finished!"
-                    spinner.ok("🚀")
-                    if args.debug:
-                        break
-
-                    console.print(
-                        txt.JUPYTER_WELCOME.format(
-                            port=port,
-                            domain=domain,
-                            path=path,
-                            url=url.group(0),
-                            username=sp.getoutput("whoami").strip(),
-                            hostname=hostname,
+                    if not args.debug:
+                        spinner.ok("🚀")
+                        console.print(
+                            txt.JUPYTER_WELCOME.format(
+                                port=port,
+                                domain=domain,
+                                path=path,
+                                url=url.group(0),
+                                username=sp.getoutput("whoami").strip(),
+                                hostname=hostname,
+                            )
                         )
-                    )
-                    break
+                        break
 
                 elif args.debug:
                     print(line)

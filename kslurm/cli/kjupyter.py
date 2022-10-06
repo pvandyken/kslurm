@@ -182,7 +182,7 @@ def _kjupyter(
                         "--pty",
                         "bash",
                         "-c",
-                        slurm.venv + " bash -i",
+                        slurm.venv_activate + " bash -i",
                     ]
                 )
             # else:

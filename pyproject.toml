@@ -41,6 +41,7 @@ InquirerPy = "^0.3.3"
 more-itertools = "^8.13.0"
 requests = "^2.27.1"
 flake8 = "^4.0.1"
+yaspin = "^2.2.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

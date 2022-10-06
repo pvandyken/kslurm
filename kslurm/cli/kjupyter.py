@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Union
 
 import attrs
+from yaspin import yaspin  # type: ignore
 
 import kslurm.bin
 import kslurm.text as txt
@@ -128,68 +129,70 @@ def _kjupyter(
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    while proc.poll() is None:
-        if proc.stdout:
-            line = proc.stdout.readline().decode().strip()
-            queued = re.match(
-                r"^srun: job (\d+) queued and waiting for resources", line
-            )
-            url = re.match(
-                r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
-                line,
-            )
-            if queued:
-                jobid = queued.group(1)
-            elif any(
-                [
-                    re.match(r"^srun: job \d+ has been allocated resources", line),
-                    re.match(
-                        r"^To access the server, open this file in a browser:$", line
-                    ),
-                    re.match(r"^file:\/\/\/(?:[\w.\-_]+\/)+[\w.\-_]+\.html$", line),
-                    re.match(r"^Or copy and paste one of these URLs:$", line),
-                    re.match(
-                        r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$", line
-                    ),
-                ]
-            ):
-                pass
-            elif url:
-                domain = url.group(1)
-                port = url.group(2)
-                path = url.group(3)
-                try:
-                    hostname_proc = sp.run(
-                        ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
-                    )
-                    hostname_proc.check_returncode()
-                    hostname = hostname_proc.stdout.decode().strip()
-                except (RuntimeError, sp.CalledProcessError):
-                    hostname = "<hostname>"
-                console.print(
-                    txt.JUPYTER_WELCOME.format(
-                        port=port,
-                        domain=domain,
-                        path=path,
-                        url=url.group(0),
-                        username=sp.getoutput("whoami").strip(),
-                        hostname=hostname,
-                    )
+    with yaspin(text="Loading") as spinner:
+        while proc.poll() is None:
+            if proc.stdout:
+                line = proc.stdout.readline().decode().strip()
+                queued = re.match(
+                    r"^srun: job (\d+) queued and waiting for resources", line
                 )
-                sp.run(
+                url = re.match(
+                    r"^https?:\/\/((?:[\w-]+\.)+(?:[\w]+)):(\d+)(\/lab\?token=\w+)$",
+                    line,
+                )
+                if queued:
+                    jobid = queued.group(1)
+                elif any(
                     [
-                        "srun",
-                        f"--jobid={jobid}",
-                        "--pty",
-                        "--overlap",
-                        "bash",
-                        "-c",
-                        slurm.venv_activate + " bash -i",
+                        re.match(r"^srun: job \d+ has been allocated resources", line),
+                        re.match(
+                            r"^To access the server, open this file in a browser:$",
+                            line,
+                        ),
+                        re.match(r"^file:\/\/\/(?:[\w.\-_]+\/)+[\w.\-_]+\.html$", line),
+                        re.match(r"^Or copy and paste one of these URLs:$", line),
+                        re.match(
+                            r"^or http:\/\/(?:[\d]+\.)+\d+:\d+\/lab\?token=\w+$", line
+                        ),
                     ]
-                )
-                sp.run(["scancel", jobid])
-            # else:
-            #     print(line)
+                ):
+                    pass
+                elif url:
+                    domain = url.group(1)
+                    port = url.group(2)
+                    path = url.group(3)
+                    try:
+                        hostname_proc = sp.run(
+                            ["wget", "-qO-", "ipinfo.io/ip"], capture_output=True
+                        )
+                        hostname_proc.check_returncode()
+                        hostname = hostname_proc.stdout.decode().strip()
+                    except (RuntimeError, sp.CalledProcessError):
+                        hostname = "<hostname>"
+                    spinner.ok("🚀 ")
+                    console.print(
+                        txt.JUPYTER_WELCOME.format(
+                            port=port,
+                            domain=domain,
+                            path=path,
+                            url=url.group(0),
+                            username=sp.getoutput("whoami").strip(),
+                            hostname=hostname,
+                        )
+                    )
+                    break
+        sp.run(
+            [
+                "srun",
+                f"--jobid={jobid}",
+                "--pty",
+                "--overlap",
+                "bash",
+                "-c",
+                slurm.venv_activate + " bash -i",
+            ]
+        )
+        sp.run(["scancel", jobid])
 
 
 @command(inline=True)

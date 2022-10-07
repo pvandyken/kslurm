@@ -198,7 +198,6 @@ class Parser(Generic[T]):
 class ParamInterface(abc.ABC, Generic[T]):
     id: str
     name: str
-    validation_err: Optional[ValidationError]
 
     @property
     @abc.abstractmethod
@@ -323,7 +322,6 @@ class Arg(ParamInterface[T], SimpleParsable[T], Helpable):
     help: str = ""
     help_template: Optional[AbstractHelpTemplate] = None
     name: str = ""
-    validation_err: Optional[ValidationError] = None
     optional: bool = False
 
     _value: Optional[T] = None
@@ -400,7 +398,6 @@ class ParamSet(ParamInterface[T], SimpleParsable[T], Helpable):
     default: Optional[T] = None
     id: str = ""
     name: str = ""
-    validation_err: Optional[ValidationError] = None
     help: str = ""
     help_template: Optional[AbstractHelpTemplate] = None
     optional: bool = False

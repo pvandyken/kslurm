@@ -7,6 +7,7 @@ import sys
 from typing import Any, Callable, Literal, Optional, TypeVar, Union, overload
 
 import attr
+import docstring_parser as doc
 from rich.text import Text
 from typing_extensions import ParamSpec
 
@@ -154,6 +155,7 @@ def command(
                     for param in params.parameters.values()
                 },
             )
+            model.__doc__ = func.__doc__
         else:
             for param in params.parameters.values():
                 annotation = (
@@ -197,7 +199,12 @@ def command(
                     )
                 command_args.model = param.name
 
-        doc = func.__doc__ or ""
+        docobj = doc.parse(func.__doc__ or "")
+        docstr = (
+            (docobj.short_description or "")
+            + (docobj.blank_after_short_description and "\n\n" or "\n")
+            + (docobj.long_description or "")
+        )
 
         model_dict = get_arg_dict(model)
         if command_args.tail:
@@ -207,7 +214,7 @@ def command(
 
         class Wrapper:
             def get_helptext(self, entrypoint: str):
-                return HelpText(entrypoint, model_dict, doc, usage_suffix)
+                return HelpText(entrypoint, model_dict, docstr, usage_suffix)
 
             @ft.wraps(func)
             def __call__(self, *args: P.args, **kwargs: P.kwargs):

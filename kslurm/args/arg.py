@@ -29,6 +29,36 @@ S = TypeVar("S")
 HelpRow = Union[list[Union[Text, str]], list[Text], list[str]]
 
 
+class _SkipHelp:
+    """
+    Sentinel class to indicate argument should not be shown in help messages
+
+    ``_SkipHelp`` is a singleton. There is only ever one of it.
+
+    """
+
+    _singleton = None
+
+    def __new__(cls):
+        if _SkipHelp._singleton is None:
+            _SkipHelp._singleton = super(_SkipHelp, cls).__new__(cls)
+        return _SkipHelp._singleton
+
+    def __repr__(self):
+        return "SKIPHELP"
+
+    def __bool__(self):
+        return False
+
+    def __len__(self):
+        return 0  # __bool__ for Python 2
+
+    pass
+
+
+SKIPHELP: Any = _SkipHelp()
+
+
 def _mandatoryarg_err(label: str, help: str | None = None):
     return MandatoryArgError(
         f"{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}\n"
@@ -52,11 +82,11 @@ class AbstractHelpEntry(abc.ABC):
 
     @abc.abstractproperty
     def usage(self) -> str:
-        raise NotImplementedError()
+        ...
 
     @abc.abstractmethod
     def row(self) -> list[Union[Text, str]]:
-        raise NotImplementedError()
+        ...
 
 
 class AbstractHelpTemplate(abc.ABC):
@@ -72,21 +102,26 @@ class AbstractHelpTemplate(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def update_meta(self, **kwargs: Any) -> Self:
+        ...
+
+    @abc.abstractmethod
     def row(
         self, name: str, help: str, default: Optional[str]
-    ) -> Union[list[HelpRow], HelpRow]:
-        raise NotImplementedError()
+    ) -> Union[list[HelpRow], HelpRow, None]:
+        ...
 
     def add_row(self, name: str, help: str, default: Optional[str]) -> None:
         new_row = self.row(name, help, default)
-        if new_row and all([isinstance(row, list) for row in new_row]):
-            self.rows[self.__class__.__name__].extend(new_row)  # type: ignore
-        elif new_row and all([not isinstance(row, list) for row in new_row]):
-            self.rows[self.__class__.__name__].append(new_row)  # type: ignore
-        else:
-            raise TypeError(
-                f"row() in {self} must not return mixture of lists and items"
-            )
+        if new_row:
+            if all([isinstance(row, list) for row in new_row]):
+                self.rows[self.__class__.__name__].extend(new_row)  # type: ignore
+            elif all([not isinstance(row, list) for row in new_row]):
+                self.rows[self.__class__.__name__].append(new_row)  # type: ignore
+            else:
+                raise TypeError(
+                    f"row() in {self} must not return mixture of lists and items"
+                )
 
     @classmethod
     def table(cls):
@@ -274,8 +309,13 @@ class SimpleParsable(abc.ABC, Generic[T]):
         ...
 
 
+class Helpable(abc.ABC):
+    help: str
+    help_template: Optional[AbstractHelpTemplate]
+
+
 @attr.frozen(eq=False)
-class Arg(ParamInterface[T], SimpleParsable[T]):
+class Arg(ParamInterface[T], SimpleParsable[T], Helpable):
     parser: Parser[T]
     default: Optional[T] = None
     id: str = ""
@@ -354,7 +394,7 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
 
 
 @attr.frozen
-class ParamSet(ParamInterface[T], SimpleParsable[T]):
+class ParamSet(ParamInterface[T], SimpleParsable[T], Helpable):
     parent: Parser[bool]
     child: Parser[T]
     default: Optional[T] = None

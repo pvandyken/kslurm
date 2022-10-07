@@ -77,6 +77,9 @@ class _KjupyterExtendedModel(SlurmModel):
     debug: bool = flag(["--debug"])
 
 
+_KjupyterExtendedModel.__doc__ = SlurmModel.__doc__
+
+
 def _get_tunnel_script(*, port: str, domain: str, username: str, hostname: str):
     return f"ssh -L {port}:{hostname}:{port} {username}@{domain}"
 
@@ -106,8 +109,6 @@ def _kjupyter(
     slurm = SlurmCommand(args, command_args, arglist)
     slurm.name = "jupyter"
     assert isinstance(args, SlurmModel)
-
-    # slurm.set_venv("")
 
     if args.venv:
         venv_cache = VenvCache()

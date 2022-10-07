@@ -45,3 +45,7 @@ def krun(
 
     if not slurm.test:
         return subprocess.run(slurm.run, shell=True).returncode
+
+
+if __name__ == "__main__":
+    krun.cli(["krun", "-h"])

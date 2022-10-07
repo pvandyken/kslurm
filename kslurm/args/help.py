@@ -10,8 +10,9 @@ from rich.console import Group
 from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
+from typing_extensions import Self
 
-from kslurm.args.arg import AbstractHelpTemplate, Arg, ParamSet
+from kslurm.args.arg import SKIPHELP, AbstractHelpTemplate, Arg, ParamSet
 
 
 class BasicTemplate(AbstractHelpTemplate):
@@ -21,7 +22,14 @@ class BasicTemplate(AbstractHelpTemplate):
     priority = 50
 
     def row(self, name: str, help: str, default: Optional[str]):
-        return [name, help, default if default is not None else ""]
+        return (
+            [name, help, default if default is not None else ""]
+            if help is not SKIPHELP
+            else None
+        )
+
+    def update_meta(self, **kwargs: Any) -> Self:
+        raise NotImplementedError()
 
 
 def _header(header: str):

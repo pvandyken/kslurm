@@ -88,10 +88,9 @@ def _get_browser_url(*, port: str, token: str):
     return f"http://localhost:{port}/lab?token={token}"
 
 
-@command(terminate_on_unknown=True)
+@command(terminate_on_unknown=True, allow_unknown=False)
 def _kjupyter(
     args: Union[_KjupyterExtendedModel, TemplateError],
-    command_args: list[str],
     arglist: Parsers,
 ):
     """Start a Jupyter session
@@ -106,7 +105,7 @@ def _kjupyter(
     Alternatively, you can run the in an already activated virtualenv containing
     jupyter-lab.
     """
-    slurm = SlurmCommand(args, command_args, arglist)
+    slurm = SlurmCommand(args, [], arglist)
     slurm.name = "jupyter"
     assert isinstance(args, SlurmModel)
 
@@ -280,6 +279,11 @@ def _kjupyter(
 
 @command(inline=True)
 def _log(lines: int = keyword(["-n", "--lines"], default=20)):
+    """Display the logs from the jupyter session
+
+    Args:
+        lines: Number of lines to display (default 20)
+    """
     env = KjupyterEnv.load()
     lines_arg = ["--lines", str(lines)]
     proc = sp.Popen(["tail", env.logs, *lines_arg], stdout=sp.PIPE)
@@ -291,6 +295,11 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
 
 @command(inline=True)
 def _console():
+    """Begin interactive python console
+
+    The jupyter-console package must already be installed in the virtual env. A kernel
+    must already be started by a notebook file
+    """
     env = KjupyterEnv.load()
     sessions = json.loads(
         sp.check_output(
@@ -315,10 +324,14 @@ def _console():
 def _url(
     format: str = choice(
         ["browser", "server"],
-        help="The url format to retrieve: browser for the webapp, and server for "
-        "vscode",
     )
 ):
+    """Echo the jupyter server url
+
+    Args:
+        format: The url format to retrieve: browser for the webapp, and server for
+            vscode
+    """
     env = KjupyterEnv.load()
     if format == "browser":
         print(_get_browser_url(port=env.port, token=env.token))
@@ -328,6 +341,7 @@ def _url(
 
 @command(inline=True)
 def _tunnel():
+    """Echo the bash code to open an ssh tunnel to the jupyter server"""
     env = KjupyterEnv.load()
     print(
         _get_tunnel_script(
@@ -354,7 +368,10 @@ def kjupyter(
     command_args: list[str],
     helptext: HelpText,
 ):
-    """Placeholder docstring"""
+    """Helper commands to manage jupyter session
+
+    To close the jupyter server, press CTRL-D or run `exit`
+    """
     env = KjupyterEnv.load()
     if isinstance(args, HelpRequest):
         if env.active:
@@ -373,7 +390,8 @@ def kjupyter(
     entry = f"{entrypoint} {name}"
     if not env.active:
         raise CommandError(
-            f"The '{name}' command is only available in a running jupyter notebook"
+            f"The '{name}' command is only available in a running jupyter notebook. "
+            "Use the kjupyter base command to start a new notebook session"
         )
     return func([entry, *command_args])
 

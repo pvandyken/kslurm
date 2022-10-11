@@ -52,4 +52,6 @@ JUPYTER_WELCOME = """
     jupyter:
         - kjupyter log      View the server logs
         - kjupyter console  Start an interactive ipython console
+        - kjupyter url      View the server url
+        - kjupyter tunnel   Echo bash code to create an ssh tunnel to the server
 """

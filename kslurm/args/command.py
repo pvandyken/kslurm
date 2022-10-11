@@ -105,6 +105,7 @@ def command(
     *,
     terminate_on_unknown: bool = ...,
     inline: bool = ...,
+    allow_unknown: bool = False,
 ) -> Callable[[_CommandFunc[P]], Command[P]]:
     ...
 
@@ -115,6 +116,7 @@ def command(
     *,
     terminate_on_unknown: Literal[True] = ...,
     inline: Literal[False] = ...,
+    allow_unknown: bool = False,
 ) -> Command[P]:
     ...
 

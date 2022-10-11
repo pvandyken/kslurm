@@ -15,7 +15,7 @@ class SlurmModel:
     Attributes:
         time (int):
             Amount of time requested. Written as [days-]hr:min
-            @help.syntax [d-]dd:dd | foo
+            @help.syntax [d-]dd:dd
             @name Time
 
         gpu:
@@ -75,7 +75,7 @@ class SlurmModel:
     )
 
     mem: int = shape(
-        match=r"^[0-9]+[MG]B?$",
+        match=r"^[0-9]+[KMGkmg][Ii]?[Bb]?$",
         format=formatters.mem,
         default=4000,
         examples=["3000MB (3 GB)", "16G (16GB)"],

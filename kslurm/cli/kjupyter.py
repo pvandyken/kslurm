@@ -164,7 +164,7 @@ def _kjupyter(
     signal.signal(signal.SIGINT, signal_handler)
 
     port = None
-    with yaspin(text="Aquiring resources") as spinner:
+    with yaspin(text="Acquiring resources") as spinner:
         if args.debug:
             spinner.stop()
         while proc.poll() is None:

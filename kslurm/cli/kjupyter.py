@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Union
 
 import attrs
-from yaspin import yaspin  # type: ignore
+from yaspin import yaspin
 
 import kslurm.bin
 import kslurm.text as txt
@@ -28,7 +28,7 @@ from kslurm.venv import VenvCache
 
 
 @attrs.frozen
-class KjupyterEnv:
+class _KjupyterEnv:
     active: bool
     logs: Path
     domain: str = ""
@@ -115,7 +115,7 @@ def _kjupyter(
             print("Valid venvs:\n" + str(venv_cache))
             return 1
 
-    env = KjupyterEnv(active=True, logs=Path(tmp.mkstemp(prefix="kjupyter_logs.")[1]))
+    env = _KjupyterEnv(active=True, logs=Path(tmp.mkstemp(prefix="kjupyter_logs.")[1]))
     env.export()
 
     cmd = [
@@ -284,7 +284,7 @@ def _log(lines: int = keyword(["-n", "--lines"], default=20)):
     Args:
         lines: Number of lines to display (default 20)
     """
-    env = KjupyterEnv.load()
+    env = _KjupyterEnv.load()
     lines_arg = ["--lines", str(lines)]
     proc = sp.Popen(["tail", env.logs, *lines_arg], stdout=sp.PIPE)
     while proc.poll() is None:
@@ -300,7 +300,7 @@ def _console():
     The jupyter-console package must already be installed in the virtual env. A kernel
     must already be started by a notebook file
     """
-    env = KjupyterEnv.load()
+    env = _KjupyterEnv.load()
     sessions = json.loads(
         sp.check_output(
             [
@@ -332,7 +332,7 @@ def _url(
         format: The url format to retrieve: browser for the webapp, and server for
             vscode
     """
-    env = KjupyterEnv.load()
+    env = _KjupyterEnv.load()
     if format == "browser":
         print(_get_browser_url(port=env.port, token=env.token))
         return 0
@@ -342,7 +342,7 @@ def _url(
 @command(inline=True)
 def _tunnel():
     """Echo the bash code to open an ssh tunnel to the jupyter server"""
-    env = KjupyterEnv.load()
+    env = _KjupyterEnv.load()
     print(
         _get_tunnel_script(
             port=env.port,
@@ -372,7 +372,7 @@ def kjupyter(
 
     To close the jupyter server, press CTRL-D or run `exit`
     """
-    env = KjupyterEnv.load()
+    env = _KjupyterEnv.load()
     if isinstance(args, HelpRequest):
         if env.active:
             console.print(helptext)

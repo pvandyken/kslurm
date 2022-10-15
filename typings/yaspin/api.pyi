@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from signal import Signals
 
 from .base_spinner import Spinner
-from .constants import Attr, Color, OnColor
+from .constants import Attr, Color, OnColor, Side
 from .core import Yaspin as Yaspin
 from .signal_handlers import SignalHandler
 
@@ -14,7 +14,7 @@ def yaspin(
     on_color: OnColor | None = ...,
     attrs: list[Attr] | None = ...,
     reverseal: bool | None = ...,
-    side: str | None = ...,
+    side: Side | None = ...,
     sigmap: dict[Signals, SignalHandler] = ...,
     timer: bool = ...,
 ) -> Yaspin: ...
@@ -25,6 +25,6 @@ def kbi_safe_yaspin(
     on_color: OnColor | None = ...,
     attrs: list[Attr] | None = ...,
     reverseal: bool | None = ...,
-    side: str | None = ...,
+    side: Side | None = ...,
     timer: bool = ...,
 ) -> Yaspin: ...

@@ -8,6 +8,7 @@ from kslurm.args.command import Parsers, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
 from kslurm.slurm.slurm_command import SlurmCommand
+from kslurm.style import console
 
 
 @command(terminate_on_unknown=True)
@@ -39,9 +40,11 @@ def krun(
     """
     slurm = SlurmCommand(args, command_args, arglist)
     if slurm.command:
-        print(txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command))
+        console.print(
+            txt.KRUN_CMD_MESSAGE.format(args=slurm.slurm_args, command=slurm.command)
+        )
     else:
-        print(txt.INTERACTIVE_MSG.format(args=slurm.slurm_args))
+        console.print(txt.INTERACTIVE_MSG.format(args=slurm.slurm_args))
 
     if not slurm.test:
         return subprocess.run(slurm.run, shell=True).returncode

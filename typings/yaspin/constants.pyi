@@ -29,6 +29,7 @@ OnColor = (
     | Literal["on_white"]
     | Literal["on_yellow"]
 )
+Side = Literal["left"] | Literal["right"]
 
 ENCODING: str
 COLOR_MAP: dict[Attr | Color | OnColor, str]

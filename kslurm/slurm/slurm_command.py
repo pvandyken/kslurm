@@ -8,11 +8,17 @@ from pathlib import Path
 from typing import List, Union
 
 import kslurm.appconfig as appconfig
+import kslurm.bin
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
 from kslurm.args.command import Parsers
 from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.models.slurm import SlurmModel
+
+_LOAD_ENV = (
+    "[[ -e $HOME/.bashrc ]] && source $HOME/.bashrc; "
+    "source {path}; kpy {method} {name};"
+)
 
 
 class SlurmCommand:
@@ -147,15 +153,15 @@ class SlurmCommand:
     @property
     def venv_load(self):
         if self._venv:
-            with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
-                return f"source {path}; kpy load {self._venv}; "
+            with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+                return _LOAD_ENV.format(path=path, method="load", name=self._venv)
         return ""
 
     @property
     def venv_activate(self):
         if self._venv:
-            with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
-                return f"source {path}; kpy activate {self._venv}; "
+            with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+                return _LOAD_ENV.format(path=path, method="activate", name=self._venv)
         return ""
 
     ###

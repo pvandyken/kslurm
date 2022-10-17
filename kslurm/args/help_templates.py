@@ -7,6 +7,7 @@ import attr
 import docstring_parser as doc
 import more_itertools as itx
 from rich.text import Text
+from tabulate import tabulate
 from typing_extensions import Self
 
 from kslurm.args.arg import AbstractHelpTemplate, HelpRow
@@ -46,6 +47,10 @@ class ShapeArg(AbstractHelpTemplate):
             Text(help),
         ]
 
+    @property
+    def help(self):
+        return ""
+
 
 @attr.frozen
 class PositionalArg(AbstractHelpTemplate):
@@ -67,6 +72,10 @@ class PositionalArg(AbstractHelpTemplate):
             Text(help),
         ]
 
+    @property
+    def help(self):
+        return ""
+
 
 @attr.frozen
 class SubcommandTemplate(AbstractHelpTemplate):
@@ -87,14 +96,28 @@ class SubcommandTemplate(AbstractHelpTemplate):
     ) -> Union[list[HelpRow], HelpRow]:
         return [
             [],
-            *(
-                [
-                    Text(name, style="bold"),
-                    Text(doc.parse(func.__doc__ or "").short_description or ""),
-                ]
-                for name, func in self.commands.items()
-            ),
+            *self.command_list,
         ]
+
+    @property
+    def command_list(self):
+        return (
+            [
+                name,
+                doc.parse(func.__doc__ or "").short_description or "",
+            ]
+            for name, func in self.commands.items()
+        )
+
+    @property
+    def help(self):
+        return tabulate(list(self.command_list), tablefmt="plain")
+        # t = Table.grid(padding=(0, 2), expand=True)
+        # for _ in range(2):
+        #     t.add_column(justify="right", no_wrap=True)
+        # for r in self.command_list:
+        #     t.add_row(*r)
+        # return t
 
 
 # @attr.frozen

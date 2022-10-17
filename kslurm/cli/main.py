@@ -53,4 +53,4 @@ def main(args: KslurmModel, tail: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    main.cli(["kslurm", "kbatch", "-h"])
+    main.cli(["kslurm"])

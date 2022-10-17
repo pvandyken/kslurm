@@ -59,7 +59,12 @@ class _SkipHelp:
 SKIPHELP: Any = _SkipHelp()
 
 
-def _mandatoryarg_err(label: str, help: str | None = None):
+def _mandatoryarg_err(
+    label: str,
+    help: str | None = None,
+    help_template: AbstractHelpTemplate | None = None,
+):
+    _h = help or help_template.help if help_template else None
     return MandatoryArgError(
         f"{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}\n"
         + txt.indent(
@@ -69,24 +74,11 @@ def _mandatoryarg_err(label: str, help: str | None = None):
         )
         + (
             f"{Fore.CYAN + Style.BRIGHT}HELP:{Style.RESET_ALL}\n"
-            + txt.indent(f"{help}", "    ")
-            if help
+            + txt.indent(f"{_h}", "    ")
+            if _h
             else ""
         )
     )
-
-
-class AbstractHelpEntry(abc.ABC):
-    title: str
-    header: list[str]
-
-    @abc.abstractproperty
-    def usage(self) -> str:
-        ...
-
-    @abc.abstractmethod
-    def row(self) -> list[Union[Text, str]]:
-        ...
 
 
 class AbstractHelpTemplate(abc.ABC):
@@ -109,6 +101,10 @@ class AbstractHelpTemplate(abc.ABC):
     def row(
         self, name: str, help: str, default: Optional[str]
     ) -> Union[list[HelpRow], HelpRow, None]:
+        ...
+
+    @abc.abstractproperty
+    def help(self) -> str:
         ...
 
     def add_row(self, name: str, help: str, default: Optional[str]) -> None:
@@ -334,7 +330,11 @@ class Arg(ParamInterface[T], SimpleParsable[T], Helpable):
         if self.default is not None:
             return self.default
 
-        raise _mandatoryarg_err(self.label, self.help)
+        raise _mandatoryarg_err(
+            self.label,
+            self.help,
+            self.help_template,
+        )
 
     @property
     def assigned_value(self) -> Optional[T]:
@@ -363,7 +363,7 @@ class Arg(ParamInterface[T], SimpleParsable[T], Helpable):
             value = {self.id: self.default}
         else:
             value = {}
-            err = err or _mandatoryarg_err(self.label, self.help)
+            err = err or _mandatoryarg_err(self.label, self.help, self.help_template)
 
         err_dict = {parser.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)
@@ -410,7 +410,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T], Helpable):
         if self.default is not None:
             return self.default
 
-        raise _mandatoryarg_err(self.label, self.help)
+        raise _mandatoryarg_err(self.label, self.help, self.help_template)
 
     @property
     def assigned_value(self):
@@ -442,7 +442,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T], Helpable):
 
         else:
             value = {}
-            err = err or _mandatoryarg_err(self.label, self.help)
+            err = err or _mandatoryarg_err(self.label, self.help, self.help_template)
 
         err_dict = {child.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)

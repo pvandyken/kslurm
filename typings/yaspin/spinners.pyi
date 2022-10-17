@@ -1,0 +1,93 @@
+from __future__ import absolute_import
+
+from typing import NamedTuple
+
+from .base_spinner import Spinner
+
+SPINNERS_DATA: str
+
+class Spinners(NamedTuple):
+    aesthetic: Spinner
+    arc: Spinner
+    arrow: Spinner
+    arrow2: Spinner
+    arrow3: Spinner
+    balloon: Spinner
+    balloon2: Spinner
+    betaWave: Spinner
+    bluePulse: Spinner
+    bounce: Spinner
+    bouncingBall: Spinner
+    bouncingBar: Spinner
+    boxBounce: Spinner
+    boxBounce2: Spinner
+    christmas: Spinner
+    circle: Spinner
+    circleHalves: Spinner
+    circleQuarters: Spinner
+    clock: Spinner
+    dots: Spinner
+    dots10: Spinner
+    dots11: Spinner
+    dots12: Spinner
+    dots13: Spinner
+    dots2: Spinner
+    dots3: Spinner
+    dots4: Spinner
+    dots5: Spinner
+    dots6: Spinner
+    dots7: Spinner
+    dots8: Spinner
+    dots8Bit: Spinner
+    dots9: Spinner
+    dqpb: Spinner
+    earth: Spinner
+    fingerDance: Spinner
+    fistBump: Spinner
+    flip: Spinner
+    grenade: Spinner
+    growHorizontal: Spinner
+    growVertical: Spinner
+    hamburger: Spinner
+    hearts: Spinner
+    layer: Spinner
+    line: Spinner
+    line2: Spinner
+    material: Spinner
+    mindblown: Spinner
+    monkey: Spinner
+    moon: Spinner
+    noise: Spinner
+    orangeBluePulse: Spinner
+    orangePulse: Spinner
+    pipe: Spinner
+    point: Spinner
+    pong: Spinner
+    runner: Spinner
+    sand: Spinner
+    shark: Spinner
+    simpleDots: Spinner
+    simpleDotsScrolling: Spinner
+    smiley: Spinner
+    soccerHeader: Spinner
+    speaker: Spinner
+    squareCorners: Spinner
+    squish: Spinner
+    star: Spinner
+    star2: Spinner
+    timeTravel: Spinner
+    toggle: Spinner
+    toggle10: Spinner
+    toggle11: Spinner
+    toggle12: Spinner
+    toggle13: Spinner
+    toggle2: Spinner
+    toggle3: Spinner
+    toggle4: Spinner
+    toggle5: Spinner
+    toggle6: Spinner
+    toggle7: Spinner
+    toggle8: Spinner
+    toggle9: Spinner
+    triangle: Spinner
+    weather: Spinner

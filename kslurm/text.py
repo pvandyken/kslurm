@@ -1,30 +1,28 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
-from colorama import Fore
-
-SETTINGS_HEADER = f"{Fore.LIGHTBLUE_EX}SETTINGS{Fore.RESET}"
-COMMAND_HEADER = f"{Fore.LIGHTBLUE_EX}COMMAND{Fore.RESET}"
+SETTINGS_HEADER = "[sky_blue1]SETTINGS[/]"
+COMMAND_HEADER = "[sky_blue1]COMMAND[/]"
 
 KBATCH_MSG = f"""
-    {Fore.GREEN}Scheduling Batch Command
+    [green]Scheduling Batch Command[/]
         {SETTINGS_HEADER}
-            {Fore.WHITE}{{slurm_args}}
-        {COMMAND_HEADER}
-            {Fore.WHITE}{{command}}
-"""
-
-KRUN_CMD_MESSAGE = f""" \
-    {Fore.GREEN}Running job
-        {SETTINGS_HEADER}
-            {Fore.WHITE} {{args}}
+            [white]{{slurm_args}}[/]
         {COMMAND_HEADER}
             {{command}}
 """
 
-INTERACTIVE_MSG = f"""
-    {Fore.GREEN}Running interactive session
+KRUN_CMD_MESSAGE = f""" \
+    [green]Running job[/]
         {SETTINGS_HEADER}
-            {Fore.WHITE} {{args}}
+            [white]{{args}}[/]
+        {COMMAND_HEADER}
+            [white]{{command}}[/]
+"""
+
+INTERACTIVE_MSG = f"""
+    [green]Running interactive session[/]
+        {SETTINGS_HEADER}
+            [white]{{args}}[/]
 """
 
 JUPYTER_WELCOME = """
@@ -44,11 +42,16 @@ JUPYTER_WELCOME = """
         When prompted, enter the Server URL
 
     [heading]Tunnel script (replace <hostname> with your own hostname):[/]
-        ssh -L {port}:{domain}:{port} {username}@{hostname}
+        {tunnel_script}
     [heading]Browser URL:[/]
-        http://localhost:{port}{path}
+        {browser_url}
     [heading]Server URL:[/]
         {url}
 
-    Press Ctrl+C to exit the server
+    Once in the interactive shell, you can use kjupyter subcommands to interact with
+    jupyter:
+        - kjupyter log      View the server logs
+        - kjupyter console  Start an interactive ipython console
+        - kjupyter url      View the server url
+        - kjupyter tunnel   Echo bash code to create an ssh tunnel to the server
 """

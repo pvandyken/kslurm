@@ -2,6 +2,7 @@ from __future__ import absolute_import, annotations
 
 import importlib.resources as impr
 import os
+import shutil as sh
 import subprocess as sp
 from pathlib import Path
 
@@ -52,13 +53,12 @@ class Shell:
 
         if name != "bash":
             print("At this time, only bash shell is supported.")
-            exe = sp.run(["command", "-v", "bash"], capture_output=True)
-            try:
-                exe.check_returncode()
-            except sp.CalledProcessError:
-                print("No bash executable found on $PATH. Aborting")
+            if not (path := sh.which("bash")):
+                raise ShellDetectionFailure(
+                    "No bash executable found on $PATH. Aborting"
+                )
+
             name = "bash"
-            path = exe.stdout.decode()
 
         cls._shell = cls(name, path)
 
@@ -81,8 +81,9 @@ class Shell:
 
         if self._name == "bash":
             with impr.path("kslurm.bin", "kpy-init.sh") as path:
-                os.environ["activate_path"] = str(activate_path)
-                return f"activate_path={activate_path}; . {path.resolve()}"
+                return (
+                    f"activate_path={activate_path}; _skiprc=true; . {path.resolve()}"
+                )
         return ""
 
     def _get_activate_script(self) -> str:

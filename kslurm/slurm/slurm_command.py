@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import importlib.resources as impr
 import os
@@ -8,11 +8,17 @@ from pathlib import Path
 from typing import List, Union
 
 import kslurm.appconfig as appconfig
+import kslurm.bin
 import kslurm.models.job_templates as templates
 import kslurm.slurm.helpers as helpers
 from kslurm.args.command import Parsers
 from kslurm.exceptions import TemplateError, ValidationError
 from kslurm.models.slurm import SlurmModel
+
+_LOAD_ENV = (
+    "[[ -e $HOME/.bashrc ]] && source $HOME/.bashrc; "
+    "source {path}; kpy {method} {name};"
+)
 
 
 class SlurmCommand:
@@ -142,13 +148,20 @@ class SlurmCommand:
 
     @property
     def script(self):
-        return "\n".join(["#!/bin/bash", self.venv, self.command])
+        return "\n".join(["#!/bin/bash", self.venv_load, self.command])
 
     @property
-    def venv(self):
+    def venv_load(self):
         if self._venv:
-            with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
-                return f"source {path}; kpy load {self._venv}; "
+            with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+                return _LOAD_ENV.format(path=path, method="load", name=self._venv)
+        return ""
+
+    @property
+    def venv_activate(self):
+        if self._venv:
+            with impr.path(kslurm.bin, "kpy-wrapper.sh") as path:
+                return _LOAD_ENV.format(path=path, method="activate", name=self._venv)
         return ""
 
     ###
@@ -159,12 +172,12 @@ class SlurmCommand:
         if self.command:
             if os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOBID"):
                 return f"srun {self.slurm_args} {self.command}"
-            command = self.venv + self.command
+            command = self.venv_load + self.command
             return f"srun {self.slurm_args} bash -c {shlex.quote(command)}"
         command = (
             "srun --pty bash -c "
-            + shlex.quote(f'bash --init-file <(echo "{self.venv}";)')
-            if self.venv
+            + shlex.quote(f'bash --init-file <(echo "{self.venv_load}";)')
+            if self.venv_load
             else ""
         )
         return f"salloc {self.slurm_args} {command}"

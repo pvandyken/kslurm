@@ -12,6 +12,7 @@ from kslurm.args.command import Parsers, command
 from kslurm.exceptions import TemplateError
 from kslurm.models.slurm import SlurmModel
 from kslurm.slurm.slurm_command import SlurmCommand
+from kslurm.style import console
 
 
 @command(terminate_on_unknown=True)
@@ -36,7 +37,7 @@ def kbatch(
     slurm = SlurmCommand(args, command_args, arglist)
     command = slurm.command if slurm.command else f"{Fore.RED}Must provide a command"
 
-    print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
+    console.print(txt.KBATCH_MSG.format(slurm_args=slurm.slurm_args, command=command))
     if slurm.command:
         test = subprocess.run(slurm.batch_test, shell=True, capture_output=True)
 

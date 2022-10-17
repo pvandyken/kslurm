@@ -1,6 +1,7 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import itertools as it
+import re
 import typing
 from collections import defaultdict
 from typing import (
@@ -18,9 +19,18 @@ from typing import (
 )
 
 import attr
+import docstring_parser as docparse
+import more_itertools as itx
 
 from kslurm.args import actions
-from kslurm.args.arg import Arg, ParamInterface, ParamSet, Parser, SimpleParsable
+from kslurm.args.arg import (
+    Arg,
+    Helpable,
+    ParamInterface,
+    ParamSet,
+    Parser,
+    SimpleParsable,
+)
 from kslurm.exceptions import CommandLineError
 
 T = TypeVar("T")
@@ -124,27 +134,27 @@ class ParamAnnotation:
     root_type: type[Any]
 
     @classmethod
-    def parse(cls, _t: Optional[type[Any]], /):
+    def parse(cls, __t: Optional[type[Any]], /):
         optional = False
         is_generic = False
         is_list = False
-        if typing.get_origin(_t) == Union and type(None) in (
-            args := typing.get_args(_t)
+        if typing.get_origin(__t) == Union and type(None) in (
+            args := typing.get_args(__t)
         ):
             i = args.index(type(None))
             rest = (*args[:i], *args[i + 1 :])
             if len(rest) > 1 or not len(rest):
                 raise TypeError()
             optional = True
-            _t = rest[0]
-        main_type = _t
-        if len(typing.get_args(_t)):
+            __t = rest[0]
+        main_type = __t
+        if len(typing.get_args(__t)):
             is_generic = True
-        if typing.get_origin(_t) == list:
+        if typing.get_origin(__t) == list:
             is_list = True
-            _t = typing.get_args(_t)[0]
-        if _t is None:
-            _t = Literal[None]
+            __t = typing.get_args(__t)[0]
+        if __t is None:
+            __t = Literal[None]
         if main_type is None:
             main_type = Literal[None]
         return cls(
@@ -152,14 +162,50 @@ class ParamAnnotation:
             is_generic=is_generic,
             is_list=is_list,
             main_type=main_type,
-            root_type=_t,
+            root_type=__t,
         )
+
+
+def _at_least(__iter: Iterable[T], __n: int, __default: T, /):
+    i = 0
+    for el in __iter:
+        i += 1
+        yield el
+    yield from it.repeat(__default, max(__n - 1, 0))
+
+
+def _parse_description(desc: str):
+    x = [
+        (match.group(1), match.group(2))
+        if (match := re.match(r"@([\w\.]+)[ ]+(.*)?$", line))
+        else (None, line)
+        for line in filter(None, desc.splitlines())
+    ]
+    main, *_params = _at_least(itx.split_before(x, lambda _: _[0], maxsplit=1), 1, None)
+    params = itx.first(_params, None)
+    if params and itx.ilen(filter(lambda _: _[0] is None, params)):
+        raise Exception()
+    main = cast("list[tuple[None, str]] | None", main)
+    params = cast("list[tuple[str, str]] | None", params)
+    helptxt = " ".join([s[1] for s in main or []])
+    meta: dict[str, Any] = {}
+    for keypath, value in params or []:
+        pointer = meta
+        *keys, final = keypath.split(".")
+        for key in keys:
+            if key not in pointer:
+                pointer[key] = {}
+            pointer = pointer[key]
+        pointer[final] = value
+    return helptxt, meta
 
 
 def get_arg_dict(models: ModelType) -> ModelDict:
     if not attr.has(models):
         raise TypeError(f"{type(models)} is not a supported object for arg models")
 
+    doc = docparse.parse(models.__doc__ or "")
+    arghelps = {arg.arg_name: arg for arg in doc.params}
     fields = attr.fields(models)
     result: ModelDict = {}
     for field in fields:
@@ -188,7 +234,10 @@ def get_arg_dict(models: ModelType) -> ModelDict:
                 )
 
             if not callable(newtype):
-                raise TypeError(f"{field.name} must be annotated with a callable type")
+                raise TypeError(
+                    f"{field.name} in '{models.__qualname__}' must be annotated with a "
+                    "callable type"
+                )
 
             default = default.with_primary_parser(
                 attr.evolve(
@@ -202,6 +251,23 @@ def get_arg_dict(models: ModelType) -> ModelDict:
 
         if annotation.is_optional:
             updates["optional"] = True
+
+        if field.name in arghelps:
+            desc, meta = _parse_description(arghelps[field.name].description or "")
+            if "name" in meta:
+                updates["name"] = meta["name"]
+            if isinstance(default, Helpable):
+                updates["help"] = desc
+                if default.help_template and "help" in meta:
+                    try:
+                        updates["help_template"] = default.help_template.update_meta(
+                            **meta["help"]
+                        )
+                    except TypeError as err:
+                        raise CommandLineError(
+                            f"Unexpected param found when parsing {models} docstring, "
+                            f"attribute '{field.name}': " + err.args[0]
+                        )
 
         assert isinstance(default, ParamInterface)
         result[field.name] = attr.evolve(default, **updates)

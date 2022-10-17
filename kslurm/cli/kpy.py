@@ -9,23 +9,18 @@ import sys
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Literal, Optional, cast, overload
+from typing import Literal, Optional, overload
 
 import attr
+from shellingham import ShellDetectionFailure
 
+from kslurm.appconfig import InvalidPipdirError
 from kslurm.args import Subcommand, choice, flag, keyword, positional, shape, subcommand
 from kslurm.args.command import CommandError, command
-from kslurm.args.protocols import WrappedCommand
+from kslurm.args.help import SKIPHELP
 from kslurm.models import validators
 from kslurm.shell import Shell
-from kslurm.venv import (
-    KpyIndex,
-    MissingPipdirError,
-    PromptRefreshError,
-    VenvCache,
-    VenvPrompt,
-    rebase_venv,
-)
+from kslurm.venv import KpyIndex, PromptRefreshError, VenvCache, VenvPrompt, rebase_venv
 
 
 def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
@@ -36,6 +31,13 @@ def _get_unique_name(index: KpyIndex, stem: str = "venv", i: int = 0) -> str:
     if candidate in index:
         return _get_unique_name(index, stem, i + 1)
     return candidate
+
+
+def _get_shell():
+    try:
+        return Shell.get()
+    except ShellDetectionFailure as err:
+        raise CommandError(err.args[0])
 
 
 class MissingSlurmTmpdirError(CommandError):
@@ -76,13 +78,18 @@ def _bash():
 
 @command(inline=True)
 def _load(
-    name: str = positional(default="", help="Test help"),
+    name: str = positional(default=""),
     new_name: str = keyword(match=["--as"], format=validators.fs_name),
-    script: str = keyword(match=["--script"]),
+    script: str = keyword(match=["--script"], help=SKIPHELP),
 ):
     """Load a saved python venv
 
     Run without name to list available venvs for loading
+
+    Attributes:
+        name: Name of the venv to load. If not specified, list all available venvs
+        new_name:
+            Load the venv under a different name. Useful for loading the same venv twice
     """
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
@@ -90,14 +97,13 @@ def _load(
 
         label = new_name or name
         if label in index:
-            print(
+            raise CommandError(
                 f"An environment called '{label}' already exists. You can load "
                 f"'{name}' under a different name using --as:\n"
                 f"\tkpy load {label} --as <name>\n"
                 f"You can also activate the existing '{label}' using\n"
                 f"\tkpy activate {label}"
             )
-            return 1
         venv_dir = Path(tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp"))
     else:
         index = None
@@ -130,7 +136,7 @@ def _load(
         index[label] = str(venv_dir)
         index.write()
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(venv_dir))
@@ -141,23 +147,25 @@ def _load(
 @command(inline=True)
 def _export(
     mode: str = choice(["venv"], help="What sort of export to perform"),
-    name: str = positional(help="Name of the venv to export"),
-    path: Path = keyword(["--path", "-p"], default=None, help="Path for the export"),
+    name: str = positional(),
+    path: Path = keyword(["--path", "-p"], default=None),
 ):
     """Export a saved venv
 
     Saves to a path of choice. Currently "venv" is the only valid export mode. Exported
     venvs can only be safely activated by a bash shell.
+
+    Attributes:
+        name: Name of the venv to export
+        path: Path for the export
     """
     venv_cache = VenvCache()
 
     if name not in venv_cache:
-        print("Valid venvs:\n" + str(venv_cache))
-        return 1
+        raise CommandError("Valid venvs:\n" + str(venv_cache))
 
     if path.exists():
-        print(f"{path} already exists")
-        return 1
+        raise CommandError(f"{path} already exists")
 
     print("exporting...")
     with tarfile.open(venv_cache[name], "r") as tar:
@@ -175,9 +183,17 @@ def _save(
     name: str = positional(format=validators.fs_name),
     force: bool = flag(match=["--force", "-f"]),
 ):
-    """Save current venv"""
+    """Save current venv
+
+    Attributes:
+        name:
+            Name to save venv under. If a venv of this name already exists, an error
+            will be thrown, unless force is used
+        force:
+            Overwrite any existing venv with chosen name
+    """
     if not os.environ.get("VIRTUAL_ENV"):
-        print(
+        raise CommandError(
             "No active virtual env detected. Please activate one, or ensure "
             "$VIRTUAL_ENV is being set correctly"
         )
@@ -193,7 +209,7 @@ def _save(
 
     dest = venv_cache.get_path(name)
 
-    _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix="tar.gz")
+    _, tmp = tempfile.mkstemp(prefix="kslurm-", suffix=".tar.gz")
 
     venv_dir = Path(os.environ["VIRTUAL_ENV"])
     prompt = VenvPrompt(venv_dir)
@@ -203,33 +219,43 @@ def _save(
     with tarfile.open(tmp, mode="w:gz") as tar:
         tar.add(venv_dir, arcname="")
 
-    if delete:
-        os.remove(dest)
     slurm_tmp = _get_slurm_tmpdir()
     if slurm_tmp:
         index = KpyIndex(slurm_tmp)
         index[name] = str(venv_dir)
         index.write()
-    shutil.move(tmp, dest)
+
+    # Do a two stage move in case tmp and dest are on different file systems, which
+    # could make the move take some time. This lets us delete the old dest at the last
+    # possible second
+    stage = dest.with_suffix(".tar.gz.tmp")
+    shutil.move(tmp, stage)
+    if delete:
+        os.remove(dest)
+    shutil.move(stage, dest)
 
 
 @command(inline=True)
 def _create(
-    name: Optional[str] = positional(
-        help="Name of the new venv", format=validators.fs_name
-    ),
+    name: Optional[str] = positional(format=validators.fs_name),
     version: Optional[str] = shape(
         match=r"^[23]\.\d{1,2}$",
-        syntax="(2|3).x",
         examples=["2.7", "3.8"],
-        help="Python version to use in new venv. An appropriate executable must be on "
-        "the $PATH (e.g. 3.7 -> python3.7",
     ),
-    script: str = keyword(match=["--script"]),
+    script: str = keyword(match=["--script"], help=SKIPHELP),
 ):
     """Create a new venv
 
     If no name provided, a placeholder name will be generated
+
+    Attributes:
+        name: Name of the new venv
+
+        version:
+            Python version to use in new venv. An appropriate executable must be on the
+            $PATH (e.g. 3.7 -> python3.7)
+
+            @help.syntax (2|3).x
     """
     if version:
         ver = ["-p", version]
@@ -250,12 +276,11 @@ def _create(
         index = KpyIndex(slurm_tmp)
         name = name if name else _get_unique_name(index, "venv")
         if name in index:
-            print(
+            raise CommandError(
                 f"An environment called '{name}' already exists. You can activate "
                 f"the existing '{name}' using\n"
                 "\tkpy activate {name}"
             )
-            return 1
 
         venv_dir = tempfile.mkdtemp(prefix="kslurm-venv-", dir=slurm_tmp / "tmp")
         no_download = ["--no-download"]
@@ -300,7 +325,7 @@ def _create(
     prompt.update_prompt(name)
     prompt.save()
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(Path(venv_dir)))
@@ -309,10 +334,16 @@ def _create(
 
 
 @command(inline=True)
-def _activate(name: Optional[str] = positional(), script: str = keyword(["--script"])):
+def _activate(
+    name: Optional[str] = positional(),
+    script: str = keyword(["--script"], help=SKIPHELP),
+):
     """Activate a venv already created or loaded
 
     Only works on compute nodes. Use kpy create or kpy load --as on a login node
+
+    Attributes:
+        name: Name of the venv to activate. If not provided, list all loaded venvs
     """
     slurm_tmp = _get_slurm_tmpdir(False)
     index = KpyIndex(slurm_tmp)
@@ -321,24 +352,23 @@ def _activate(name: Optional[str] = positional(), script: str = keyword(["--scri
         return
 
     if name not in index:
-        print(
-            f"An environment with the name '{name}' has not yet been initialized. ",
-            end="",
-        )
+        err = [f"An environment with the name '{name}' has not yet been initialized. "]
         try:
             venv_cache = VenvCache()
             if name in venv_cache:
-                print(
-                    f"The saved environment called '{name}' can be loaded using\n"
-                    f"\tkpy load {name}\n"
-                )
-        except MissingPipdirError:
+                err += [
+                    f"The saved environment called '{name}' can be loaded using",
+                    f"\tkpy load {name}\n",
+                ]
+        except InvalidPipdirError:
             pass
-        print(f"A new environment can be created using\n\tkpy create {name}")
-        print(f"Currently initialized environments:\n{index}")
-        return 1
+        err += [
+            f"A new environment can be created using\n\tkpy create {name}\n",
+            f"Currently initialized environments:\n{index}",
+        ]
+        raise CommandError("\n".join(err))
 
-    shell = Shell.get()
+    shell = _get_shell()
     if script:
         with Path(script).open("w") as f:
             f.write(shell.source(Path(index[name])))
@@ -375,42 +405,44 @@ def _refresh():
 def _kpy_wrapper(argv: list[str] = sys.argv):
     with impr.path("kslurm.bin", "kpy-wrapper.sh") as path:
         print(path)
+    return 0
 
 
 @command(inline=True)
 def _rm(name: Optional[str] = positional()):
-    try:
-        venv_cache = VenvCache()
-    except MissingPipdirError as err:
-        print(err.msg)
-        return 1
+    """Delete a venv
+    Args:
+        name (Optional[str], optional):
+            Name of the venv to delete
+
+    """
+    venv_cache = VenvCache()
 
     if not name:
-        print("Valid venvs:\n" + str(venv_cache))
-        return 1
+        raise CommandError("Valid venvs:\n" + str(venv_cache))
 
     if name not in venv_cache:
-        print(f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}")
-        return 1
+        raise CommandError(
+            f"{name} is not a valid venv. Currently saved venvs are:\n{venv_cache}"
+        )
 
     os.remove(venv_cache[name])
-    return
 
 
 @attr.frozen
 class _KpyModel:
     command: Subcommand = subcommand(
         commands={
-            "load": _load.cli,
-            "save": _save.cli,
-            "bash": _bash.cli,
-            "create": _create.cli,
-            "activate": _activate.cli,
-            "list": _list.cli,
-            "rm": _rm.cli,
-            "export": _export.cli,
-            "_refresh": _refresh.cli,
-            "_kpy_wrapper": cast(WrappedCommand, _kpy_wrapper),
+            "load": _load,
+            "save": _save,
+            "bash": _bash,
+            "create": _create,
+            "activate": _activate,
+            "list": _list,
+            "rm": _rm,
+            "export": _export,
+            "_refresh": _refresh,
+            "_kpy_wrapper": _kpy_wrapper,
         },
     )
 
@@ -424,4 +456,4 @@ def kpy(cmd_name: str, args: _KpyModel, tail: list[str]):
 
 
 if __name__ == "__main__":
-    kpy.cli(["kpy", "bash"])
+    kpy.cli(["kpy", "foo"])

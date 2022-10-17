@@ -3,11 +3,16 @@ from __future__ import absolute_import
 from pathlib import Path
 from typing import Any, Callable, Literal, NoReturn, Optional, TypeVar, overload
 
+from typing_extensions import ParamSpec
+
 import kslurm.args.arg_types as arg_types
 from kslurm.args.arg import ParamSet, Parser
+from kslurm.args.command import Command
 from kslurm.args.protocols import WrappedCommand
+from kslurm.exceptions import ValidationError
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 Subcommand = tuple[str, WrappedCommand]
 
@@ -61,9 +66,13 @@ def choice(
     name: str = ...,
 ) -> T: ...
 def subcommand(
-    commands: dict[str, WrappedCommand],
-    default: Optional[str] = ...,
+    commands: dict[str, WrappedCommand | Command[...] | Command[[]]],
+    default: Optional[WrappedCommand | Command[...] | Command[[]]] = ...,
 ) -> arg_types.Subcommand: ...
+
+class InvalidSubcommand(ValidationError):
+    pass
+
 @overload
 def shape(
     match: str,

@@ -1,4 +1,8 @@
-[[ -e $HOME/.bashrc ]] && . $HOME/.bashrc
+if [[ -z $_skiprc ]]; then
+  [[ -e $HOME/.bashrc ]] && . $HOME/.bashrc
+else
+  unset $_skiprc
+fi
 
 . $activate_path
 unset activate_path

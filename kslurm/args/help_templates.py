@@ -1,10 +1,13 @@
 from __future__ import absolute_import, annotations
 
-from typing import Optional, Union
+import itertools as it
+from typing import Any, Optional, Union
 
 import attr
 import docstring_parser as doc
+import more_itertools as itx
 from rich.text import Text
+from typing_extensions import Self
 
 from kslurm.args.arg import AbstractHelpTemplate, HelpRow
 from kslurm.args.protocols import WrappedCommand
@@ -20,8 +23,15 @@ class ShapeArg(AbstractHelpTemplate):
     examples: list[str]
 
     def _syntax_format(self, syntax: str):
-        lines = [f"[cyan bold]{line.strip()}[/]" for line in syntax.split(" | ")]
-        return "\n".join(lines)
+        return Text.assemble(
+            *itx.interleave(
+                [Text(line.strip(), style="cyan bold") for line in syntax.split(" | ")],
+                it.repeat("\n"),
+            )
+        )
+
+    def update_meta(self, **kwargs: Any) -> Self:
+        return attr.evolve(self, **kwargs)
 
     def usage(self, name: str, help: str, default: Optional[str]) -> str:
         return rf"[hot]\[{name}][/]"
@@ -31,7 +41,7 @@ class ShapeArg(AbstractHelpTemplate):
             Text(name, style="bold"),
             self._syntax_format(self.syntax),
             ("➔" if self.examples else ""),
-            Text("\n".join(self.examples)),
+            Text("\n".join(itx.always_iterable(self.examples))),
             Text(str(default), style="default_col") if default is not None else "",
             Text(help),
         ]
@@ -47,6 +57,9 @@ class PositionalArg(AbstractHelpTemplate):
             return f"[cyan]{name}[/]"
         return rf"[cyan]\[{name}][/]"
 
+    def update_meta(self, **kwargs: Any) -> Self:
+        raise NotImplementedError()
+
     def row(self, name: str, help: str, default: Optional[str]):
         return [
             Text(name, style="bold"),
@@ -58,6 +71,7 @@ class PositionalArg(AbstractHelpTemplate):
 @attr.frozen
 class SubcommandTemplate(AbstractHelpTemplate):
     title = "Commands"
+    description = "Run any command followed by -h for more information"
     header = []
 
     commands: dict[str, WrappedCommand]
@@ -65,11 +79,13 @@ class SubcommandTemplate(AbstractHelpTemplate):
     def usage(self, name: str, help: str, default: Optional[str]) -> str:
         return f"[cyan]{name}[/]"
 
+    def update_meta(self, **kwargs: Any) -> Self:
+        raise NotImplementedError()
+
     def row(
         self, name: str, help: str, default: Optional[str]
     ) -> Union[list[HelpRow], HelpRow]:
         return [
-            ["", help],
             [],
             *(
                 [

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import json
 import os
@@ -10,13 +10,8 @@ from typing import Any
 
 from virtualenv.create import pyenv_cfg  # type: ignore
 
-from kslurm.appconfig import Config
-from kslurm.args.command import CommandError
+from kslurm.appconfig import PipDir
 from kslurm.utils import get_hash
-
-
-class MissingPipdirError(CommandError):
-    pass
 
 
 class KpyIndex(UserDict[str, str]):
@@ -41,14 +36,8 @@ class KpyIndex(UserDict[str, str]):
 
 class VenvCache(UserDict[str, Path]):
     def __init__(self):
-        pipdir = Config().get("pipdir")
-        if pipdir is None:
-            raise MissingPipdirError(
-                "pipdir not set. Please set pipdir using `kslurm config pipdir "
-                "<directory>`, typically to a project-space or permanent storage "
-                "directory"
-            )
-        self.venv_cache = Path(pipdir, "venv_archives")
+        pipdir = PipDir()
+        self.venv_cache = pipdir / "venv_archives"
         self.venv_cache.mkdir(exist_ok=True)
         venvs_re = [
             re.search(r"(.+)\.tar\.gz$", str(f.name)) for f in self.venv_cache.iterdir()
@@ -130,7 +119,7 @@ class VenvPrompt:
                 r'\[\s"x[^"$]*"\s!=\sx\s\]',
                 f'[ "x{self.name}" != x ]',
             ),
-            (r'\sPS1="[^"$]*\$\{PS1\-\}"', f'PS1="({self.name}) ${{PS1-}}"'),
+            (r'\sPS1="[^"$]*\$\{PS1\-\}"', f' PS1="({self.name}) ${{PS1-}}"'),
         )
 
         # _file_sub(

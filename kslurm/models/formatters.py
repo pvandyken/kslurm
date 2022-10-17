@@ -1,8 +1,12 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 import re
 
+import pint
+
 from kslurm.exceptions import ValidationError
+
+ureg = pint.UnitRegistry()
 
 
 def time(time: str):
@@ -22,15 +26,19 @@ def time(time: str):
 
 
 def mem(mem: str):
-    match = re.match(r"^([0-9]+)[GMgm][bB]?$", mem)
-    if match:
-        num = int(match.group(1))
-    else:
+    if not (match := re.match(r"^([0-9]+[GMKgmk][Ii]?)[bB]?$", mem)):
         raise ValidationError(
             "Memory is not formatted correctly. Must be xxx(G|M)[B], e.g. 32G, 4000MB, "
             "etc"
         )
-    if "G" in mem or "g" in mem:
-        return num * 1000
-    else:
-        return num
+    return int(
+        ureg(
+            (match.group(1) + "B")
+            .upper()
+            .replace("K", "k")
+            .replace("I", "i")
+            .replace("ki", "Ki")
+        )
+        .to("megabyte")  # type: ignore
+        .m
+    )

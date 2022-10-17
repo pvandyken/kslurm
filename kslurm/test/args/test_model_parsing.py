@@ -2,7 +2,7 @@
 
 # from typing import Any, List, NamedTuple
 
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 # import pytest
 # from _pytest.fixtures import SubRequest

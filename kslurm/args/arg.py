@@ -1,6 +1,7 @@
 from __future__ import absolute_import, annotations
 
 import abc
+import textwrap as txt
 from typing import (
     Any,
     Callable,
@@ -28,21 +29,69 @@ S = TypeVar("S")
 HelpRow = Union[list[Union[Text, str]], list[Text], list[str]]
 
 
+class _SkipHelp:
+    """
+    Sentinel class to indicate argument should not be shown in help messages
+
+    ``_SkipHelp`` is a singleton. There is only ever one of it.
+
+    """
+
+    _singleton = None
+
+    def __new__(cls):
+        if _SkipHelp._singleton is None:
+            _SkipHelp._singleton = super(_SkipHelp, cls).__new__(cls)
+        return _SkipHelp._singleton
+
+    def __repr__(self):
+        return "SKIPHELP"
+
+    def __bool__(self):
+        return False
+
+    def __len__(self):
+        return 0  # __bool__ for Python 2
+
+    pass
+
+
+SKIPHELP: Any = _SkipHelp()
+
+
+def _mandatoryarg_err(label: str, help: str | None = None):
+    return MandatoryArgError(
+        f"{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}\n"
+        + txt.indent(
+            f"{Style.BRIGHT}'{label}'{Style.RESET_ALL} has not been "
+            "provided a value.\n",
+            "    ",
+        )
+        + (
+            f"{Fore.CYAN + Style.BRIGHT}HELP:{Style.RESET_ALL}\n"
+            + txt.indent(f"{help}", "    ")
+            if help
+            else ""
+        )
+    )
+
+
 class AbstractHelpEntry(abc.ABC):
     title: str
     header: list[str]
 
     @abc.abstractproperty
     def usage(self) -> str:
-        raise NotImplementedError()
+        ...
 
     @abc.abstractmethod
     def row(self) -> list[Union[Text, str]]:
-        raise NotImplementedError()
+        ...
 
 
 class AbstractHelpTemplate(abc.ABC):
     title: str
+    description: str | None = None
     header: list[str]
     cls_usage: str = ""
     rows: dict[str, list[HelpRow]] = DefaultDict(list)
@@ -53,21 +102,26 @@ class AbstractHelpTemplate(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
+    def update_meta(self, **kwargs: Any) -> Self:
+        ...
+
+    @abc.abstractmethod
     def row(
         self, name: str, help: str, default: Optional[str]
-    ) -> Union[list[HelpRow], HelpRow]:
-        raise NotImplementedError()
+    ) -> Union[list[HelpRow], HelpRow, None]:
+        ...
 
     def add_row(self, name: str, help: str, default: Optional[str]) -> None:
         new_row = self.row(name, help, default)
-        if new_row and all([isinstance(row, list) for row in new_row]):
-            self.rows[self.__class__.__name__].extend(new_row)  # type: ignore
-        elif new_row and all([not isinstance(row, list) for row in new_row]):
-            self.rows[self.__class__.__name__].append(new_row)  # type: ignore
-        else:
-            raise TypeError(
-                f"row() in {self} must not return mixture of lists and items"
-            )
+        if new_row:
+            if all([isinstance(row, list) for row in new_row]):
+                self.rows[self.__class__.__name__].extend(new_row)  # type: ignore
+            elif all([not isinstance(row, list) for row in new_row]):
+                self.rows[self.__class__.__name__].append(new_row)  # type: ignore
+            else:
+                raise TypeError(
+                    f"row() in {self} must not return mixture of lists and items"
+                )
 
     @classmethod
     def table(cls):
@@ -144,7 +198,6 @@ class Parser(Generic[T]):
 class ParamInterface(abc.ABC, Generic[T]):
     id: str
     name: str
-    validation_err: Optional[ValidationError]
 
     @property
     @abc.abstractmethod
@@ -255,8 +308,13 @@ class SimpleParsable(abc.ABC, Generic[T]):
         ...
 
 
+class Helpable(abc.ABC):
+    help: str
+    help_template: Optional[AbstractHelpTemplate]
+
+
 @attr.frozen(eq=False)
-class Arg(ParamInterface[T], SimpleParsable[T]):
+class Arg(ParamInterface[T], SimpleParsable[T], Helpable):
     parser: Parser[T]
     default: Optional[T] = None
     id: str = ""
@@ -264,7 +322,6 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
     help: str = ""
     help_template: Optional[AbstractHelpTemplate] = None
     name: str = ""
-    validation_err: Optional[ValidationError] = None
     optional: bool = False
 
     _value: Optional[T] = None
@@ -277,11 +334,7 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
         if self.default is not None:
             return self.default
 
-        raise MandatoryArgError(
-            f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value.
-        """
-        )
+        raise _mandatoryarg_err(self.label, self.help)
 
     @property
     def assigned_value(self) -> Optional[T]:
@@ -310,10 +363,7 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
             value = {self.id: self.default}
         else:
             value = {}
-            err = err or MandatoryArgError(
-                f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value."""
-            )
+            err = err or _mandatoryarg_err(self.label, self.help)
 
         err_dict = {parser.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)
@@ -342,13 +392,12 @@ class Arg(ParamInterface[T], SimpleParsable[T]):
 
 
 @attr.frozen
-class ParamSet(ParamInterface[T], SimpleParsable[T]):
+class ParamSet(ParamInterface[T], SimpleParsable[T], Helpable):
     parent: Parser[bool]
     child: Parser[T]
     default: Optional[T] = None
     id: str = ""
     name: str = ""
-    validation_err: Optional[ValidationError] = None
     help: str = ""
     help_template: Optional[AbstractHelpTemplate] = None
     optional: bool = False
@@ -361,11 +410,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T]):
         if self.default is not None:
             return self.default
 
-        raise MandatoryArgError(
-            f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value.
-        """
-        )
+        raise _mandatoryarg_err(self.label, self.help)
 
     @property
     def assigned_value(self):
@@ -397,10 +442,7 @@ class ParamSet(ParamInterface[T], SimpleParsable[T]):
 
         else:
             value = {}
-            err = err or MandatoryArgError(
-                f"""{Fore.RED + Style.BRIGHT}ERROR:{Style.RESET_ALL}
-    {Style.BRIGHT + self.label + Style.RESET_ALL} has not been provided a value."""
-            )
+            err = err or _mandatoryarg_err(self.label, self.help)
 
         err_dict = {child.id: err} if err is not None else {}
         extras = self._get_parser_extras(parsers, raw_values, updated)

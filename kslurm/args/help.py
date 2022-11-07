@@ -31,6 +31,10 @@ class BasicTemplate(AbstractHelpTemplate):
     def update_meta(self, **kwargs: Any) -> Self:
         raise NotImplementedError()
 
+    @property
+    def help(self):
+        return ""
+
 
 def _header(header: str):
     return f"[bold green]{header.upper()}[/bold green]"

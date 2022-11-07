@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kslurm"
-version = "0.5.1-pre.3"
+version = "0.5.1-pre.4"
 description = "Helper scripts and wrappers for running commands on SLURM compute clusters."
 license = "MIT"
 readme = "README.md"

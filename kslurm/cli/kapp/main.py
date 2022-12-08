@@ -138,11 +138,11 @@ def _pull(
         if r.status_code >= 400:
             raise CommandError("Unable to retrieve container download script")
         script = r.text
-        hashed = impr.read_text("kslurm.data", "download_frozen_container.hash")
-        if get_hash(script, method="sha512") != hashed.strip():
-            raise CommandError(
-                "Frozen image download script does not match hash. Cannot continue."
-            )
+        # hashed = impr.read_text("kslurm.data", "download_frozen_container.hash")
+        # if get_hash(script, method="sha512") != hashed.strip():
+        #     raise CommandError(
+        #         "Frozen image download script does not match hash. Cannot continue."
+        #     )
         cache[url] = script
         os.chmod(cache.get_path(url), 0o776)
 

@@ -190,7 +190,12 @@ class SlurmCommand:
             s = f"sbatch {self.slurm_args} --parsable {self.output}"
         if self.command:
             if "/" in self._command[0] and Path(self._command[0]).is_file():
-                return f"{s} {self.command}"
+                try:
+                    with open(self._command[0], "r", encoding="utf-8") as f:
+                        if f.readline().startswith("#/"):
+                            return f"{s} {self.command}"
+                except UnicodeDecodeError:
+                    pass
             return f"echo {shlex.quote(self.script)} | {s}"
         else:
             raise ValidationError("No command given")

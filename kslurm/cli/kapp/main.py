@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
-import importlib.resources as impr
 import os
 import os.path
-import shutil
 import subprocess as sp
 import tarfile
 from pathlib import Path
@@ -112,7 +110,6 @@ def _pull(
         ).execute():
             return
 
-
     image_path = _SINGULARITY_DIR.get_data_path(app)
 
     # Small images we can directly use the singularity command
@@ -181,7 +178,7 @@ def _pull(
         ]
     )
     if ret == 0:
-        shutil.rmtree(_SINGULARITY_DIR.work)
+        os.remove(frozen_image)
 
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
     return ret

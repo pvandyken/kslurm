@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kslurm"
-version = "0.6.2-pre.1"
+version = "0.0.0"
 description = "Helper scripts and wrappers for running commands on SLURM compute clusters."
 license = "MIT"
 readme = "README.md"
@@ -24,6 +24,14 @@ packages = [
     { include = "kslurm" },
     { include = "neuroglia_helpers" }
 ]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+dirty = true
+style = "pep440"
+bump = true
+
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
@@ -68,7 +76,7 @@ kapp = 'kslurm.cli.kapp.main:kapp.cli'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.isort]
 profile = "black"

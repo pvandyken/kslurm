@@ -75,7 +75,7 @@ kpy = 'kslurm.cli.kpy:kpy.cli'
 kapp = 'kslurm.cli.kapp.main:kapp.cli'
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.isort]

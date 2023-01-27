@@ -89,7 +89,6 @@ class URI:
 class Container:
     uri: URI
     friendly_uri: Optional[URI] = None
-    docker_data: Optional["DockerData"] = None
 
     @classmethod
     def from_uri(
@@ -105,11 +104,7 @@ class Container:
         actual = attrs.evolve(
             default, **dict(filter(op.itemgetter(1), attrs.asdict(given).items()))
         )
-        if lookup_digest and actual.scheme == "docker":
-            data = DockerData.from_uri(actual)
-        else:
-            data = None
-        return cls(uri=actual, friendly_uri=given, docker_data=data)
+        return cls(uri=actual, friendly_uri=given)
 
     @classmethod
     def from_uri_path(cls, path: Union[Path, str]):
@@ -133,9 +128,14 @@ class Container:
         return cls(uri=uri, friendly_uri=friendly_uri)
 
     @property
+    def manifest(self):
+        return ContainerManifest.from_uri(self.uri)
+
+
+    @property
     def cache_path(self) -> Optional[str]:
-        if self.docker_data and self.docker_data.trimmed_digest:
-            return self.docker_data.trimmed_digest + ".sif"
+        if self.manifest and self.manifest.trimmed_digest:
+            return self.manifest.trimmed_digest + ".sif"
         return None
 
     @property
@@ -158,13 +158,17 @@ class Container:
     def __str__(self):
         return str(self.friendly_uri or self.uri)
 
+    def download_frozen(self, dir: Path):
+        pass
+
+
 
 class ManifestError(CommandError):
     pass
 
 
 @attrs.frozen
-class DockerData:
+class ContainerManifest:
     digest: str
     size: int
 
@@ -187,7 +191,7 @@ class DockerData:
     @classmethod
     def from_uri(
         cls, uri: URI, digest: Optional[str] = None, token: Optional[str] = None
-    ) -> Optional["DockerData"]:
+    ) -> Optional["ContainerManifest"]:
         if token is None:
             token = requests.get(
                 f"{AUTHBASE}/token",

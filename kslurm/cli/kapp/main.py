@@ -38,8 +38,8 @@ def _update_aliases(
     uri: str,
     alias: Optional[ContainerAlias],
 ):
-    if singularity_dir.update_uri_link(app) and app.docker_data:
-        print(f"Updated '{uri}' to '{app.docker_data.digest}'")
+    if singularity_dir.update_uri_link(app) and app.manifest:
+        print(f"Updated '{uri}' to '{app.manifest.digest}'")
     else:
         print(f"{uri} already up to date")
     if alias is not None:
@@ -113,7 +113,7 @@ def _pull(
     image_path = _SINGULARITY_DIR.get_data_path(app)
 
     # Small images we can directly use the singularity command
-    if app.docker_data and app.docker_data.size_mb < 200 and not mem:
+    if app.manifest and app.manifest.size_mb < 200 and not mem:
         sp.run(["singularity", "pull", str(image_path), app.uri.uri])
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
         return
@@ -163,7 +163,7 @@ def _pull(
     mem = (
         mem
         if mem
-        else (min(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
+        else (min(64000, app.manifest.size_mb * 20) if app.manifest else 8000)
     )
     ret = krun.cli(
         [

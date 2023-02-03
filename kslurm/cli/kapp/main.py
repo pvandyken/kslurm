@@ -5,6 +5,7 @@ import os.path
 import subprocess as sp
 import tarfile
 from pathlib import Path
+import shutil
 from typing import DefaultDict, Optional
 
 import attrs
@@ -143,7 +144,8 @@ def _pull(
         cache[url] = script
         os.chmod(cache.get_path(url), 0o776)
 
-    frozen_image = _SINGULARITY_DIR.work / get_hash(app.uri.address)
+    workdir = _SINGULARITY_DIR.work / get_hash(app.uri.address)
+    frozen_image = workdir / "image"
     proc = sp.run(
         [
             str(cache.get_path(url)),
@@ -178,7 +180,7 @@ def _pull(
         ]
     )
     if ret == 0:
-        os.remove(frozen_image)
+        shutil.rmtree(workdir)
 
         _update_aliases(_SINGULARITY_DIR, app, uri, alias)
     return ret

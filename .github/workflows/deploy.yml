@@ -4,12 +4,6 @@ name: Deploy workflow
 on:
   workflow_dispatch:
     inputs:
-      author:
-        description: "Author"
-        required: true
-      date:
-        description: "Date (YYYY-MM-DD)"
-        required: true
       comments:
         description: "Comments"
         required: false
@@ -74,6 +68,10 @@ jobs:
       - name: Fetch tags
         run: |
           git fetch --tags
+
+      - name: Init submodules
+        run: |
+          git submodule update --init
 
       - name: Set up Python
         uses: actions/setup-python@v2

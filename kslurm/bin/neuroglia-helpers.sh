@@ -1,4 +1,4 @@
-module load singularity python/3
+module load apptainer python/3
 
 #light version doesn't display welcome message
 if [ "$#" = 1 ]

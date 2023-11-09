@@ -322,7 +322,7 @@ class SingularityDir(type(Path())):
                 if uri_path.exists():
                     if not uri_path.is_symlink():
                         os.remove(uri_path)
-                    elif cache_path.samefile(os.readlink(uri_path)):
+                    elif Path(cache_path).samefile(os.readlink(uri_path)):
                         return False
                     else:
                         os.unlink(uri_path)

@@ -1,6 +1,6 @@
 # This represents a fairly significant load time for shells. A clever way of caching would be ideal
 if [[ -z $KSLURM_COMPUTE_NODES ]]; then
-  export KSLURM_COMPUTE_NODES=$(sinfo -N -h | awk '{print $1'} | sort -u)
+  export KSLURM_COMPUTE_NODES=$(sinfo -N -h -o "%N" | uniq)
 fi
 
 pip () {

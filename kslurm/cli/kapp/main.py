@@ -75,6 +75,10 @@ def _pull(
         ["--mem"],
         format=formatters.mem,
         help="Amount of memory to allocate when building image",
+    ),
+    time: int = keyword(
+        ["--time"],
+        help="Amount of time in hours to allocate when building image"
     )
     # executable: bool = flag(
     #     ["-x", "--exe"], help="Include --name as an executable on the $PATH"
@@ -167,10 +171,15 @@ def _pull(
         if mem
         else (min(64000, app.docker_data.size_mb * 20) if app.docker_data else 8000)
     )
+    time = (
+        time
+        if time
+        else ("1")
+    )
     ret = krun.cli(
         [
             "krun",
-            "1:00",
+            f"{time}:00",
             f"{mem}M",
             "singularity",
             "build",
